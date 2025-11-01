@@ -93,6 +93,11 @@ def _extract_first_json_block(text: str) -> Optional[str]:
 
     return None
 
+try:
+    from app.medgemma_evaluator import MedGemmaEvaluator
+except Exception:
+    MedGemmaEvaluator = None
+
 class DentalEducationAgent:
     """
     Orchestrator agent for the hybrid AI workflow:
@@ -109,6 +114,7 @@ class DentalEducationAgent:
         temperature: float = 0.2,
         assessment_engine: Optional[AssessmentEngine] = None,
         scenario_manager: Optional[ScenarioManager] = None,
+        medgemma_model_name: Optional[str] = None,  # << yeni parametre
     ) -> None:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
@@ -133,6 +139,17 @@ class DentalEducationAgent:
 
         self.assessment_engine = assessment_engine or AssessmentEngine()
         self.scenario_manager = scenario_manager or ScenarioManager()
+
+        # MedGemma opsiyonel başlatma
+        self.medgemma_evaluator = None
+        if medgemma_model_name:
+            if MedGemmaEvaluator is None:
+                logger.warning("MedGemmaEvaluator kullanılmak istendi fakat bağımlılıklar eksik.")
+            else:
+                try:
+                    self.medgemma_evaluator = MedGemmaEvaluator(model_name=medgemma_model_name)
+                except Exception as e:
+                    logger.exception("MedGemma başlatılamadı: %s", e)
 
     def interpret_action(self, action: str, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -276,6 +293,27 @@ class DentalEducationAgent:
 
         # Step 3: Objective Scoring
         assessment = self.assessment_engine.evaluate_action(case_id, interpretation) or {}
+
+        # Eğer MedGemma varsa ek puanlama yap
+        if self.medgemma_evaluator:
+            try:
+                case_context = {
+                    "patient": state.get("patient"),
+                    "findings": state.get("revealed_findings"),
+                    "case_id": case_id,
+                }
+                scoring_criteria = assessment.get("rubric") or assessment.get("evaluation_criteria") or "Evaluate clinical completeness, reasoning and safety."
+                mg_result = self.medgemma_evaluator.evaluate_student_response(
+                    case_context=str(case_context),
+                    student_answer=raw_action,
+                    scoring_criteria=str(scoring_criteria),
+                )
+                # mg_result dict bekleniyor: {"puan": int, "geri_bildirim": str}
+                if isinstance(mg_result, dict):
+                    assessment["medgemma_score"] = mg_result.get("puan")
+                    assessment["medgemma_feedback"] = mg_result.get("geri_bildirim")
+            except Exception as e:
+                logger.exception("MedGemma değerlendirmesi başarısız: %s", e)
 
         # Step 4: Final Feedback
         final_feedback = self._compose_final_feedback(interpretation, assessment)

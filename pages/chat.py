@@ -220,7 +220,13 @@ def main() -> None:
     agent_err = None
     if DentalEducationAgent:
         try:
-            agent_instance = DentalEducationAgent(api_key=GEMINI_API_KEY, model_name=st.session_state.selected_model)
+            # MEDGEMMA model adını ortamdan oku (yoksa None)
+            medgemma_model = os.getenv("MEDGEMMA_MODEL_NAME") or os.getenv("MEDGEMMA_MODEL")
+            agent_instance = DentalEducationAgent(
+                api_key=GEMINI_API_KEY,
+                model_name=st.session_state.selected_model,
+                medgemma_model_name=medgemma_model,
+            )
         except Exception as e:
             agent_err = str(e)
             LOGGER.info("Agent başlatılamadı, fallback ile devam edilecek: %s", e)

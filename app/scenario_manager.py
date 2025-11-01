@@ -28,7 +28,7 @@ class ScenarioManager:
         """
         Load all cases from JSON.
         - On error, log and keep an empty list.
-        - Accepts top-level list, or dict with "cases" list.
+        - Accepts top-level list, or dict with "cases" list, or a single case dict.
         """
         try:
             with open(self._cases_path, "r", encoding="utf-8") as f:
@@ -36,16 +36,30 @@ class ScenarioManager:
 
             if isinstance(data, list):
                 self.case_data = data
-            elif isinstance(data, dict) and isinstance(data.get("cases"), list):
-                self.case_data = data.get("cases", [])
+            elif isinstance(data, dict):
+                # prefer explicit 'cases' list
+                if isinstance(data.get("cases"), list):
+                    self.case_data = data.get("cases", [])
+                else:
+                    # if this dict looks like a single case, wrap it into a list
+                    if "case_id" in data or "id" in data or "hasta_profili" in data or "classification" in data:
+                        single = dict(data)
+                        # normalize 'id' -> 'case_id' for internal use if needed
+                        if "id" in single and "case_id" not in single:
+                            single["case_id"] = single.pop("id")
+                        self.case_data = [single]
+                    else:
+                        logger.error("Unexpected structure in case_scenarios.json; expected a list or a dict with 'cases'.")
+                        self.case_data = []
+
             else:
-                logger.error("Unexpected structure in case_scenarios.json; expected a list or a dict with 'cases'.")
+                logger.error("Unexpected structure in case_scenarios.json; expected list or dict.")
                 self.case_data = []
 
             # Determine default case_id from the first case, if available
             if self.case_data:
                 first_case = self.case_data[0]
-                cid = first_case.get("case_id")
+                cid = first_case.get("case_id") or first_case.get("id")
                 if isinstance(cid, str) and cid:
                     self._default_case_id = cid
 
@@ -125,7 +139,7 @@ def load_scenarios_flex(path: str) -> List[Dict[str, Any]]:
         with open(path, "r", encoding="utf-8") as f:
             raw = json.load(f)
     except Exception as e:
-        LOGGER.exception("Senaryo dosyası açılamadı: %s", e)
+        logger.exception("Senaryo dosyası açılamadı: %s", e)
         return []
 
     # Listeyse direkt döndür
@@ -142,10 +156,11 @@ def load_scenarios_flex(path: str) -> List[Dict[str, Any]]:
             if key in raw and isinstance(raw[key], list):
                 return raw[key]
         # eğer dict tek vaka objesi ise onu listeye sar
-        # (ör: {"case_id": "...", ...})
-        # basit kontrol: varsa 'case_id' anahtarı tek vaka varsay
-        if "case_id" in raw or "id" in raw:
-            return [raw]
+        if "case_id" in raw or "id" in raw or "hasta_profili" in raw:
+            single = dict(raw)
+            if "id" in single and "case_id" not in single:
+                single["case_id"] = single.pop("id")
+            return [single]
 
-    LOGGER.warning("Unexpected structure in %s; expected a list or a dict with 'cases' (found %s).", path, type(raw).__name__)
+    logger.warning("Unexpected structure in %s; expected a list or a dict with 'cases' (found %s).", path, type(raw).__name__)
     return []
