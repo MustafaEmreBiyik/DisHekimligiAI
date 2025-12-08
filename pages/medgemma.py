@@ -39,7 +39,7 @@ with st.sidebar:
     
     scenario_type = st.radio(
         "Vaka Durumu:",
-        ["Mide Ülseri (NSAID Riski)", "Penisilin Alerjisi", "Diyabetik Hasta", "Hamilelik (1. Trimester)", "Oral Liken Planus"]
+        ["Penisilin Alerjisi", "Diyabetik Hasta", "Hamilelik (1. Trimester)", "Oral Liken Planus"]
     )
 
     # Seçilen senaryoya göre "Mock" (Taklit) Kurallar ve Bağlam
