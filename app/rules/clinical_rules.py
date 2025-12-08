@@ -158,3 +158,20 @@ def get_immunologic_rules():
 
 def get_neoplastic_rules():
     return get_rules_for_category(CAT_NEOPLASTIC)
+
+def get_traumatic_rules():
+    return get_rules_for_category(CAT_TRAUMATIC)
+
+def get_systemic_rules():
+    return get_rules_for_category(CAT_SYSTEMIC)
+
+def get_developmental_rules():
+    return get_rules_for_category(CAT_DEVELOPMENTAL)
+
+def get_reactive_rules():
+    return get_rules_for_category(CAT_REACTIVE)
+
+def get_rare_conditions_rules():
+    return get_rules_for_category(CAT_RARE)
+
+
