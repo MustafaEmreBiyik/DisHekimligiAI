@@ -15,6 +15,7 @@ except ImportError as e:
 
 from app.assessment_engine import AssessmentEngine
 from app.scenario_manager import ScenarioManager
+from app.mock_responses import get_mock_interpretation
 
 
 logger = logging.getLogger(__name__)
@@ -24,16 +25,19 @@ logging.basicConfig(level=logging.INFO)
 DENTAL_EDUCATOR_PROMPT = """
 You are a dental education assistant helping to interpret student actions within a simulated clinical scenario.
 Your job is to:
-1) Interpret the student's raw action text into a normalized action key that can be scored by a rule engine.
-2) Identify the clinical intent category.
-3) Flag any safety concerns if present.
-4) Provide a short, neutral, and professional explanation for the student (1-3 sentences max).
-5) Output STRICT JSON ONLY, without additional commentary or code fences.
+1) Classify if the input is CHAT (casual conversation) or ACTION (clinical action).
+2) Interpret the student's raw action text into a normalized action key that can be scored by a rule engine.
+3) Identify the clinical intent category.
+4) Flag any safety concerns if present.
+5) Provide a short, neutral, and professional explanation for the student (1-3 sentences max).
+6) Output STRICT JSON ONLY, without additional commentary or code fences.
+7) Respect the language policy: INTERNAL LOGIC (keys) must be in English (e.g., 'check_allergies'), while EXTERNAL RESPONSE (explanatory_feedback) must be in TURKISH.
 
 CRITICAL OUTPUT REQUIREMENTS:
 - Respond with ONLY a JSON object. No markdown, no code blocks, no prose.
 - The JSON schema must be:
 {
+  "intent_type": "string: 'CHAT' | 'ACTION'. Use CHAT for greetings/questions, ACTION for clinical steps.",
   "interpreted_action": "string: normalized action key, snake_case (e.g., 'check_allergy_history')",
   "clinical_intent": "string: e.g., 'history_taking' | 'diagnosis_gathering' | 'treatment_planning' | 'patient_education' | 'infection_control' | 'radiography' | 'anesthesia' | 'restorative' | 'periodontics' | 'endodontics' | 'oral_surgery' | 'prosthodontics' | 'orthodontics' | 'follow_up' | 'other'",
   "priority": "string: 'high' | 'medium' | 'low'",
@@ -43,7 +47,7 @@ CRITICAL OUTPUT REQUIREMENTS:
 }
 
 Guidance:
-- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery']. If none fit, use 'unspecified_action'.
+- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'diagnose_herpetic_gingivostomatitis', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis']. If none fit, use 'unspecified_action'.
 - If the student's action is unclear or unsafe, set "priority" accordingly and add a safety note in "safety_concerns".
 - Prefer conservative, safety-first interpretations.
 - Use the provided scenario state context to disambiguate intent when possible.
@@ -103,7 +107,7 @@ class DentalEducationAgent:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-2.5-flash",
+        model_name: str = "models/gemini-2.5-flash-lite",  # Varsayılan: lite model (düşük maliyet)
         temperature: float = 0.2,
         assessment_engine: Optional[AssessmentEngine] = None,
         scenario_manager: Optional[ScenarioManager] = None,
@@ -134,26 +138,13 @@ class DentalEducationAgent:
 
     def interpret_action(self, action: str, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Use Gemini to convert a student's raw action into a strict JSON interpretation.
-
-        Returns a dict with keys:
-          - interpreted_action (str)
-          - clinical_intent (str)
-          - priority (str)
-          - safety_concerns (list[str])
-          - explanatory_feedback (str)
-          - structured_args (dict)
+        Use Gemini (Single Call) to convert raw action into structured JSON.
         """
-        # Provide minimal, relevant state to the prompt to reduce token usage
         context_snippet = {
             "case_id": state.get("case_id"),
             "patient_age": state.get("patient", {}).get("age"),
-            "patient_gender": state.get("patient", {}).get("gender"),
             "chief_complaint": state.get("patient", {}).get("chief_complaint"),
-            "known_allergies": state.get("patient", {}).get("allergies"),
-            "known_conditions": state.get("patient", {}).get("medical_history"),
             "revealed_findings": state.get("revealed_findings"),
-            "progress": state.get("progress"),
         }
 
         user_prompt = (
@@ -168,13 +159,26 @@ class DentalEducationAgent:
             response = self.model.generate_content(user_prompt)
             raw_text = getattr(response, "text", "") or ""
             json_str = _extract_first_json_block(raw_text)
+
             if not json_str:
+                # Eğer JSON yoksa, ama metin varsa, bunu CHAT olarak kabul et (Fallback)
+                if raw_text and len(raw_text) < 200:
+                    return {
+                        "intent_type": "CHAT",
+                        "interpreted_action": "general_chat",
+                        "explanatory_feedback": raw_text.strip(),
+                        "clinical_intent": "other",
+                        "priority": "low",
+                        "safety_concerns": [],
+                        "structured_args": {},
+                    }
                 raise ValueError("Failed to extract JSON from model response.")
 
             data = json.loads(json_str)
 
-            # Minimal schema normalization and defaults
+            # Normalize data
             interpreted = {
+                "intent_type": data.get("intent_type", "ACTION").strip(),
                 "interpreted_action": data.get("interpreted_action", "").strip(),
                 "clinical_intent": data.get("clinical_intent", "other").strip() or "other",
                 "priority": data.get("priority", "medium").strip() or "medium",
@@ -182,29 +186,34 @@ class DentalEducationAgent:
                 "explanatory_feedback": data.get("explanatory_feedback", "").strip(),
                 "structured_args": data.get("structured_args", {}) or {},
             }
-
-            # Guardrails
-            if not interpreted["interpreted_action"]:
-                # Conservative fallback if the model omitted the key
-                interpreted["interpreted_action"] = "unspecified_action"
-
-            if not isinstance(interpreted["safety_concerns"], list):
-                interpreted["safety_concerns"] = [str(interpreted["safety_concerns"])]
-
-            if not isinstance(interpreted["structured_args"], dict):
-                interpreted["structured_args"] = {}
-
             return interpreted
 
         except Exception as e:
-            logger.exception("LLM interpretation failed: %s", e)
-            # Safe fallback to keep pipeline running
+            logger.exception(f"LLM interpretation failed: {e}")
+            
+            # Kullanıcı dostu hata mesajı ve kota aşımında mock yanıt
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                logger.warning("API quota exceeded. Using mock interpretation fallback.")
+                # KOTA AŞIMI: Mock sistem ile devam et
+                try:
+                    mock_result = get_mock_interpretation(action)
+                    mock_result["explanatory_feedback"] = "⚠️ API kotası doldu (Mock sistem aktif). " + mock_result["explanatory_feedback"]
+                    return mock_result
+                except Exception as mock_err:
+                    logger.error(f"Mock interpretation failed: {mock_err}")
+                    feedback = "⏳ API günlük kullanım limiti doldu. Lütfen yarın tekrar deneyin."
+            else:
+                feedback = "Anlaşılamadı (Teknik Hata). Lütfen tekrar dener misiniz?"
+            
+            # HATA DURUMUNDA 'CHAT' OLARAK DÖN (PUANI GİZLEMEK İÇİN)
             return {
-                "interpreted_action": "unspecified_action",
+                "intent_type": "CHAT",
+                "interpreted_action": "error",
+                "explanatory_feedback": feedback,
+                "safety_concerns": [],
                 "clinical_intent": "other",
-                "priority": "medium",
-                "safety_concerns": ["LLM_interpretation_failed"],
-                "explanatory_feedback": "Your action could not be fully interpreted. Please clarify or try a more specific step.",
+                "priority": "low",
                 "structured_args": {},
             }
 
@@ -214,37 +223,33 @@ class DentalEducationAgent:
         assessment: Dict[str, Any],
     ) -> str:
         """
-        Combine LLM interpretation (tone/explanation) with objective scoring (accuracy).
+        Combines feedback.
+        - IF CHAT: Returns only the conversational text.
+        - IF ACTION: Appends Score and Outcome to the clinical explanation.
         """
+        intent_type = interpretation.get("intent_type", "ACTION")
         explanation = interpretation.get("explanatory_feedback", "").strip()
-        interpreted_action = interpretation.get("interpreted_action", "unspecified_action")
-        score = assessment.get("score")
-        outcome = assessment.get("outcome") or assessment.get("rule_outcome")
-        hints = assessment.get("hints") or assessment.get("rationale")
-        safety_notes = interpretation.get("safety_concerns") or []
 
-        parts = []
-        if explanation:
-            parts.append(explanation)
-        else:
-            parts.append(f"Interpreted your action as: {interpreted_action}.")
+        # 1. SOHBET DURUMU (Puan Yok)
+        if intent_type == "CHAT":
+            return explanation if explanation else "Sizi tam anlayamadım."
 
-        if score is not None:
-            parts.append(f"Objective score: {score}.")
-        if outcome:
-            parts.append(f"Outcome: {outcome}.")
+        # 2. KLİNİK EYLEM DURUMU (Puan Var)
+        score = assessment.get("score", 0)
+        outcome = assessment.get("rule_outcome", "Değerlendirilmedi")
+        safety_notes = interpretation.get("safety_concerns", [])
 
+        parts = [explanation]
+
+        # Güvenlik Uyarıları
         if safety_notes:
-            parts.append("Safety considerations: " + "; ".join(map(str, safety_notes)) + ".")
+            parts.append(f"\n\n⚠️ **Güvenlik Notları:** {'; '.join(map(str, safety_notes))}")
 
-        if hints:
-            if isinstance(hints, list):
-                hint_text = "; ".join(map(str, hints))
-            else:
-                hint_text = str(hints)
-            parts.append(f"Tip: {hint_text}")
+        # PUAN VE SONUÇ (Zorunlu Gösterim)
+        parts.append(f"\n\n**📊 Objektif Puan:** {score}")
+        parts.append(f"**📝 Sonuç:** {outcome}")
 
-        return " ".join(p.strip() for p in parts if p and str(p).strip())
+        return " ".join(parts)
 
     def process_student_action(self, student_id: str, raw_action: str) -> Dict[str, Any]:
         """

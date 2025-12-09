@@ -1,29 +1,44 @@
 # ...existing code...
 import os
+import sys
 import json
 import logging
 from typing import Optional, List, Tuple, Any, Dict
+
+# Add parent directory to path to allow imports from app/
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.student_profile import init_student_profile, show_profile_card
+
+# Initialize profile system
+init_student_profile()
+
 # Try optional imports (agent and genai). Failures handled at runtime.
 try:
     import google.generativeai as genai
-except Exception:
+except Exception as e:
     genai = None
+    print(f"⚠️ genai import hatası: {e}")
 
 try:
     from app.agent import DentalEducationAgent
-except Exception:
+except Exception as e:
     DentalEducationAgent = None
+    print(f"⚠️ DentalEducationAgent import hatası: {e}")
+    import traceback
+    traceback.print_exc()
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "models/gemini-2.5-flash-lite"  # Daha düşük maliyetli, yüksek limit
 MODEL_LOOKUP_LIMIT = 20
 
 
@@ -118,6 +133,40 @@ def main() -> None:
 
     # Sidebar
     with st.sidebar:
+        st.header("📂 Vaka Yönetimi")
+        
+        # Show profile card
+        show_profile_card()
+
+        # Case Mapping
+        case_options = {
+            "Oral Liken Planus (Orta)": "olp_001",
+            "Kronik Periodontitis (Zor)": "perio_001",
+            "Primer Herpes (Orta)": "herpes_primary_01",
+            "Behçet Hastalığı (Zor)": "behcet_01",
+            "Sekonder Sifiliz (Zor)": "syphilis_02"
+        }
+
+        selected_case_name = st.selectbox(
+            "Aktif Vakayı Seçiniz:",
+            list(case_options.keys()),
+            key="case_selector_box"
+        )
+
+        # Update Session State
+        selected_case_id = case_options[selected_case_name]
+
+        if "current_case_id" not in st.session_state:
+            st.session_state["current_case_id"] = "olp_001"
+
+        if st.session_state["current_case_id"] != selected_case_id:
+            st.session_state["current_case_id"] = selected_case_id
+            # VAKA DEĞİŞTİRİLDİĞİNDE STATE'İ SIFIRLA
+            st.session_state.messages = []
+            st.success(f"✅ Vaka Yüklendi: {selected_case_id}")
+            st.info("🔄 Sohbet sıfırlandı.")
+
+        st.divider()
         st.title("💬 Sohbet Ayarları")
         st.markdown("---")
         available_models = list_available_models(GEMINI_API_KEY)
@@ -140,7 +189,14 @@ def main() -> None:
             st.rerun()
         st.markdown("---")
         st.info(f"**API Durumu:** {'✅ Aktif' if GEMINI_API_KEY else '❌ Eksik'}")
-        st.info(f"**Agent entegre:** {'✅' if DentalEducationAgent else '❌ (agent yok)'}")
+        
+        # Debug: Agent import durumu
+        if DentalEducationAgent is not None:
+            st.success("**Agent entegre:** ✅ Başarılı")
+        else:
+            st.error("**Agent entegre:** ❌ Import hatası (Terminale bakın)")
+        
+        st.info(f"**Aktif Vaka:** {st.session_state.get('current_case_id', 'Seçilmedi')}")
         st.info(f"**Model:** {st.session_state.selected_model}")
         st.info(f"**Mesaj Sayısı:** {len(st.session_state.get('messages', []))}")
 
@@ -190,8 +246,48 @@ def main() -> None:
             try:
                 # Prefer agent pipeline if available
                 if agent_instance:
+                    # Get current case ID from session state
+                    current_case_id = st.session_state.get("current_case_id", "olp_001")
+                    
+                    # Update agent's scenario manager with selected case
+                    agent_instance.scenario_manager.get_state("web_user_1")["case_id"] = current_case_id
+                    
                     result = agent_instance.process_student_action(student_id="web_user_1", raw_action=prompt)
                     full_text = result.get("final_feedback") or result.get("llm_interpretation", {}).get("explanatory_feedback", "")
+                    
+                    # Save action to history
+                    interpretation = result.get("llm_interpretation", {})
+                    assessment = result.get("assessment", {})
+                    
+                    if interpretation.get("intent_type") == "ACTION":
+                        # Initialize action_history if not exists
+                        if "action_history" not in st.session_state:
+                            st.session_state.action_history = []
+                        if "total_score" not in st.session_state:
+                            st.session_state.total_score = 0
+                        if "total_actions" not in st.session_state:
+                            st.session_state.total_actions = 0
+                        
+                        # Record action
+                        from datetime import datetime
+                        action_record = {
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "case_id": current_case_id,
+                            "action": interpretation.get("interpreted_action", "unknown"),
+                            "score": assessment.get("score", 0),
+                            "outcome": assessment.get("rule_outcome", "N/A")
+                        }
+                        st.session_state.action_history.append(action_record)
+                        st.session_state.total_score += assessment.get("score", 0)
+                        st.session_state.total_actions += 1
+                        
+                        # Save to profile if logged in
+                        if st.session_state.get("is_logged_in") and st.session_state.get("student_profile"):
+                            from app.student_profile import update_profile_stats
+                            update_profile_stats(
+                                st.session_state.student_profile["student_id"],
+                                action_record
+                            )
                     if not full_text:
                         full_text = "(Agent yanıt üretmedi. Lütfen API anahtarını veya modeli kontrol edin.)"
                     placeholder.markdown(full_text)
