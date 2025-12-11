@@ -31,7 +31,3 @@ dist/
 
 # Log dosyaları
 *.log
-
-# MD klasörü
-md/
-

@@ -101,7 +101,7 @@ def show_login_form():
         st.markdown("**Mevcut Hesabınızla Giriş Yapın**")
         login_id = st.text_input("Öğrenci Numaranız:", key="login_id", placeholder="Örn: 2021001")
         
-        if st.button("Giriş Yap", type="primary", width="stretch"):
+        if st.button("Giriş Yap", type="primary", use_container_width=True):
             if login_id:
                 profile = login_student(login_id)
                 if profile:
@@ -126,7 +126,7 @@ def show_login_form():
         new_name = st.text_input("Adınız Soyadınız:", key="new_name", placeholder="Örn: Ahmet Yılmaz")
         new_id = st.text_input("Öğrenci Numaranız:", key="new_id", placeholder="Örn: 2021001")
         
-        if st.button("Kayıt Ol", type="primary", width="stretch"):
+        if st.button("Kayıt Ol", type="primary", use_container_width=True):
             if new_name and new_id:
                 profiles = load_profiles()
                 if new_id in profiles:
@@ -160,7 +160,7 @@ def show_profile_card():
 Son Giriş: {profile.get('last_login', 'N/A')}
         """)
         
-        if st.sidebar.button("🚪 Çıkış Yap", width="stretch"):
+        if st.sidebar.button("🚪 Çıkış Yap", use_container_width=True):
             # Save current stats before logout
             if "student_profile" in st.session_state:
                 student_id = st.session_state.student_profile["student_id"]

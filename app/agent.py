@@ -16,8 +16,6 @@ except ImportError as e:
 from app.assessment_engine import AssessmentEngine
 from app.scenario_manager import ScenarioManager
 from app.mock_responses import get_mock_interpretation
-from app.services.med_gemma_service import MedGemmaService
-from app.services.rule_service import rule_service
 
 
 logger = logging.getLogger(__name__)
@@ -137,14 +135,6 @@ class DentalEducationAgent:
 
         self.assessment_engine = assessment_engine or AssessmentEngine()
         self.scenario_manager = scenario_manager or ScenarioManager()
-        
-        # MedGemma: Silent Grader (Arka planda çalışır)
-        try:
-            self.med_gemma = MedGemmaService()
-            logger.info("MedGemma servis başarıyla başlatıldı (Silent Evaluator)")
-        except Exception as e:
-            logger.warning(f"MedGemma başlatılamadı: {e}. Sessiz değerlendirme olmadan devam edilecek.")
-            self.med_gemma = None
 
     def interpret_action(self, action: str, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -227,121 +217,75 @@ class DentalEducationAgent:
                 "structured_args": {},
             }
 
-    def _silent_evaluation(
-        self, 
-        student_input: str, 
-        interpreted_action: str, 
-        state: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        MedGemma sessizce arka planda değerlendirme yapar.
-        Bu fonksiyon konuşma akışını ENGELLEMEZ.
-        Değerlendirme başarısız olursa boş dict döner.
-        """
-        if not self.med_gemma:
-            logger.debug("MedGemma mevcut değil, sessiz değerlendirme atlanıyor")
-            return {}
-
-        try:
-            case_id = state.get("case_id", "default_case")
-            category = state.get("category", "GENERAL")
-            
-            # Kategori için aktif kuralları al
-            rules = rule_service.get_active_rules(category)
-            
-            # Hasta bağlamı özeti oluştur
-            patient = state.get("patient", {})
-            context_summary = (
-                f"Hasta: {patient.get('age', 'Bilinmiyor')} yaşında. "
-                f"Şikayet: {patient.get('chief_complaint', 'Belirtilmemiş')}. "
-                f"Bulgular: {', '.join(state.get('revealed_findings', []))}"
-            )
-            
-            # MedGemma'yı çağır (sessiz değerlendirme)
-            logger.info(f"[Sessiz Değerlendirme] Başlatılıyor: {interpreted_action}")
-            evaluation = self.med_gemma.validate_clinical_action(
-                student_text=student_input,
-                rules=rules,
-                context_summary=context_summary
-            )
-            
-            logger.info(f"[Sessiz Değerlendirme] Tamamlandı: {evaluation.get('is_clinically_accurate', 'Bilinmiyor')}")
-            return evaluation
-            
-        except Exception as e:
-            logger.warning(f"Sessiz değerlendirme başarısız (kritik değil): {e}")
-            return {}
-
     def _compose_final_feedback(
-        self, 
-        interpretation: Dict[str, Any], 
-        assessment: Dict[str, Any]
+        self,
+        interpretation: Dict[str, Any],
+        assessment: Dict[str, Any],
     ) -> str:
         """
-        Gemini yorumu ve kural motoru puanından final geri bildirim oluşturur.
-        Öğrenciye gösterilecek olan metni döner.
+        Combines feedback.
+        - IF CHAT: Returns only the conversational text.
+        - IF ACTION: Appends Score and Outcome to the clinical explanation.
         """
-        # Gemini'nin açıklayıcı geri bildirimi önceliklidir
-        explanatory = interpretation.get("explanatory_feedback", "")
-        
-        # Eğer CHAT tipindeyse, sadece açıklayıcı geri bildirimi döndür
-        if interpretation.get("intent_type") == "CHAT":
-            return explanatory
-        
-        # ACTION tipindeyse, puan bilgisini de ekleyebiliriz (opsiyonel)
-        # Ama Silent Evaluator mimarisinde, UI'da puan göstermiyoruz
-        # Bu yüzden sadece açıklayıcı metni dönüyoruz
-        return explanatory
+        intent_type = interpretation.get("intent_type", "ACTION")
+        explanation = interpretation.get("explanatory_feedback", "").strip()
 
-    def process_student_input(self, student_id: str, raw_action: str, case_id: Optional[str] = None) -> Dict[str, Any]:
+        # 1. SOHBET DURUMU (Puan Yok)
+        if intent_type == "CHAT":
+            return explanation if explanation else "Sizi tam anlayamadım."
+
+        # 2. KLİNİK EYLEM DURUMU (Puan Var)
+        score = assessment.get("score", 0)
+        outcome = assessment.get("rule_outcome", "Değerlendirilmedi")
+        safety_notes = interpretation.get("safety_concerns", [])
+
+        parts = [explanation]
+
+        # Güvenlik Uyarıları
+        if safety_notes:
+            parts.append(f"\n\n⚠️ **Güvenlik Notları:** {'; '.join(map(str, safety_notes))}")
+
+        # PUAN VE SONUÇ (Zorunlu Gösterim)
+        parts.append(f"\n\n**📊 Objektif Puan:** {score}")
+        parts.append(f"**📝 Sonuç:** {outcome}")
+
+        return " ".join(parts)
+
+    def process_student_action(self, student_id: str, raw_action: str) -> Dict[str, Any]:
         """
-        Silent Evaluator Architecture ile Hibrit Pipeline:
-        
-        1) Gemini: Öğrenci eylemini yorumlar (Eğitim Asistanı rolünde)
-        2) AssessmentEngine: Kural bazlı puanlama yapar
-        3) MedGemma: ARKA PLANDA sessizce değerlendirir (konuşmayı engellemez)
-        4) Final feedback oluşturulur ve tüm sonuçlar döner
-        
-        Args:
-            student_id: Öğrenci kimliği
-            raw_action: Öğrencinin ham girişi
-            case_id: Aktif vaka kimliği (opsiyonel, state'den alınabilir)
-        
-        Returns:
+        Orchestrates the hybrid pipeline:
+        1) Retrieve scenario state.
+        2) LLM interpretation to strict JSON.
+        3) Objective scoring via AssessmentEngine.
+        4) Generate final feedback.
+        5) Update scenario state using assessment outcomes.
+
+        Returns a dict:
         {
           "student_id": str,
           "case_id": str,
-          "llm_interpretation": dict (Gemini yorumu - response_text içerir),
-          "assessment": dict (Kural motoru puanı),
-          "silent_evaluation": dict (MedGemma arka plan değerlendirmesi),
-          "final_feedback": str (Öğrenciye gösterilen geri bildirim),
+          "llm_interpretation": dict,
+          "assessment": dict,
+          "final_feedback": str,
           "updated_state": dict
         }
         """
         # Step 1: Get Context
         state = self.scenario_manager.get_state(student_id) or {}
-        
-        # Use provided case_id or fallback to state
-        if case_id:
-            state["case_id"] = case_id
-        else:
-            case_id = state.get("case_id", "default_case")
+        case_id = state.get("case_id") or "default_case"
 
-        # Step 2: Gemini Interpretation (Eğitim Asistanı)
+        # Step 2: LLM Interpretation
         interpretation = self.interpret_action(raw_action, state)
-        interpreted_action = interpretation.get("interpreted_action", "")
 
-        # Step 3: Objective Scoring (Kural Motoru)
+        # Step 3: Objective Scoring
         assessment = self.assessment_engine.evaluate_action(case_id, interpretation) or {}
 
-        # Step 4: Silent Evaluation (MedGemma - Arka Plan)
-        # Bu çağrı BAŞARISIZ olsa bile diğer işlemler devam eder
-        silent_evaluation = self._silent_evaluation(raw_action, interpreted_action, state)
-
-        # Step 5: Final Feedback (Gemini + Puanlama)
+        # Step 4: Final Feedback
         final_feedback = self._compose_final_feedback(interpretation, assessment)
 
-        # Step 6: Update State
+        # Step 5: Update State
+        # Expecting the assessment engine to optionally return state updates.
+        # Gracefully handle different possible keys: 'state_updates', 'state_update', 'new_state_data'
         state_updates = (
             assessment.get("state_updates")
             or assessment.get("state_update")
@@ -359,69 +303,44 @@ class DentalEducationAgent:
         return {
             "student_id": student_id,
             "case_id": case_id,
-            "llm_interpretation": interpretation,  # içinde 'explanatory_feedback' var (response_text gibi)
+            "llm_interpretation": interpretation,
             "assessment": assessment,
-            "silent_evaluation": silent_evaluation,  # YENI: MedGemma değerlendirmesi
             "final_feedback": final_feedback,
             "updated_state": updated_state,
         }
+# ...existing code...
 
+# app/agent.py dosyasının en altı
+
+# app/agent.py dosyasının en altındaki blok
 
 if __name__ == "__main__":
-    """
-    Test: Silent Evaluator Architecture
-    Gemini = Eğitim Asistanı | MedGemma = Sessiz Değerlendirici
-    """
+    # Gerekli importları burada yapıyoruz
     from dotenv import load_dotenv
     load_dotenv()
     
     try:
-        print("=" * 60)
-        print("SESSIZ DEĞERLENDİRİCİ MİMARİSİ TEST")
-        print("=" * 60)
-        
         agent = DentalEducationAgent()
         
-        test_student_id = "test_student_001"
+        # 2. Test İçin Öğrenci Aksiyonu ve ID tanımla
+        test_student_id = "test_user_003"  # <-- TANIMLANAN DEĞİŞKEN ADI BU!
         test_action = "Hastanın alerji geçmişini ve kullandığı ilaçları sorguluyorum."
         
-        print(f"\n👤 [Öğrenci ID]: {test_student_id}")
-        print(f"💬 [Öğrenci Girdisi]: {test_action}")
-        print("\n" + "-" * 60)
+        print("-" * 50)
+        # BURADA DÜZELTİLDİ: 'test_user_id' yerine 'test_student_id' kullanıldı.
+        print(f"[{test_student_id}] İçin Eylem İşleniyor: {test_action}")
         
-        # Silent Evaluator ile işle (test için olp_001 vakası)
-        result = agent.process_student_input(test_student_id, test_action, case_id="olp_001")
+        # 3. Ajanın ana metodunu çağır
+        result = agent.process_student_action(test_student_id, test_action)
         
-        print("\n🎓 GEMINI YORUMU (Eğitim Asistanı):")
-        print(f"   {result['llm_interpretation'].get('explanatory_feedback', 'Yok')}")
-        
-        print(f"\n🔍 Yorumlanan Eylem:")
-        print(f"   {result['llm_interpretation'].get('interpreted_action', 'Yok')}")
-        
-        print("\n📊 KURAL MOTORU PUANI:")
-        print(f"   Puan: {result['assessment'].get('score', 'N/A')}")
-        print(f"   Sonuç: {result['assessment'].get('rule_outcome', 'N/A')}")
-        
-        print("\n🔬 MEDGEMMA SESSIZ DEĞERLENDİRME (Arka Plan):")
-        silent_eval = result.get('silent_evaluation', {})
-        if silent_eval:
-            print(f"   ✓ Klinik Doğruluk: {silent_eval.get('is_clinically_accurate', 'N/A')}")
-            print(f"   ⚠️  Güvenlik İhlali: {silent_eval.get('safety_violation', 'N/A')}")
-            print(f"   📝 MedGemma Geri Bildirimi: {silent_eval.get('feedback', 'N/A')}")
-            if silent_eval.get('missing_critical_info'):
-                print(f"   ⚡ Eksik Bilgi: {silent_eval.get('missing_critical_info')}")
-        else:
-            print("   (MedGemma değerlendirmesi mevcut değil - servis başlatılamadı)")
-        
-        print("\n📋 ÖĞRENCİYE GÖSTERILEN FİNAL GERİ BİLDİRİM:")
-        print(f"   {result['final_feedback']}")
-        
-        print("\n" + "=" * 60)
-        print("TEST TAMAMLANDI ✓")
-        print("=" * 60)
+        # 4. Sonuçları yazdır
+        print("-" * 50)
+        print("Final Geri Bildirim:", result['final_feedback'])
+        print("\nObjektif Puan:", result['assessment']['score'])
+        print("LLM Yorumu:", result['llm_interpretation']['interpreted_action'])
+        print("-" * 50)
         
     except ValueError as e:
-        print(f"\n❌ BAŞLATMA HATASI: {e}")
+        print(f"HATA: Ajan başlatılamadı. {e}")
     except Exception as e:
-        logger.exception("Test başarısız")
-        print(f"\n❌ ÇALIŞMA ZAMANI HATASI: {e}")
+        print(f"HATA: İşlem sırasında beklenmedik hata oluştu. {e}")
