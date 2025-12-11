@@ -85,18 +85,43 @@ st.markdown('<div class="subtitle">Akıllı Diş Hekimliği Eğitim Asistanı</d
 
 st.divider()
 
-# Login/Profile Check
-if not st.session_state.get("is_logged_in"):
-    # Show login form
+# ==================== AUTHENTICATION CHECK ====================
+# Check if user is authenticated (support both new and legacy session keys)
+is_authenticated = st.session_state.get("authentication_status") or st.session_state.get("is_logged_in")
+
+if is_authenticated:
+    # User is logged in - show welcome message
+    user_info = st.session_state.get("user_info") or st.session_state.get("student_profile", {})
+    user_name = user_info.get("name", "Kullanıcı")
+    
+    st.success(f"👋 Hoş geldiniz, **{user_name}**!")
+    
+    # Quick action buttons for logged-in users
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("👤 Hesabıma Git", width="stretch", type="primary"):
+            st.switch_page("pages/2_account.py")
+    
+    with col2:
+        if st.button("💬 Vaka Çalışması", width="stretch", type="primary"):
+            st.switch_page("pages/3_chat.py")
+    
+    with col3:
+        if st.button("📊 İstatistikler", width="stretch", type="primary"):
+            st.switch_page("pages/5_stats.py")
+    
+    st.divider()
+else:
+    # User is NOT logged in - show login prompt
+    st.info("🔐 Lütfen devam etmek için giriş yapın.")
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        show_login_form()
-    st.stop()
-
-# Show profile card in main area (optional welcome message)
-if st.session_state.get("student_profile"):
-    profile = st.session_state.student_profile
-    st.success(f"👋 Hoş geldiniz, **{profile['name']}**!")
+        if st.button("🔑 Giriş Yap", width="stretch", type="primary"):
+            st.switch_page("pages/1_login.py")
+    
+    st.divider()
 
 st.divider()
 
@@ -218,18 +243,22 @@ st.divider()
 # Quick Start Section
 st.markdown("## 🚀 Hemen Başlayın!")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    if st.button("💬 Vaka Çalışmasına Başla", use_container_width=True, type="primary"):
-        st.switch_page("pages/chat.py")
+    if st.button("💬 Vaka Çalışmasına Başla", width="stretch", type="primary"):
+        st.switch_page("pages/3_chat.py")
 
 with col2:
-    if st.button("📊 İstatistiklerimi Gör", use_container_width=True):
-        st.switch_page("pages/stats.py")
+    if st.button("📊 İstatistiklerimi Gör", width="stretch"):
+        st.switch_page("pages/5_stats.py")
 
 with col3:
-    if st.button("ℹ️ Kullanım Kılavuzu", use_container_width=True):
+    if st.button("👤 Hesabıma Git", width="stretch"):
+        st.switch_page("pages/2_account.py")
+
+with col4:
+    if st.button("ℹ️ Kullanım Kılavuzu", width="stretch"):
         st.info("""
         **Hızlı İpuçları:**
         
