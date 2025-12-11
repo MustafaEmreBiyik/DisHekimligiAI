@@ -15,7 +15,8 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from app.student_profile import init_student_profile, show_profile_card
+from app.student_profile import init_student_profile
+from app.frontend.components import render_sidebar
 from db.database import SessionLocal, StudentSession, ChatLog, init_db
 import json
 
@@ -28,6 +29,13 @@ st.set_page_config(
     page_title="Dental Tutor AI - İstatistikler",
     page_icon="📊",
     layout="wide"
+)
+
+# ==================== SIDEBAR ====================
+render_sidebar(
+    page_type="stats",
+    show_case_selector=False,
+    show_model_selector=False
 )
 
 # Custom CSS
@@ -263,10 +271,10 @@ else:
     st.info("📭 Henüz eylem geçmişi bulunmuyor. Vaka çalışmasına başlamak için chat sayfasına gidin!")
     
     if st.button("💬 Vaka Çalışmasına Başla", type="primary"):
-        st.switch_page("pages/chat.py")
+        st.switch_page("pages/3_chat.py")
 
 st.markdown("---")
 
 # Back to Home
 if st.button("🏠 Ana Sayfaya Dön", width="stretch"):
-    st.switch_page("Home.py")
+    st.switch_page("pages/0_home.py")
