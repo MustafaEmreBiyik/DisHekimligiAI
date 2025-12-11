@@ -166,7 +166,7 @@ def render_sidebar(
         
         
         # ==================== LOGOUT ====================
-        st.markdown("---")
+        st.divider()
         
         def logout():
             """Clear session state and redirect to login"""
