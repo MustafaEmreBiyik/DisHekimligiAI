@@ -1,161 +1,50 @@
 [
   {
-    "case_id": "olp_001",
-    "rules": [
-      {
-        "target_action": "check_allergies_meds",
-        "score": 15,
-        "rule_outcome": "Anamnez tamamlandı."
-      }
+    "case_id": "olp_001", 
+    "rules": [  
+        {
+            "target_action": "check_allergies_meds", 
+            "score": 15,
+            "rule_outcome": "Anamnez tamamlandı."
+        }
     ]
   },
   {
     "case_id": "perio_001",
     "rules": [
-      {
-        "target_action": "gather_personal_info",
-        "score": 5,
-        "rule_outcome": "Kimlik bilgileri alındı.",
-        "state_updates": { "score_change": 5 }
-      },
-      {
-        "target_action": "check_pacemaker",
-        "score": 25,
-        "rule_outcome": "KRİTİK: Kalp pili sorgulandı (Cihaz güvenliği için şart).",
-        "state_updates": {
-          "score_change": 25,
-          "revealed_findings": ["pacemaker_warning"]
-        }
-      },
-      {
-        "target_action": "check_bleeding_disorder",
-        "score": 15,
-        "rule_outcome": "Kanama/Pıhtılaşma durumu sorgulandı.",
-        "state_updates": {
-          "score_change": 15,
-          "revealed_findings": ["bleeding_risk"]
-        }
-      },
-      {
-        "target_action": "check_diabetes",
-        "score": 15,
-        "rule_outcome": "Diyabet durumu ve kontrolü sorgulandı.",
-        "state_updates": { "score_change": 15 }
-      },
-      {
-        "target_action": "check_smoking_history",
-        "score": 10,
-        "rule_outcome": "Sigara kullanımı (Risk faktörü) sorgulandı.",
-        "state_updates": { "score_change": 10 }
-      },
-      {
-        "target_action": "check_oral_hygiene_habits",
-        "score": 10,
-        "rule_outcome": "Fırçalama ve arayüz bakımı sorgulandı.",
-        "state_updates": { "score_change": 10 }
-      },
-      {
-        "target_action": "check_allergies_meds",
-        "score": 10,
-        "rule_outcome": "İlaç ve Alerji (Penisilin) sorgulandı.",
-        "state_updates": { "score_change": 10 }
-      }
+      { "target_action": "gather_personal_info", "score": 5, "rule_outcome": "Kimlik bilgileri alındı.", "state_updates": {"score_change": 5} },
+      { "target_action": "check_pacemaker", "score": 25, "rule_outcome": "KRİTİK: Kalp pili sorgulandı (Cihaz güvenliği için şart).", "state_updates": {"score_change": 25, "revealed_findings": ["pacemaker_warning"]} },
+      { "target_action": "check_bleeding_disorder", "score": 15, "rule_outcome": "Kanama/Pıhtılaşma durumu sorgulandı.", "state_updates": {"score_change": 15, "revealed_findings": ["bleeding_risk"]} },
+      { "target_action": "check_diabetes", "score": 15, "rule_outcome": "Diyabet durumu ve kontrolü sorgulandı.", "state_updates": {"score_change": 15} },
+      { "target_action": "check_smoking_history", "score": 10, "rule_outcome": "Sigara kullanımı (Risk faktörü) sorgulandı.", "state_updates": {"score_change": 10} },
+      { "target_action": "check_oral_hygiene_habits", "score": 10, "rule_outcome": "Fırçalama ve arayüz bakımı sorgulandı.", "state_updates": {"score_change": 10} },
+      { "target_action": "check_allergies_meds", "score": 10, "rule_outcome": "İlaç ve Alerji (Penisilin) sorgulandı.", "state_updates": {"score_change": 10} }
     ]
   },
   {
     "case_id": "herpes_primary_01",
     "rules": [
-      {
-        "target_action": "perform_oral_exam",
-        "score": 20,
-        "rule_outcome": "Yaygın veziküller ve dişeti iltihabı görüldü.",
-        "state_updates": {
-          "score_change": 20,
-          "revealed_findings": ["diffuse_vesicles"]
-        }
-      },
-      {
-        "target_action": "check_vital_signs",
-        "score": 10,
-        "rule_outcome": "Yüksek ateş (39°C) tespit edildi.",
-        "state_updates": {
-          "score_change": 10,
-          "revealed_findings": ["halitosis_fever"]
-        }
-      },
-      {
-        "target_action": "prescribe_antibiotics",
-        "score": -20,
-        "rule_outcome": "HATA: Viral enfeksiyonda antibiyotik etkisizdir!",
-        "state_updates": { "score_change": -20 }
-      },
-      {
-        "target_action": "prescribe_palliative_care",
-        "score": 25,
-        "rule_outcome": "Doğru Tedavi: Yatak istirahati, bol sıvı, analjezik.",
-        "state_updates": { "score_change": 25 }
-      },
-      {
-        "target_action": "diagnose_herpetic_gingivostomatitis",
-        "score": 30,
-        "rule_outcome": "Doğru Tanı Konuldu.",
-        "state_updates": { "score_change": 30 }
-      }
+      { "target_action": "perform_oral_exam", "score": 20, "rule_outcome": "Yaygın veziküller ve dişeti iltihabı görüldü.", "state_updates": {"score_change": 20, "revealed_findings": ["diffuse_vesicles"]} },
+      { "target_action": "check_vital_signs", "score": 10, "rule_outcome": "Yüksek ateş (39°C) tespit edildi.", "state_updates": {"score_change": 10, "revealed_findings": ["halitosis_fever"]} },
+      { "target_action": "prescribe_antibiotics", "score": -20, "rule_outcome": "HATA: Viral enfeksiyonda antibiyotik etkisizdir!", "state_updates": {"score_change": -20} },
+      { "target_action": "prescribe_palliative_care", "score": 25, "rule_outcome": "Doğru Tedavi: Yatak istirahati, bol sıvı, analjezik.", "state_updates": {"score_change": 25} },
+      { "target_action": "diagnose_herpetic_gingivostomatitis", "score": 30, "rule_outcome": "Doğru Tanı Konuldu.", "state_updates": {"score_change": 30} }
     ]
   },
   {
     "case_id": "behcet_01",
     "rules": [
-      {
-        "target_action": "ask_systemic_symptoms",
-        "score": 20,
-        "rule_outcome": "Genital ülser ve göz şikayeti sorgulandı.",
-        "state_updates": {
-          "score_change": 20,
-          "revealed_findings": ["genital_ulcer"]
-        }
-      },
-      {
-        "target_action": "perform_pathergy_test",
-        "score": 30,
-        "rule_outcome": "KRİTİK TEST: Paterji testi pozitif çıktı.",
-        "state_updates": {
-          "score_change": 30,
-          "revealed_findings": ["pathergy_positive"]
-        }
-      },
-      {
-        "target_action": "diagnose_behcet_disease",
-        "score": 30,
-        "rule_outcome": "Doğru Tanı: Behçet Hastalığı (Oral+Genital+Paterji).",
-        "state_updates": { "score_change": 30 }
-      }
+      { "target_action": "ask_systemic_symptoms", "score": 20, "rule_outcome": "Genital ülser ve göz şikayeti sorgulandı.", "state_updates": {"score_change": 20, "revealed_findings": ["genital_ulcer"]} },
+      { "target_action": "perform_pathergy_test", "score": 30, "rule_outcome": "KRİTİK TEST: Paterji testi pozitif çıktı.", "state_updates": {"score_change": 30, "revealed_findings": ["pathergy_positive"]} },
+      { "target_action": "diagnose_behcet_disease", "score": 30, "rule_outcome": "Doğru Tanı: Behçet Hastalığı (Oral+Genital+Paterji).", "state_updates": {"score_change": 30} }
     ]
   },
   {
     "case_id": "syphilis_02",
     "rules": [
-      {
-        "target_action": "perform_oral_exam",
-        "score": 15,
-        "rule_outcome": "Müköz plaklar (enfeysiyöz) tespit edildi.",
-        "state_updates": {
-          "score_change": 15,
-          "revealed_findings": ["mucous_patch"]
-        }
-      },
-      {
-        "target_action": "request_serology_tests",
-        "score": 25,
-        "rule_outcome": "VDRL ve TPHA testleri istendi (Pozitif).",
-        "state_updates": { "score_change": 25 }
-      },
-      {
-        "target_action": "diagnose_secondary_syphilis",
-        "score": 30,
-        "rule_outcome": "Doğru Tanı: Sekonder Sifiliz.",
-        "state_updates": { "score_change": 30 }
-      }
+      { "target_action": "perform_oral_exam", "score": 15, "rule_outcome": "Müköz plaklar (enfeysiyöz) tespit edildi.", "state_updates": {"score_change": 15, "revealed_findings": ["mucous_patch"]} },
+      { "target_action": "request_serology_tests", "score": 25, "rule_outcome": "VDRL ve TPHA testleri istendi (Pozitif).", "state_updates": {"score_change": 25} },
+      { "target_action": "diagnose_secondary_syphilis", "score": 30, "rule_outcome": "Doğru Tanı: Sekonder Sifiliz.", "state_updates": {"score_change": 30} }
     ]
   }
 ]

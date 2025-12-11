@@ -31,10 +31,3 @@ dist/
 
 # Log dosyaları
 *.log
-
-# Database files
-dentai_app.db
-
-# MD klasörü
-md/
-
