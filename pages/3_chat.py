@@ -22,7 +22,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.student_profile import init_student_profile, show_profile_card
+from app.student_profile import init_student_profile
+from app.frontend.components import render_sidebar, DEFAULT_MODEL
 from db.database import SessionLocal, StudentSession, ChatLog, init_db
 
 # Initialize systems
@@ -110,26 +111,6 @@ def save_message_to_db(
         db.close()
 
 
-# ==================== UI CONFIGURATION ====================
-
-CASE_OPTIONS = {
-    "Oral Liken Planus (Orta)": "olp_001",
-    "Kronik Periodontitis (Zor)": "perio_001",
-    "Primer Herpes (Orta)": "herpes_primary_01",
-    "Behçet Hastalığı (Zor)": "behcet_01",
-    "Sekonder Sifiliz (Zor)": "syphilis_02"
-}
-
-DEFAULT_MODEL = "models/gemini-2.5-flash-lite"
-
-# Available model options
-MODEL_OPTIONS = [
-    "models/gemini-2.5-flash-lite",
-    "models/gemini-2.0-flash-lite",
-    "models/gemini-1.5-flash"
-]
-
-
 # ==================== MAIN INTERFACE ====================
 
 def main() -> None:
@@ -142,67 +123,21 @@ def main() -> None:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     # ==================== SIDEBAR ====================
-    with st.sidebar:
-        st.header("📂 Vaka Seçimi")
-        
-        # Profile card
-        show_profile_card()
-        
-        # Case selector
-        selected_case_name = st.selectbox(
-            "Aktif Vaka:",
-            list(CASE_OPTIONS.keys()),
-            key="case_selector"
-        )
-        selected_case_id = CASE_OPTIONS[selected_case_name]
-        
-        # Initialize or update current case
-        if "current_case_id" not in st.session_state:
-            st.session_state.current_case_id = selected_case_id
-        
-        # Handle case change
-        if st.session_state.current_case_id != selected_case_id:
-            st.session_state.current_case_id = selected_case_id
-            st.session_state.messages = []
-            st.session_state.db_session_id = None
-            st.success(f"✅ Yeni vaka: {selected_case_name}")
-            st.rerun()
-        
-        st.divider()
-        
-        # Model selection
-        st.header("🤖 Model Ayarları")
-        
-        # Initialize selected_model if not exists
-        if "selected_model" not in st.session_state:
-            st.session_state.selected_model = DEFAULT_MODEL
-        
-        # selectbox widget'ını oluştur; session_state otomatik güncellenecek
-        # index'i önceden ayarlanmış değere göre belirle (varsayılan 0)
-        try:
-            idx = MODEL_OPTIONS.index(st.session_state.selected_model)
-        except Exception:
-            idx = 0
-        st.selectbox("🤖 Model Seçin", MODEL_OPTIONS, index=idx, key="selected_model")
-        
-        # Controls
-        if st.button("🔄 Yeni Sohbet Başlat", width="stretch"):
-            st.session_state.messages = []
-            st.session_state.db_session_id = None
-            st.rerun()
-        
-        st.markdown("---")
-        st.info(f"**API Durumu:** {'✅ Aktif' if GEMINI_API_KEY else '❌ Eksik'}")
-        
-        # Debug: Agent import durumu
-        if DentalEducationAgent is not None:
-            st.success("**Agent entegre:** ✅ Başarılı")
-        else:
-            st.error("**Agent entegre:** ❌ Import hatası (Terminale bakın)")
-        
-        st.info(f"**Aktif Vaka:** {st.session_state.get('current_case_id', 'Seçilmedi')}")
-        st.info(f"**Model:** {st.session_state.selected_model}")
-        st.info(f"**Mesaj Sayısı:** {len(st.session_state.get('messages', []))}")
+    def reset_chat():
+        """Callback to reset chat state"""
+        st.session_state.messages = []
+        st.session_state.db_session_id = None
+        st.rerun()
+    
+    # Render reusable sidebar
+    sidebar_data = render_sidebar(
+        page_type="chat",
+        show_case_selector=True,
+        show_model_selector=True,
+        custom_actions={
+            "🔄 Yeni Sohbet": reset_chat
+        }
+    )
 
     # ==================== CHAT AREA ====================
     st.title("💬 Oral Patoloji Sohbet")
