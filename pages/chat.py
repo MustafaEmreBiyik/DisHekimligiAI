@@ -1,11 +1,18 @@
-# ...existing code...
+"""
+Silent Evaluator Chat Interface
+================================
+Clean messaging UI with background evaluation saving.
+Students see ONLY the conversation - no scores or warnings during chat.
+"""
+
 import os
 import sys
 import json
 import logging
 from typing import Optional, List, Tuple, Any, Dict
+from datetime import datetime
 
-# Add parent directory to path to allow imports from app/
+# Add parent directory to path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
@@ -16,177 +23,174 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.student_profile import init_student_profile, show_profile_card
+from db.database import SessionLocal, StudentSession, ChatLog, init_db
 
-# Initialize profile system
+# Initialize systems
 init_student_profile()
+init_db()
 
-# Try optional imports (agent and genai). Failures handled at runtime.
-try:
-    import google.generativeai as genai
-except Exception as e:
-    genai = None
-    print(f"⚠️ genai import hatası: {e}")
-
+# Try optional imports
 try:
     from app.agent import DentalEducationAgent
 except Exception as e:
     DentalEducationAgent = None
-    print(f"⚠️ DentalEducationAgent import hatası: {e}")
-    import traceback
-    traceback.print_exc()
+    print(f"⚠️ DentalEducationAgent import error: {e}")
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-DEFAULT_MODEL = "models/gemini-2.5-flash-lite"  # Daha düşük maliyetli, yüksek limit
-MODEL_LOOKUP_LIMIT = 20
+# ==================== DATABASE HELPERS ====================
 
-
-def list_available_models(api_key: Optional[str]) -> List[str]:
-    if not api_key or genai is None:
-        return []
+def get_or_create_session(student_id: str, case_id: str) -> int:
+    """Get existing session or create new one for student+case combination."""
+    db = SessionLocal()
     try:
-        genai.configure(api_key=api_key)
-        models = genai.list_models() or []
-        names: List[str] = []
-        for m in models:
-            if isinstance(m, dict) and "name" in m:
-                names.append(m["name"])
-            elif isinstance(m, str):
-                names.append(m)
-        # prefer gemini names first
-        gemini = [n for n in names if "gemini" in n]
-        return gemini + [n for n in names if n not in gemini]
+        # Try to find existing session
+        existing = db.query(StudentSession).filter_by(
+            student_id=student_id,
+            case_id=case_id
+        ).first()
+        
+        if existing:
+            return existing.id
+        
+        # Create new session
+        new_session = StudentSession(
+            student_id=student_id,
+            case_id=case_id,
+            current_score=0.0
+        )
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+        return new_session.id
     except Exception as e:
-        LOGGER.exception("list_available_models failed: %s", e)
-        return []
+        LOGGER.error(f"Session creation failed: {e}")
+        db.rollback()
+        return -1
+    finally:
+        db.close()
 
 
-def initialize_direct_model(api_key: Optional[str], model_name: Optional[str]) -> Tuple[Optional[Any], Optional[str]]:
-    """Initialize a direct genai model instance (fallback if agent not used)."""
-    if genai is None:
-        return None, "google-generativeai kütüphanesi yüklenmemiş."
-    if not api_key:
-        return None, "GEMINI_API_KEY bulunamadı. .env dosyanızı kontrol edin."
+def save_message_to_db(
+    session_id: int,
+    role: str,
+    content: str,
+    metadata: Optional[Dict[str, Any]] = None
+) -> bool:
+    """
+    Save chat message to database with optional metadata.
+    
+    Args:
+        session_id: Database session ID
+        role: 'user' or 'assistant'
+        content: Message text
+        metadata: Evaluation results (saved silently, not shown to user)
+    """
+    if session_id < 0:
+        return False
+    
+    db = SessionLocal()
     try:
-        genai.configure(api_key=api_key)
+        chat_log = ChatLog(
+            session_id=session_id,
+            role=role,
+            content=content,
+            metadata_json=metadata,
+            timestamp=datetime.utcnow()
+        )
+        db.add(chat_log)
+        db.commit()
+        return True
     except Exception as e:
-        return None, f"API anahtarı ile yapılandırma başarısız: {e}"
-
-    available = list_available_models(api_key)
-    if model_name and available and model_name not in available:
-        fallback = next((m for m in available if m.startswith("gemini-")), None)
-        if fallback:
-            model_name = fallback
-        else:
-            return None, f"Seçilen model ({model_name}) bulunamadı. Kullanılabilir: {', '.join(available[:MODEL_LOOKUP_LIMIT])}"
-
-    if not model_name:
-        model_name = DEFAULT_MODEL
-
-    try:
-        model = genai.GenerativeModel(model_name)
-        return model, None
-    except Exception as e:
-        avail_msg = f" Kullanılabilir modeller: {', '.join(available[:MODEL_LOOKUP_LIMIT])}" if available else ""
-        return None, f"Model başlatılamadı ({model_name}): {e}.{avail_msg}"
+        LOGGER.error(f"Failed to save message: {e}")
+        db.rollback()
+        return False
+    finally:
+        db.close()
 
 
-def _safe_extract_text(response: Any) -> str:
-    """Try multiple common shapes to extract text from genai responses."""
-    try:
-        # attribute-based
-        for attr in ("text", "content", "output", "results", "candidates", "response", "result"):
-            if hasattr(response, attr):
-                v = getattr(response, attr)
-                if isinstance(v, str) and v.strip():
-                    return v.strip()
-                if isinstance(v, list) and v:
-                    first = v[0]
-                    if isinstance(first, dict):
-                        for k in ("content", "text"):
-                            if first.get(k):
-                                return str(first.get(k)).strip()
-                    if isinstance(first, str) and first.strip():
-                        return first.strip()
-                if isinstance(v, dict):
-                    for k in ("content", "text"):
-                        if v.get(k):
-                            return str(v.get(k)).strip()
+# ==================== UI CONFIGURATION ====================
 
-        # dict-like
-        if isinstance(response, dict):
-            for k in ("text", "content", "message"):
-                if response.get(k):
-                    return str(response.get(k)).strip()
+CASE_OPTIONS = {
+    "Oral Liken Planus (Orta)": "olp_001",
+    "Kronik Periodontitis (Zor)": "perio_001",
+    "Primer Herpes (Orta)": "herpes_primary_01",
+    "Behçet Hastalığı (Zor)": "behcet_01",
+    "Sekonder Sifiliz (Zor)": "syphilis_02"
+}
 
-        # fallback: stringify
-        s = str(response).strip()
-        return s
-    except Exception:
-        return ""
+DEFAULT_MODEL = "models/gemini-2.5-flash-lite"
 
+# Available model options
+MODEL_OPTIONS = [
+    "models/gemini-2.5-flash-lite",
+    "models/gemini-2.0-flash-lite",
+    "models/gemini-1.5-flash"
+]
+
+
+# ==================== MAIN INTERFACE ====================
 
 def main() -> None:
-    st.set_page_config(page_title="AI Chat - Oral Pathology", page_icon="💬", layout="centered")
+    st.set_page_config(
+        page_title="Oral Patoloji Sohbet",
+        page_icon="💬",
+        layout="centered"
+    )
+    
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-    # Sidebar
+    # ==================== SIDEBAR ====================
     with st.sidebar:
-        st.header("📂 Vaka Yönetimi")
+        st.header("📂 Vaka Seçimi")
         
-        # Show profile card
+        # Profile card
         show_profile_card()
-
-        # Case Mapping
-        case_options = {
-            "Oral Liken Planus (Orta)": "olp_001",
-            "Kronik Periodontitis (Zor)": "perio_001",
-            "Primer Herpes (Orta)": "herpes_primary_01",
-            "Behçet Hastalığı (Zor)": "behcet_01",
-            "Sekonder Sifiliz (Zor)": "syphilis_02"
-        }
-
+        
+        # Case selector
         selected_case_name = st.selectbox(
-            "Aktif Vakayı Seçiniz:",
-            list(case_options.keys()),
-            key="case_selector_box"
+            "Aktif Vaka:",
+            list(CASE_OPTIONS.keys()),
+            key="case_selector"
         )
-
-        # Update Session State
-        selected_case_id = case_options[selected_case_name]
-
+        selected_case_id = CASE_OPTIONS[selected_case_name]
+        
+        # Initialize or update current case
         if "current_case_id" not in st.session_state:
-            st.session_state["current_case_id"] = "olp_001"
-
-        if st.session_state["current_case_id"] != selected_case_id:
-            st.session_state["current_case_id"] = selected_case_id
-            # VAKA DEĞİŞTİRİLDİĞİNDE STATE'İ SIFIRLA
+            st.session_state.current_case_id = selected_case_id
+        
+        # Handle case change
+        if st.session_state.current_case_id != selected_case_id:
+            st.session_state.current_case_id = selected_case_id
             st.session_state.messages = []
-            st.success(f"✅ Vaka Yüklendi: {selected_case_id}")
-            st.info("🔄 Sohbet sıfırlandı.")
-
+            st.session_state.db_session_id = None
+            st.success(f"✅ Yeni vaka: {selected_case_name}")
+            st.rerun()
+        
         st.divider()
-        st.title("💬 Sohbet Ayarları")
-        st.markdown("---")
-        available_models = list_available_models(GEMINI_API_KEY)
-        model_options = available_models[:MODEL_LOOKUP_LIMIT] or [DEFAULT_MODEL]
-        if DEFAULT_MODEL in model_options:
-            model_options = [DEFAULT_MODEL] + [m for m in model_options if m != DEFAULT_MODEL]
-        # önce varsayılan session değeri ayarla (sadece yoksa)
+        
+        # Model selection
+        st.header("🤖 Model Ayarları")
+        
+        # Initialize selected_model if not exists
         if "selected_model" not in st.session_state:
-            st.session_state.selected_model = model_options[0]
-
+            st.session_state.selected_model = DEFAULT_MODEL
+        
         # selectbox widget'ını oluştur; session_state otomatik güncellenecek
         # index'i önceden ayarlanmış değere göre belirle (varsayılan 0)
         try:
-            idx = model_options.index(st.session_state.selected_model)
+            idx = MODEL_OPTIONS.index(st.session_state.selected_model)
         except Exception:
             idx = 0
-        st.selectbox("🤖 Model Seçin", model_options, index=idx, key="selected_model")
-        if st.button("🔄 Yeni Sohbet Başlat", use_container_width=True):
+        st.selectbox("🤖 Model Seçin", MODEL_OPTIONS, index=idx, key="selected_model")
+        
+        # Controls
+        if st.button("🔄 Yeni Sohbet Başlat", width="stretch"):
             st.session_state.messages = []
+            st.session_state.db_session_id = None
             st.rerun()
+        
         st.markdown("---")
         st.info(f"**API Durumu:** {'✅ Aktif' if GEMINI_API_KEY else '❌ Eksik'}")
         
@@ -200,122 +204,121 @@ def main() -> None:
         st.info(f"**Model:** {st.session_state.selected_model}")
         st.info(f"**Mesaj Sayısı:** {len(st.session_state.get('messages', []))}")
 
-    st.title("💬 AI Oral Pathology Sohbeti")
+    # ==================== CHAT AREA ====================
+    st.title("💬 Oral Patoloji Sohbet")
+    st.caption("Eğitimsel bir konuşma deneyimi")
 
+    # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Merhaba! Ben Oral Patoloji Asistanı. Oral patoloji konusunda sorularınızı yanıtlamak için buradayım. Size nasıl yardımcı olabilirim?"}
+            {
+                "role": "assistant",
+                "content": "Merhaba! Size nasıl yardımcı olabilirim?"
+            }
         ]
+    
+    # Initialize or get database session
+    if "db_session_id" not in st.session_state or st.session_state.db_session_id is None:
+        profile = st.session_state.get("student_profile") or {}
+        student_id = profile.get("student_id", "web_user_default")
+        st.session_state.db_session_id = get_or_create_session(
+            student_id=student_id,
+            case_id=st.session_state.current_case_id
+        )
 
-    # Try to instantiate agent (preferred). If fails, fallback to direct model use.
+    # Initialize agent
     agent_instance = None
-    agent_err = None
-    if DentalEducationAgent:
+    if DentalEducationAgent and GEMINI_API_KEY:
         try:
-            agent_instance = DentalEducationAgent(api_key=GEMINI_API_KEY, model_name=st.session_state.selected_model)
+            # Use selected model from session state
+            selected_model = st.session_state.get("selected_model", DEFAULT_MODEL)
+            agent_instance = DentalEducationAgent(
+                api_key=GEMINI_API_KEY,
+                model_name=selected_model
+            )
         except Exception as e:
-            agent_err = str(e)
-            LOGGER.info("Agent başlatılamadı, fallback ile devam edilecek: %s", e)
-            agent_instance = None
-
-    direct_model, direct_err = initialize_direct_model(GEMINI_API_KEY, st.session_state.selected_model)
-    # If neither agent nor direct model available, show error and stop.
-    if not agent_instance and not direct_model:
-        st.error("❌ Ajan veya model başlatılamadı.")
-        if agent_err:
-            st.error(f"Ajan hatası: {agent_err}")
-        if direct_err:
-            st.error(f"Model hatası: {direct_err}")
+            LOGGER.error(f"Agent initialization failed: {e}")
+            st.error("⚠️ Sistem başlatılamadı. Lütfen yöneticinize başvurun.")
+            st.stop()
+    else:
+        st.error("❌ Agent veya API key mevcut değil.")
         st.stop()
 
-    # render chat history
+    # Display chat history
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # input handling
-    if prompt := st.chat_input("Oral patoloji hakkında soru sorun..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
+    # ==================== USER INPUT ====================
+    if user_input := st.chat_input("Mesajınızı yazın..."):
+        # Display user message
+        st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(user_input)
+        
+        # Save user message to DB (no metadata for user messages)
+        save_message_to_db(
+            session_id=st.session_state.db_session_id,
+            role="user",
+            content=user_input,
+            metadata=None
+        )
 
+        # Process with agent
         with st.chat_message("assistant"):
             placeholder = st.empty()
-            placeholder.markdown("✍️ Yazıyor...")
+            placeholder.markdown("✍️ Düşünüyor...")
 
             try:
-                # Prefer agent pipeline if available
-                if agent_instance:
-                    # Get current case ID from session state
-                    current_case_id = st.session_state.get("current_case_id", "olp_001")
-                    
-                    # Update agent's scenario manager with selected case
-                    agent_instance.scenario_manager.get_state("web_user_1")["case_id"] = current_case_id
-                    
-                    result = agent_instance.process_student_action(student_id="web_user_1", raw_action=prompt)
-                    full_text = result.get("final_feedback") or result.get("llm_interpretation", {}).get("explanatory_feedback", "")
-                    
-                    # Save action to history
-                    interpretation = result.get("llm_interpretation", {})
-                    assessment = result.get("assessment", {})
-                    
-                    if interpretation.get("intent_type") == "ACTION":
-                        # Initialize action_history if not exists
-                        if "action_history" not in st.session_state:
-                            st.session_state.action_history = []
-                        if "total_score" not in st.session_state:
-                            st.session_state.total_score = 0
-                        if "total_actions" not in st.session_state:
-                            st.session_state.total_actions = 0
-                        
-                        # Record action
-                        from datetime import datetime
-                        action_record = {
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "case_id": current_case_id,
-                            "action": interpretation.get("interpreted_action", "unknown"),
-                            "score": assessment.get("score", 0),
-                            "outcome": assessment.get("rule_outcome", "N/A")
-                        }
-                        st.session_state.action_history.append(action_record)
-                        st.session_state.total_score += assessment.get("score", 0)
-                        st.session_state.total_actions += 1
-                        
-                        # Save to profile if logged in
-                        if st.session_state.get("is_logged_in") and st.session_state.get("student_profile"):
-                            from app.student_profile import update_profile_stats
-                            update_profile_stats(
-                                st.session_state.student_profile["student_id"],
-                                action_record
-                            )
-                    if not full_text:
-                        full_text = "(Agent yanıt üretmedi. Lütfen API anahtarını veya modeli kontrol edin.)"
-                    placeholder.markdown(full_text)
-                    st.session_state.messages.append({"role": "assistant", "content": full_text})
-                else:
-                    # Direct model fallback: build simple instruction
-                    recent = st.session_state.messages[-6:]
-                    conversation_text = "\n".join(
-                        f"{'Kullanıcı' if m['role']=='user' else 'Asistan'}: {m['content']}" for m in recent
-                    )
-                    instruction = (
-                        f"Önceki konuşma:\n{conversation_text}\n\n"
-                        f"Kullanıcı sorusu: {prompt}\n\n"
-                        "Kısa, profesyonel ve kaynaklı cevap verin. Eğer emin değilseniz konservatif bir yanıt verin."
-                    )
-
-                    resp = direct_model.generate_content(instruction)
-                    text = _safe_extract_text(resp) or ""
-                    if not text:
-                        text = "(Cevap alınamadı. Lütfen API anahtarını veya model erişimini kontrol edin.)"
-                    placeholder.markdown(text)
-                    st.session_state.messages.append({"role": "assistant", "content": text})
+                # Update agent state with current case
+                profile = st.session_state.get("student_profile") or {}
+                student_id = profile.get("student_id", "web_user_default")
+                
+                # Process input through agent
+                result = agent_instance.process_student_input(
+                    student_id=student_id,
+                    raw_action=user_input,
+                    case_id=st.session_state.current_case_id
+                )
+                
+                # Extract response text
+                response_text = result.get("llm_interpretation", {}).get("explanatory_feedback", "")
+                
+                if not response_text:
+                    response_text = "Üzgünüm, şu anda yanıt veremiyorum."
+                
+                # Display ONLY the conversation text (no scores, no warnings)
+                placeholder.markdown(response_text)
+                st.session_state.messages.append({"role": "assistant", "content": response_text})
+                
+                # ==================== SILENT SAVE ====================
+                # Save evaluation to database WITHOUT showing it to the user
+                evaluation_metadata = {
+                    "interpreted_action": result.get("llm_interpretation", {}).get("interpreted_action"),
+                    "assessment": result.get("assessment", {}),
+                    "silent_evaluation": result.get("silent_evaluation", {}),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "case_id": st.session_state.current_case_id
+                }
+                
+                save_message_to_db(
+                    session_id=st.session_state.db_session_id,
+                    role="assistant",
+                    content=response_text,
+                    metadata=evaluation_metadata
+                )
+                
+                # Log silently (for admin/debug purposes only)
+                LOGGER.info(
+                    f"[Silent Eval] Action: {evaluation_metadata['interpreted_action']}, "
+                    f"Accurate: {evaluation_metadata['silent_evaluation'].get('is_clinically_accurate', 'N/A')}"
+                )
 
             except Exception as e:
-                LOGGER.exception("chat handling failed: %s", e)
-                err_text = f"⚠️ Bir hata oluştu: {e}"
-                placeholder.markdown(err_text)
-                st.session_state.messages.append({"role": "assistant", "content": err_text})
+                LOGGER.exception(f"Chat processing failed: {e}")
+                error_text = "⚠️ Bir hata oluştu. Lütfen tekrar deneyin."
+                placeholder.markdown(error_text)
+                st.session_state.messages.append({"role": "assistant", "content": error_text})
 
 
 if __name__ == "__main__":

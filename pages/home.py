@@ -221,15 +221,15 @@ st.markdown("## 🚀 Hemen Başlayın!")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    if st.button("💬 Vaka Çalışmasına Başla", use_container_width=True, type="primary"):
+    if st.button("💬 Vaka Çalışmasına Başla", width="stretch", type="primary"):
         st.switch_page("pages/chat.py")
 
 with col2:
-    if st.button("📊 İstatistiklerimi Gör", use_container_width=True):
+    if st.button("📊 İstatistiklerimi Gör", width="stretch"):
         st.switch_page("pages/stats.py")
 
 with col3:
-    if st.button("ℹ️ Kullanım Kılavuzu", use_container_width=True):
+    if st.button("ℹ️ Kullanım Kılavuzu", width="stretch"):
         st.info("""
         **Hızlı İpuçları:**
         
