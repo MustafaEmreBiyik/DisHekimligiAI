@@ -1,45 +1,177 @@
-{
-  "id": "olp_001",
-  "zorluk_seviyesi": "Orta",
-  "hasta_profili": {
-    "yas": 45,
-    "sikayet": "Ağzımda beyaz çizgiler ve acı hissediyorum",
-    "tibbi_gecmis": ["Hipertansiyon (ACE inhibitörü)"],
-    "sosyal_gecmis": ["Sigara içmiyor", "Alkol kullanmıyor"]
+[
+  {
+    "case_id": "olp_001",
+    "zorluk_seviyesi": "Orta",
+    "hasta_profili": {
+      "yas": 45,
+      "sikayet": "Ağzımda beyaz çizgiler ve acı hissediyorum",
+      "tibbi_gecmis": [
+        "Hipertansiyon (ACE inhibitörü)"
+      ],
+      "sosyal_gecmis": [
+        "Sigara içmiyor",
+        "Alkol kullanmıyor"
+      ]
+    },
+    "gizli_bulgular": [
+      {
+        "bulgu_id": "bulgu_001",
+        "tanim": "Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae)",
+        "gorsel_id": "olp_foto_001.jpg"
+      },
+      {
+        "bulgu_id": "bulgu_002",
+        "tanim": "Dil lateral kenarlarında eroziv alanlar"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Tıbbi geçmişin sorgulanması",
+        "puan": 10
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "İlaç kullanımının sorgulanması (ACE inhibitörü)",
+        "puan": 15
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "Oral mukozanın muayenesi",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "bulgu_001",
+          "bulgu_002"
+        ]
+      }
+    ],
+    "dogru_tani": "Oral liken planus",
+    "ayirici_tanilar": [
+      "Oral kandidiyaz",
+      "Lökoplaki",
+      "Pemfigus vulgaris"
+    ],
+    "dogru_tedavi_plani": [
+      "Topikal kortikosteroid tedavisi",
+      "Oral hijyen eğitimi"
+    ]
   },
-  "gizli_bulgular": [
-    {
-      "bulgu_id": "bulgu_001",
-      "tanim": "Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae)",
-      "gorsel_id": "olp_foto_001.jpg"
+  {
+    "case_id": "perio_001",
+    "name": "Kronik Periodontitis (Riskli Hasta)",
+    "difficulty": "Zor",
+    "patient": {
+      "age": 55,
+      "gender": "Erkek",
+      "chief_complaint": "Diş etlerimde kanama ve dişlerde sallanma var.",
+      "medical_history": [
+        "Tip 2 Diyabet",
+        "Kalp Pili (Pacemaker)"
+      ],
+      "medications": [
+        "Metformin",
+        "Kan Sulandırıcı (Aspirin)"
+      ],
+      "allergies": [
+        "Penisilin"
+      ],
+      "social_history": [
+        "Sigara: Günde 1 paket (20 yıldır)"
+      ]
     },
-    {
-      "bulgu_id": "bulgu_002",
-      "tanim": "Dil lateral kenarlarında eroziv alanlar"
-    }
-  ],
-  "beklenen_eylemler": [
-    {
-      "eylem_id": "eylem_001",
-      "tanim": "Tıbbi geçmişin sorgulanması",
-      "puan": 10
+    "hidden_findings": [
+      {
+        "finding_id": "pacemaker_warning",
+        "description": "Hasta kalp pili taşıdığını belirtti. (Ultrasonik cihaz kullanımı kontrendike olabilir).",
+        "trigger_action": "check_pacemaker"
+      },
+      {
+        "finding_id": "bleeding_risk",
+        "description": "Hasta kan sulandırıcı kullandığını ve kanamasının uzun sürdüğünü belirtti.",
+        "trigger_action": "check_bleeding_disorder"
+      }
+    ],
+    "correct_diagnosis": "Evre 3 Derece C Periodontitis"
+  },
+  {
+    "case_id": "herpes_primary_01",
+    "name": "Primer Herpetik Gingivostomatitis",
+    "difficulty": "Orta",
+    "patient": {
+      "age": 6,
+      "gender": "Erkek",
+      "chief_complaint": "Ağzımda çok sayıda yara var, ateşliyim ve yemek yiyemiyorum.",
+      "medical_history": ["Yok"],
+      "medications": ["Yok"],
+      "social_history": ["Kreşe gidiyor"],
+      "allergies": ["Yok"]
     },
-    {
-      "eylem_id": "eylem_002",
-      "tanim": "İlaç kullanımının sorgulanması (ACE inhibitörü)",
-      "puan": 15
+    "hidden_findings": [
+      {
+        "finding_id": "diffuse_vesicles",
+        "description": "Tüm oral mukozada ve yapışık dişetinde patlamış veziküller ve ağrılı ülserler.",
+        "trigger_action": "perform_oral_exam"
+      },
+      {
+        "finding_id": "halitosis_fever",
+        "description": "Ateş 39°C, belirgin ağız kokusu (foeter ex ore) ve submandibular lenfadenopati.",
+        "trigger_action": "check_vital_signs"
+      }
+    ],
+    "correct_diagnosis": "Primer Herpetik Gingivostomatitis"
+  },
+  {
+    "case_id": "behcet_01",
+    "name": "Behçet Hastalığı",
+    "difficulty": "Zor",
+    "patient": {
+      "age": 32,
+      "gender": "Erkek",
+      "chief_complaint": "Ağzımda sürekli çıkan ve çok ağrıyan yaralar var.",
+      "medical_history": ["Gözde tekrarlayan kızarıklık (Üveit öyküsü)"],
+      "medications": ["Yok"],
+      "social_history": ["Sigara kullanıyor"],
+      "allergies": ["Yok"]
     },
-    {
-      "eylem_id": "eylem_003",
-      "tanim": "Oral mukozanın muayenesi",
-      "puan": 20,
-      "acilacak_bulgular": ["bulgu_001", "bulgu_002"]
-    }
-  ],
-  "dogru_tani": "Oral liken planus",
-  "ayirici_tanilar": ["Oral kandidiyaz", "Lökoplaki", "Pemfigus vulgaris"],
-  "dogru_tedavi_plani": [
-    "Topikal kortikosteroid tedavisi",
-    "Oral hijyen eğitimi"
-  ]
-}
+    "hidden_findings": [
+      {
+        "finding_id": "genital_ulcer",
+        "description": "Hasta genital bölgesinde de benzer yaralar çıktığını belirtti.",
+        "trigger_action": "ask_systemic_symptoms"
+      },
+      {
+        "finding_id": "pathergy_positive",
+        "description": "Paterji Testi (+): Ön kola steril iğne batırıldıktan 24 saat sonra steril püstül oluştu.",
+        "trigger_action": "perform_pathergy_test"
+      }
+    ],
+    "correct_diagnosis": "Behçet Hastalığı"
+  },
+  {
+    "case_id": "syphilis_02",
+    "name": "Sekonder Sifiliz (Müköz Plak)",
+    "difficulty": "Zor",
+    "patient": {
+      "age": 28,
+      "gender": "Kadın",
+      "chief_complaint": "Boğazımda ağrı ve ağzımda garip beyaz lekeler var.",
+      "medical_history": ["Halsizlik, hafif ateş"],
+      "medications": ["Yok"],
+      "social_history": ["Şüpheli temas öyküsü"],
+      "allergies": ["Yok"]
+    },
+    "hidden_findings": [
+      {
+        "finding_id": "mucous_patch",
+        "description": "Dudak ve damakta grimsi-beyaz, üzeri hafif kabarık 'Müköz Plaklar' (Sifiliz Plağı).",
+        "trigger_action": "perform_oral_exam"
+      },
+      {
+        "finding_id": "skin_rash",
+        "description": "Avuç içlerinde ve ayak tabanında makülo-papüler döküntüler.",
+        "trigger_action": "perform_extraoral_exam"
+      }
+    ],
+    "correct_diagnosis": "Sekonder Sifiliz"
+  }
+]
