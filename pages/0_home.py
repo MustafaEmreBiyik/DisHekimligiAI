@@ -12,6 +12,10 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 from app.student_profile import init_student_profile, show_login_form, show_profile_card
+from db.database import init_db
+
+# Initialize database (create tables if not exist)
+init_db()
 
 # Initialize profile system
 init_student_profile()

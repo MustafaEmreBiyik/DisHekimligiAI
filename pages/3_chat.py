@@ -43,19 +43,23 @@ logging.basicConfig(level=logging.INFO)
 # ==================== DATABASE HELPERS ====================
 
 def get_or_create_session(student_id: str, case_id: str) -> int:
-    """Get existing session or create new one for student+case combination."""
+    """
+    Get existing session or create new one for student+case combination.
+    ALWAYS returns the most recent session for this student+case.
+    """
     db = SessionLocal()
     try:
-        # Try to find existing session
+        # Find the most recent session for this student+case
         existing = db.query(StudentSession).filter_by(
             student_id=student_id,
             case_id=case_id
-        ).first()
+        ).order_by(StudentSession.start_time.desc()).first()
         
         if existing:
+            LOGGER.info(f"Reusing session {existing.id} for {student_id} on {case_id}")
             return existing.id
         
-        # Create new session
+        # Create new session only if none exists
         new_session = StudentSession(
             student_id=student_id,
             case_id=case_id,
@@ -64,6 +68,7 @@ def get_or_create_session(student_id: str, case_id: str) -> int:
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
+        LOGGER.info(f"Created new session {new_session.id} for {student_id} on {case_id}")
         return new_session.id
     except Exception as e:
         LOGGER.error(f"Session creation failed: {e}")
@@ -81,6 +86,7 @@ def save_message_to_db(
 ) -> bool:
     """
     Save chat message to database with optional metadata.
+    Updates session score if metadata contains assessment.
     
     Args:
         session_id: Database session ID
@@ -93,6 +99,7 @@ def save_message_to_db(
     
     db = SessionLocal()
     try:
+        # Save chat log
         chat_log = ChatLog(
             session_id=session_id,
             role=role,
@@ -101,6 +108,19 @@ def save_message_to_db(
             timestamp=datetime.utcnow()
         )
         db.add(chat_log)
+        
+        # Update session score if this is an assistant message with assessment
+        if role == "assistant" and metadata:
+            assessment = metadata.get("assessment", {})
+            action_score = assessment.get("score", 0)
+            
+            if action_score > 0:
+                # Get current session and update cumulative score
+                session = db.query(StudentSession).filter_by(id=session_id).first()
+                if session:
+                    session.current_score = (session.current_score or 0) + action_score
+                    LOGGER.info(f"Updated session {session_id} score: +{action_score} -> {session.current_score}")
+        
         db.commit()
         return True
     except Exception as e:
@@ -153,13 +173,23 @@ def main() -> None:
         ]
     
     # Initialize or get database session
-    if "db_session_id" not in st.session_state or st.session_state.db_session_id is None:
-        profile = st.session_state.get("student_profile") or {}
-        student_id = profile.get("student_id", "web_user_default")
+    # CRITICAL: Always verify session exists for current case
+    profile = st.session_state.get("student_profile") or {}
+    student_id = profile.get("student_id", "web_user_default")
+    
+    # Check if we need to refresh session ID
+    need_new_session = (
+        "db_session_id" not in st.session_state or 
+        st.session_state.db_session_id is None or
+        st.session_state.db_session_id < 0
+    )
+    
+    if need_new_session:
         st.session_state.db_session_id = get_or_create_session(
             student_id=student_id,
             case_id=st.session_state.current_case_id
         )
+        LOGGER.info(f"Session initialized: {st.session_state.db_session_id} for case {st.session_state.current_case_id}")
 
     # Initialize agent
     agent_instance = None

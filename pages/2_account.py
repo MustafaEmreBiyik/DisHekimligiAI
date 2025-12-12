@@ -14,10 +14,11 @@ if parent_dir not in sys.path:
 
 from app.student_profile import init_student_profile
 from app.frontend.components import render_sidebar
-from db.database import SessionLocal, StudentSession, ChatLog
+from db.database import SessionLocal, StudentSession, ChatLog, init_db
 import json
 
 # Initialize systems
+init_db()
 init_student_profile()
 
 # Page config
