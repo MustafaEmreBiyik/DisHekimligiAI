@@ -15,7 +15,8 @@ CASE_OPTIONS = {
     "Kronik Periodontitis (Zor)": "perio_001",
     "Primer Herpes (Orta)": "herpes_primary_01",
     "Behçet Hastalığı (Zor)": "behcet_01",
-    "Sekonder Sifiliz (Zor)": "syphilis_02"
+    "Sekonder Sifiliz (Zor)": "syphilis_02",
+    "Kronik Deskuamatif Gingivitis (Zor)": "desquamative_01"
 }
 
 DEFAULT_MODEL = "models/gemini-2.5-flash-lite"
