@@ -1,4 +1,5 @@
-# Dental Education AI 
+# Dental Education
+
 A dental education simulation system that uses Google's Gemini AI to provide interactive learning scenarios for dental students.
 
 The system utilizes a **Hybrid AI Architecture**, combining the natural language understanding capabilities of Large Language Models (Google Gemini & Gemma) with a deterministic rule-based assessment engine to provide accurate, safe, and objective feedback.
