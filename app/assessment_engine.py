@@ -114,10 +114,12 @@ class AssessmentEngine:
         score = rule.get("score", 0)
         outcome = rule.get("rule_outcome", "Unscored")
         effect = rule.get("action_effect")
+        state_updates = rule.get("state_updates", {})
 
         return {
             "score": score,
             "score_change": score,
             "rule_outcome": outcome,
             "action_effect": effect,
+            "state_updates": state_updates,
         }

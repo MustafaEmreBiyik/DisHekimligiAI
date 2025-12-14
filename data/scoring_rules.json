@@ -6,6 +6,15 @@
         "target_action": "check_allergies_meds",
         "score": 15,
         "rule_outcome": "Anamnez tamamlandı."
+      },
+      {
+        "target_action": "perform_oral_exam",
+        "score": 20,
+        "rule_outcome": "Oral mukoza muayenesi yapıldı. Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae) görüldü.",
+        "state_updates": {
+          "score_change": 20,
+          "revealed_findings": ["bulgu_001"]
+        }
       }
     ]
   },
@@ -59,6 +68,15 @@
         "score": 10,
         "rule_outcome": "İlaç ve Alerji (Penisilin) sorgulandı.",
         "state_updates": { "score_change": 10 }
+      },
+      {
+        "target_action": "perform_oral_exam",
+        "score": 15,
+        "rule_outcome": "Oral muayene yapıldı. Dişetlerinde kanama ve kızarıklık tespit edildi.",
+        "state_updates": {
+          "score_change": 15,
+          "revealed_findings": ["bleeding_risk"]
+        }
       }
     ]
   },
@@ -106,6 +124,15 @@
   {
     "case_id": "behcet_01",
     "rules": [
+      {
+        "target_action": "perform_oral_exam",
+        "score": 15,
+        "rule_outcome": "Oral muayene yapıldı. Ağızda tekrarlayan aftöz ülserler görüldü.",
+        "state_updates": {
+          "score_change": 15,
+          "revealed_findings": ["genital_ulcer"]
+        }
+      },
       {
         "target_action": "ask_systemic_symptoms",
         "score": 20,
@@ -155,6 +182,44 @@
         "score": 30,
         "rule_outcome": "Doğru Tanı: Sekonder Sifiliz.",
         "state_updates": { "score_change": 30 }
+      }
+    ]
+  },
+  {
+    "case_id": "desquamative_01",
+    "rules": [
+      {
+        "target_action": "perform_oral_exam",
+        "score": 10,
+        "rule_outcome": "Yapışık dişetinde yaygın eritem ve soyulmalar görüldü.",
+        "state_updates": {
+          "score_change": 10,
+          "revealed_findings": ["clinical_erythema"]
+        }
+      },
+      {
+        "target_action": "perform_nikolsky_test",
+        "score": 25,
+        "rule_outcome": "KRİTİK BULGU: Nikolsky (+) - Epitel sıyrılması pozitif.",
+        "state_updates": {
+          "score_change": 25,
+          "revealed_findings": ["nikolsky_positive"]
+        }
+      },
+      {
+        "target_action": "request_dif_biopsy",
+        "score": 30,
+        "rule_outcome": "ALTIN STANDART: DIF İncelemesi - Bazal membran zonunda lineer IgG ve C3.",
+        "state_updates": {
+          "score_change": 30,
+          "revealed_findings": ["biopsy_dif_result"]
+        }
+      },
+      {
+        "target_action": "diagnose_mucous_membrane_pemphigoid",
+        "score": 40,
+        "rule_outcome": "Doğru Tanı: Müköz Membran Pemfigoidi.",
+        "state_updates": { "score_change": 40 }
       }
     ]
   }

@@ -11,6 +11,7 @@ import json
 import logging
 from typing import Optional, List, Tuple, Any, Dict
 from datetime import datetime
+from pathlib import Path
 
 # Add parent directory to path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,6 +40,48 @@ except Exception as e:
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+# ==================== HELPER FUNCTIONS ====================
+
+def load_case_data(case_id: str) -> Optional[Dict[str, Any]]:
+    """Load case data from case_scenarios.json"""
+    try:
+        case_file = Path(parent_dir) / "data" / "case_scenarios.json"
+        with open(case_file, "r", encoding="utf-8") as f:
+            cases = json.load(f)
+        for case in cases:
+            if case.get("case_id") == case_id:
+                return case
+        return None
+    except Exception as e:
+        LOGGER.error(f"Failed to load case data: {e}")
+        return None
+
+
+def get_finding_media(case_data: Dict[str, Any], finding_ids: List[str]) -> Optional[str]:
+    """
+    Get media path for revealed findings.
+    Returns the first media path found in the revealed findings.
+    """
+    if not case_data or not finding_ids:
+        return None
+    
+    hidden_findings = case_data.get("hidden_findings", [])
+    if not hidden_findings:
+        # Try Turkish key name
+        hidden_findings = case_data.get("gizli_bulgular", [])
+    
+    for finding in hidden_findings:
+        finding_id = finding.get("finding_id") or finding.get("bulgu_id")
+        if finding_id in finding_ids:
+            media_path = finding.get("media")
+            if media_path:
+                # Check if file exists
+                full_path = Path(parent_dir) / media_path
+                if full_path.exists():
+                    return str(full_path)
+    return None
+
 
 # ==================== DATABASE HELPERS ====================
 
@@ -149,13 +192,44 @@ def main() -> None:
         st.session_state.db_session_id = None
         st.rerun()
     
+    def finish_case():
+        """Callback to finish case and save results"""
+        from db.database import save_exam_result, SessionLocal, StudentSession
+        
+        # Get current session score
+        if st.session_state.db_session_id:
+            db = SessionLocal()
+            try:
+                session = db.query(StudentSession).filter_by(id=st.session_state.db_session_id).first()
+                if session:
+                    # Save exam result
+                    profile = st.session_state.get("student_profile") or {}
+                    user_id = profile.get("student_id", "web_user_default")
+                    
+                    result = save_exam_result(
+                        user_id=user_id,
+                        case_id=st.session_state.current_case_id,
+                        score=int(session.current_score),
+                        max_score=100,  # You can adjust this based on case
+                        details={"session_id": session.id}
+                    )
+                    
+                    if result:
+                        st.session_state.case_completed = True
+                        st.success(f"✅ Vaka tamamlandı! Skorunuz: {int(session.current_score)} puan kaydedildi!")
+                    else:
+                        st.error("❌ Skor kaydedilemedi.")
+            finally:
+                db.close()
+    
     # Render reusable sidebar
     sidebar_data = render_sidebar(
         page_type="chat",
         show_case_selector=True,
         show_model_selector=True,
         custom_actions={
-            "🔄 Yeni Sohbet": reset_chat
+            "🔄 Yeni Sohbet": reset_chat,
+            "✅ Vakayı Bitir": finish_case
         }
     )
 
@@ -213,6 +287,19 @@ def main() -> None:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            
+            # Display clinical image if this message revealed findings with media
+            if msg["role"] == "assistant" and "metadata" in msg:
+                metadata = msg.get("metadata", {})
+                revealed = metadata.get("revealed_findings", [])
+                
+                if revealed:
+                    # Load current case data
+                    case_data = load_case_data(st.session_state.current_case_id)
+                    media_path = get_finding_media(case_data, revealed)
+                    
+                    if media_path:
+                        st.image(media_path, caption="🔬 Klinik Görünüm", width=400)
 
     # ==================== USER INPUT ====================
     if user_input := st.chat_input("Mesajınızı yazın..."):
@@ -254,17 +341,53 @@ def main() -> None:
                 
                 # Display ONLY the conversation text (no scores, no warnings)
                 placeholder.markdown(response_text)
-                st.session_state.messages.append({"role": "assistant", "content": response_text})
                 
-                # ==================== SILENT SAVE ====================
-                # Save evaluation to database WITHOUT showing it to the user
+                # ==================== EXTRACT REVEALED FINDINGS ====================
+                # Extract revealed findings from assessment for image display
+                revealed_findings = []
+                assessment = result.get("assessment", {})
+                
+                # DEBUG: Log full result structure
+                LOGGER.info(f"[DEBUG] Full result keys: {result.keys()}")
+                LOGGER.info(f"[DEBUG] Assessment: {assessment}")
+                
+                if assessment and "state_updates" in assessment:
+                    revealed_findings = assessment["state_updates"].get("revealed_findings", [])
+                    LOGGER.info(f"[DEBUG] Revealed findings: {revealed_findings}")
+                else:
+                    LOGGER.warning("[DEBUG] No state_updates in assessment!")
+                
+                # Create evaluation metadata
                 evaluation_metadata = {
                     "interpreted_action": result.get("llm_interpretation", {}).get("interpreted_action"),
-                    "assessment": result.get("assessment", {}),
+                    "assessment": assessment,
                     "silent_evaluation": result.get("silent_evaluation", {}),
+                    "revealed_findings": revealed_findings,
                     "timestamp": datetime.utcnow().isoformat(),
                     "case_id": st.session_state.current_case_id
                 }
+                
+                # Store message with metadata for image display
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response_text,
+                    "metadata": evaluation_metadata
+                })
+                
+                # Display clinical image if findings were revealed
+                if revealed_findings:
+                    LOGGER.info(f"[DEBUG] Attempting to display image for findings: {revealed_findings}")
+                    case_data = load_case_data(st.session_state.current_case_id)
+                    LOGGER.info(f"[DEBUG] Case data loaded: {case_data is not None}")
+                    media_path = get_finding_media(case_data, revealed_findings)
+                    LOGGER.info(f"[DEBUG] Media path: {media_path}")
+                    if media_path:
+                        st.image(media_path, caption="🔬 Klinik Görünüm", width=400)
+                        LOGGER.info(f"[DEBUG] Image displayed successfully!")
+                    else:
+                        LOGGER.warning(f"[DEBUG] No media path found for findings: {revealed_findings}")
+                else:
+                    LOGGER.warning("[DEBUG] No revealed findings to display image")
                 
                 save_message_to_db(
                     session_id=st.session_state.db_session_id,

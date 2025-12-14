@@ -17,7 +17,8 @@
       {
         "bulgu_id": "bulgu_001",
         "tanim": "Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae)",
-        "gorsel_id": "olp_foto_001.jpg"
+        "gorsel_id": "olp_foto_001.jpg",
+        "media": "assets/images/olp_clinical.jpg"
       },
       {
         "bulgu_id": "bulgu_002",
@@ -88,7 +89,8 @@
       {
         "finding_id": "bleeding_risk",
         "description": "Hasta kan sulandırıcı kullandığını ve kanamasının uzun sürdüğünü belirtti.",
-        "trigger_action": "check_bleeding_disorder"
+        "trigger_action": "check_bleeding_disorder",
+        "media": "assets/images/perio_clinical.jpg"
       }
     ],
     "correct_diagnosis": "Evre 3 Derece C Periodontitis"
@@ -110,7 +112,8 @@
       {
         "finding_id": "diffuse_vesicles",
         "description": "Tüm oral mukozada ve yapışık dişetinde patlamış veziküller ve ağrılı ülserler.",
-        "trigger_action": "perform_oral_exam"
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/herpes_clinical.jpg"
       },
       {
         "finding_id": "halitosis_fever",
@@ -137,7 +140,8 @@
       {
         "finding_id": "genital_ulcer",
         "description": "Hasta genital bölgesinde de benzer yaralar çıktığını belirtti.",
-        "trigger_action": "ask_systemic_symptoms"
+        "trigger_action": "ask_systemic_symptoms",
+        "media": "assets/images/behcet_clinical.jpg"
       },
       {
         "finding_id": "pathergy_positive",
@@ -164,7 +168,8 @@
       {
         "finding_id": "mucous_patch",
         "description": "Dudak ve damakta grimsi-beyaz, üzeri hafif kabarık 'Müköz Plaklar' (Sifiliz Plağı).",
-        "trigger_action": "perform_oral_exam"
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/syphilis_clinical.jpg"
       },
       {
         "finding_id": "skin_rash",
@@ -173,5 +178,38 @@
       }
     ],
     "correct_diagnosis": "Sekonder Sifiliz"
+  },
+  {
+    "case_id": "desquamative_01",
+    "name": "Kronik Deskuamatif Gingivitis",
+    "difficulty": "Zor",
+    "patient": {
+      "age": 46,
+      "gender": "Kadın",
+      "chief_complaint": "Diş etlerimde sızlama, yanma ve soyulmalar var. Asitli yiyecekleri yiyemiyorum.",
+      "medical_history": ["Hipertansiyon"],
+      "medications": ["ACE İnhibitörü"],
+      "social_history": ["Sigara kullanmıyor"],
+      "allergies": ["Yok"]
+    },
+    "hidden_findings": [
+      {
+        "finding_id": "clinical_erythema",
+        "description": "Yapışık dişetinde yaygın, parlak kırmızı eritem ve soyulmalar.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/desquamative_clinical.jpg"
+      },
+      {
+        "finding_id": "nikolsky_positive",
+        "description": "Nikolsky (+): Sağlam mukozaya hava sıkıldığında bül oluşup epitel sıyrılıyor.",
+        "trigger_action": "perform_nikolsky_test"
+      },
+      {
+        "finding_id": "biopsy_dif_result",
+        "description": "DIF İncelemesi: Bazal membran zonunda lineer IgG ve C3 birikimi (MMP).",
+        "trigger_action": "request_dif_biopsy"
+      }
+    ],
+    "correct_diagnosis": "Müköz Membran Pemfigoidi"
   }
 ]

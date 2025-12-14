@@ -33,7 +33,7 @@ The application follows a modular architecture:
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/dentai.git
+    git clone https://github.com/betuldanismaz/dentai.git
     cd dentai
     ```
 
