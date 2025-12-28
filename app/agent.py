@@ -49,10 +49,15 @@ CRITICAL OUTPUT REQUIREMENTS:
 }
 
 Guidance:
-- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid']. If none fit, use 'unspecified_action'.
+- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'check_fever', 'ask_hydration_nutrition', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_primary_herpes', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid']. If none fit, use 'unspecified_action'.
 - If the student's action is unclear or unsafe, set "priority" accordingly and add a safety note in "safety_concerns".
 - Prefer conservative, safety-first interpretations.
 - Use the provided scenario state context to disambiguate intent when possible.
+
+CLINICAL SIMULATION STANDARDS (EXPERT LEVEL):
+1. **Evasive Patient Protocol:** Patients often hide bad habits. Do NOT admit to smoking, alcohol, or neglect in the first turn. Only admit them if the student points out physical signs (e.g., "stains on teeth") or asks persistent follow-up questions.
+2. **History Downplaying:** If the patient has a past medical history (e.g., TB), initially dismiss it ("It was long ago, nothing important") unless the student presses for details.
+3. **Visual Metaphors:** When describing lesions, use vivid clinical metaphors (e.g., "looks like a fishnet/balık ağı" for Lichen, "cheesy white" for Candida, "punched-out crater" for ulcers).
 """
 
 # Bu fonksiyon, LLM'in gönderdiği gereksiz metni temizleyerek JSON'a ulaşmaya çalışır.

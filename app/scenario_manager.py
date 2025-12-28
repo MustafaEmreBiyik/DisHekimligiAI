@@ -72,6 +72,11 @@ class ScenarioManager:
             "history": [],
         }
 
+        # Case category (used by RuleService / MedGemma silent validation)
+        category = case.get("category") or case.get("Category") or case.get("kategori")
+        if isinstance(category, str) and category.strip():
+            state["category"] = category.strip()
+
         # Normalize patient fields (case_scenarios.json is primarily Turkish-keyed today)
         patient: Dict[str, Any] = {}
         hp = case.get("hasta_profili")

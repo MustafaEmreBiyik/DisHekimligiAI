@@ -41,6 +41,120 @@ except Exception as e:
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+# ==================== UI STYLING ====================
+
+def apply_custom_css():
+    """Apply custom CSS for professional UI"""
+    st.markdown("""
+    <style>
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Chat message styling */
+    .stChatMessage[data-testid="user-message"] {
+        background-color: #f0f0f0 !important;
+        border-left: 4px solid #888 !important;
+    }
+    
+    .stChatMessage[data-testid="assistant-message"] {
+        background-color: #e3f2fd !important;
+        border-left: 4px solid #2196F3 !important;
+    }
+    
+    /* Patient card styling */
+    .patient-card {
+        padding: 1rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-bottom: 1rem;
+    }
+    
+    .patient-info {
+        font-size: 0.9rem;
+        margin: 0.3rem 0;
+    }
+    
+    .critical-info {
+        background-color: #ff5252;
+        padding: 0.5rem;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+        font-weight: bold;
+    }
+    
+    /* Clinical image container */
+    .stImage {
+        border: 2px solid #2196F3;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 0.5rem;
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def render_patient_card(case_id: str):
+    """Render persistent patient information card in sidebar"""
+    case_data = load_case_data(case_id)
+    
+    if not case_data:
+        st.sidebar.warning("⚠️ Hasta bilgisi yüklenemedi")
+        return
+    
+    # Handle both Turkish and English keys
+    patient = case_data.get("patient") or case_data.get("hasta_profili") or {}
+    
+    # Extract patient info with fallbacks
+    age = patient.get("age") or patient.get("yas") or "Bilinmiyor"
+    gender = patient.get("gender") or patient.get("cinsiyet") or "Bilinmiyor"
+    complaint = patient.get("chief_complaint") or patient.get("sikayet") or "Belirtilmemiş"
+    medical_history = patient.get("medical_history") or patient.get("tibbi_gecmis") or []
+    allergies = patient.get("allergies") or patient.get("alerjiler") or []
+    medications = patient.get("medications") or patient.get("ilaclar") or []
+    
+    # Render card in sidebar
+    with st.sidebar:
+        with st.expander("📋 HASTA KARTI", expanded=True):
+            # Basic info
+            st.markdown(f"**Yaş/Cinsiyet:** {age} / {gender}")
+            st.markdown(f"**Şikayet:** {complaint}")
+            
+            st.markdown("---")
+            
+            # Critical: Allergies
+            if allergies and len(allergies) > 0 and allergies[0] != "Yok":
+                st.error("⚠️ **ALERJİ VAR!**")
+                for allergy in allergies:
+                    st.markdown(f"🔴 {allergy}")
+            else:
+                st.success("✅ Bilinen alerji yok")
+            
+            # Medical History
+            if medical_history and len(medical_history) > 0 and medical_history[0] != "Yok":
+                st.warning("📋 **Tıbbi Geçmiş:**")
+                for condition in medical_history:
+                    # Highlight critical conditions
+                    if any(keyword in str(condition).lower() for keyword in ["diyabet", "diabetes", "kalp", "pacemaker", "hipertansiyon"]):
+                        st.markdown(f"🔴 **{condition}**")
+                    else:
+                        st.markdown(f"• {condition}")
+            
+            # Medications
+            if medications and len(medications) > 0 and medications[0] != "Yok":
+                st.info("💊 **İlaçlar:**")
+                for med in medications:
+                    st.markdown(f"• {med}")
+
+
 # ==================== HELPER FUNCTIONS ====================
 
 def load_case_data(case_id: str) -> Optional[Dict[str, Any]]:
@@ -174,6 +288,9 @@ def main() -> None:
         layout="centered"
     )
     
+    # Apply custom CSS
+    apply_custom_css()
+    
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     # ==================== SIDEBAR ====================
@@ -223,6 +340,10 @@ def main() -> None:
             "✅ Vakayı Bitir": finish_case
         }
     )
+    
+    # Render patient card (CRITICAL: Always visible)
+    current_case = st.session_state.get("current_case_id", "olp_001")
+    render_patient_card(current_case)
 
     # ==================== CHAT AREA ====================
     st.title("💬 Oral Patoloji Sohbet")
