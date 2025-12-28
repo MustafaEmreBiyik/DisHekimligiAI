@@ -1,0 +1,43 @@
+{
+  "oral_pathology": [
+    {
+      "id": "olp_01",
+      "question": "Bukkal mukozada 'beyaz ve ağsı (balık ağı)' görünümündeki lezyon için en olası tanı nedir?",
+      "options": ["Oral Liken Planus", "Psödomembranöz Kandidiyazis", "Lökoplaki", "Friksiyonel Keratoz"],
+      "correct_option": "Oral Liken Planus",
+      "explanation": "Beyaz ve ağsı (retiküler) yapı Liken Planus'un tipik özelliğidir (Wickham striae)."
+    },
+    {
+      "id": "olp_02",
+      "question": "Beyaz bir lezyonun 'Kandidiyazis' mi yoksa 'Lökoplaki' mi olduğunu anlamak için Semih Hoca'nın önerdiği pratik yöntem nedir?",
+      "options": ["Sıyrılıp sıyrılmadığını kontrol etmek", "Biyopsi almak", "Kan tahlili yapmak", "Antibiyotik vermek"],
+      "correct_option": "Sıyrılıp sıyrılmadığını kontrol etmek",
+      "explanation": "Sıyrılabilen beyazlık Mantar (Kandidiyazis), sıyrılmayan beyazlık Keratin artışıdır (Lökoplaki/Nasır)."
+    }
+  ],
+  "infectious_diseases": [
+    {
+      "id": "inf_01",
+      "question": "Viral kökenli lezyonlarda (Örn: Primer Herpes) yapılması kesinlikle YANLIŞ olan uygulama hangisidir?",
+      "options": ["Antibiyotik reçete etmek", "Sıvı alımını teşvik etmek", "Ateş düşürücü vermek", "İzolasyon önermek"],
+      "correct_option": "Antibiyotik reçete etmek",
+      "explanation": "Viral lezyonlarda antibiyotik VERİLMEMELİDİR, bakteriyel enfeksiyon değildir."
+    },
+    {
+      "id": "inf_02",
+      "question": "Ağız tabanında ve dilde görülen 'Aft' ile 'Herpes' lezyonlarını ayıran temel klinik fark nedir?",
+      "options": ["Aft hareketli mukozada, Herpes keratinize diş etinde (gingiva) görülür", "Aft sadece çocuklarda görülür", "Herpes ağrı yapmaz", "Aft antibiyotikle geçer"],
+      "correct_option": "Aft hareketli mukozada, Herpes keratinize diş etinde (gingiva) görülür",
+      "explanation": "Aft diş etinde olmaz, Herpes olur. Aft hareketli mukozada görülür."
+    }
+  ],
+  "traumatic": [
+    {
+       "id": "trauma_01",
+       "question": "Dil kenarında sürekli tekrarlayan aft ve diş izleri (indentasyon) görülen hastada öncelikli yaklaşım ne olmalıdır?",
+       "options": ["Etkeni (Stres/Diş Sıkma) araştırmak", "Hemen kortikosteroid başlamak", "Biyopsi almak", "Antibiyotik vermek"],
+       "correct_option": "Etkeni (Stres/Diş Sıkma) araştırmak",
+       "explanation": "Sadece semptom (Aft) tedavi edilmemeli, etken (Travma/Stres/Parafonksiyon) ortadan kaldırılmalıdır."
+    }
+  ]
+}
