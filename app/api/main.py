@@ -35,10 +35,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React development server
+        "http://127.0.0.1:3000",  # Localhost alternative
+        "http://192.168.1.72:3000",  # Local network IP
         "http://localhost:5173",  # Vite development server
-        "http://localhost:3001",  # React dev server on alternate port
-        "null",  # Allow local HTML files (file:// protocol)
-        "https://dental-tutor.vercel.app",  # Production frontend (example)
+        "http://localhost:8000",  # Backend self-reference
+        "*",  # Fallback for any other origin (development only)
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
