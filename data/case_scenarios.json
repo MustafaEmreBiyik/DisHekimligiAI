@@ -124,6 +124,35 @@
     "correct_diagnosis": "Primer Herpetik Gingivostomatitis"
   },
   {
+    "case_id": "infectious_child_01",
+    "name": "Primer Herpetik Gingivostomatitis (Pediatrik)",
+    "difficulty": "Zor",
+    "category": "INFECTIOUS",
+    "patient": {
+      "age": 5,
+      "gender": "Erkek",
+      "chief_complaint": "Ebeveyn: 3 gündür yemek yemiyor, sürekli ağlıyor, ağzı kokuyor.",
+      "medical_history": ["Ateşi 39 derece."],
+      "medications": ["Yok"],
+      "social_history": ["Yok"],
+      "allergies": ["Yok"]
+    },
+    "hidden_findings": [
+      {
+        "finding_id": "clinical_appearance",
+        "description": "Diş etleri ödemli ve parlak kırmızı (eritemli). Dil ve dudakta rüptüre vezikül izleri.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/herpes_clinical.jpg"
+      },
+      {
+        "finding_id": "extraoral",
+        "description": "Submandibular lenfadenopati (lenf bezleri şiş).",
+        "trigger_action": "perform_extraoral_exam"
+      }
+    ],
+    "correct_diagnosis": "Primer Herpetik Gingivostomatitis"
+  },
+  {
     "case_id": "behcet_01",
     "name": "Behçet Hastalığı",
     "difficulty": "Zor",

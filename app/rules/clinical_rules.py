@@ -21,7 +21,9 @@ CLINICAL_RULES_DB = {
             "NEVER prescribe Penicillin-group antibiotics (Amoxicillin, Augmentin, Penicillin V) to patients with documented Penicillin allergy.",
             "Check for drug allergies before prescribing antibiotics.",
             "Confirm pregnancy status before prescribing Tetracycline or Metronidazole.",
-            "Verify renal function before prescribing high-dose antibiotics in elderly patients."
+            "Verify renal function before prescribing high-dose antibiotics in elderly patients.",
+            "Viral lezyonlarda (Herpes vb.) antibiyotik KESİNLİKLE verilmemelidir.",
+            "Çocuk hastalarda 'yutkunma/beslenme' ve 'dehidratasyon' riski sorgulanmalıdır."
         ],
         "recommended_antibiotics": {
             "first_line": ["Amoxicillin 500mg TID", "Amoxicillin-Clavulanate 875/125mg BID"],
@@ -36,7 +38,8 @@ CLINICAL_RULES_DB = {
         ],
         "diagnostic_requirements": [
             "Clinical examination for signs of spreading infection",
-            "Consider radiograph if suspected osteomyelitis"
+            "Consider radiograph if suspected osteomyelitis",
+            "Ateş ölçümü ve sistemik belirti sorgusu yap."
         ]
     },
     
@@ -91,7 +94,8 @@ CLINICAL_RULES_DB = {
             "Assess airway if facial trauma involves mandible fracture.",
             "Check for cervical spine injury in high-impact trauma.",
             "Rule out tooth avulsion/subluxation in all oral trauma cases.",
-            "Tetanus prophylaxis status must be verified."
+            "Tetanus prophylaxis status must be verified.",
+            "Sadece semptom (Aft) tedavi edilmemeli, etken (Travma/Stres/Diş Sıkma) ortadan kaldırılmalıdır."
         ],
         "immediate_actions": [
             "Control bleeding",
@@ -103,7 +107,8 @@ CLINICAL_RULES_DB = {
             "Mechanism of injury",
             "Time of injury",
             "Loss of consciousness or neurological symptoms",
-            "Tetanus vaccination history"
+            "Tetanus vaccination history",
+            "Gece plağı ihtiyacını ve dişlerde aşınma olup olmadığını sorgula."
         ]
     },
     
