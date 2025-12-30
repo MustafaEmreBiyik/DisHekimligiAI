@@ -11,9 +11,7 @@ from datetime import timedelta
 import bcrypt
 from sqlalchemy.orm import Session
 import logging
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Direct bcrypt usage (passlib has compatibility issues with newer bcrypt)
 import json
 from pathlib import Path
 from app.api.deps import get_current_user
@@ -53,19 +51,27 @@ def save_users_db(users: dict):
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a password against its hash using bcrypt directly."""
+    try:
+        plain_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(plain_bytes, hashed_bytes)
+    except Exception as e:
+        logger.error(f"Password verification error: {e}")
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt."""
+    """Hash a password using bcrypt directly."""
     # Bcrypt has a maximum password length of 72 bytes
-    # Truncate string to ensure it doesn't exceed this limit
-    if len(password.encode('utf-8')) > 72:
-        # Truncate character by character until under 72 bytes
-        while len(password.encode('utf-8')) > 72:
-            password = password[:-1]
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 # ==================== REQUEST/RESPONSE MODELS ====================
