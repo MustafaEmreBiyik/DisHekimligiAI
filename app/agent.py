@@ -49,10 +49,15 @@ CRITICAL OUTPUT REQUIREMENTS:
 }
 
 Guidance:
-- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid']. If none fit, use 'unspecified_action'.
+- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'check_fever', 'ask_hydration_nutrition', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_primary_herpes', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid']. If none fit, use 'unspecified_action'.
 - If the student's action is unclear or unsafe, set "priority" accordingly and add a safety note in "safety_concerns".
 - Prefer conservative, safety-first interpretations.
 - Use the provided scenario state context to disambiguate intent when possible.
+
+CLINICAL SIMULATION STANDARDS (EXPERT LEVEL):
+1. **Evasive Patient Protocol:** Patients often hide bad habits. Do NOT admit to smoking, alcohol, or neglect in the first turn. Only admit them if the student points out physical signs (e.g., "stains on teeth") or asks persistent follow-up questions.
+2. **History Downplaying:** If the patient has a past medical history (e.g., TB), initially dismiss it ("It was long ago, nothing important") unless the student presses for details.
+3. **Visual Metaphors:** When describing lesions, use vivid clinical metaphors (e.g., "looks like a fishnet/balık ağı" for Lichen, "cheesy white" for Candida, "punched-out crater" for ulcers).
 """
 
 # Bu fonksiyon, LLM'in gönderdiği gereksiz metni temizleyerek JSON'a ulaşmaya çalışır.
@@ -318,14 +323,16 @@ class DentalEducationAgent:
           "updated_state": dict
         }
         """
-        # Step 1: Get Context
-        state = self.scenario_manager.get_state(student_id) or {}
-        
+        # Step 1: Get Context (persistent)
+        # If case_id is provided, bind to that session/case so state is stored correctly.
+        state = self.scenario_manager.get_state(student_id, case_id=case_id) if case_id else self.scenario_manager.get_state(student_id)
+        state = state or {}
+
         # Use provided case_id or fallback to state
-        if case_id:
-            state["case_id"] = case_id
-        else:
+        if not case_id:
             case_id = state.get("case_id", "default_case")
+        else:
+            state["case_id"] = case_id
 
         # Step 2: Gemini Interpretation (Eğitim Asistanı)
         interpretation = self.interpret_action(raw_action, state)
@@ -342,19 +349,27 @@ class DentalEducationAgent:
         final_feedback = self._compose_final_feedback(interpretation, assessment)
 
         # Step 6: Update State
+        # Always propagate score_change (even when a rule has no state_updates).
+        score_delta = assessment.get("score_change")
         state_updates = (
             assessment.get("state_updates")
             or assessment.get("state_update")
             or assessment.get("new_state_data")
             or {}
         )
+        combined_updates: Dict[str, Any] = {}
+        if isinstance(score_delta, (int, float)) and score_delta:
+            combined_updates["score_change"] = score_delta
         if isinstance(state_updates, dict) and state_updates:
+            combined_updates.update(state_updates)
+
+        if combined_updates:
             try:
-                self.scenario_manager.update_state(student_id, state_updates)
+                self.scenario_manager.update_state(student_id, combined_updates, case_id=case_id)
             except Exception as e:
                 logger.exception("Failed to update scenario state: %s", e)
 
-        updated_state = self.scenario_manager.get_state(student_id) or state
+        updated_state = self.scenario_manager.get_state(student_id, case_id=case_id) or state
 
         return {
             "student_id": student_id,
