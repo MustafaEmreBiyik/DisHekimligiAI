@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>FastAPI Auth Test</h1>
+    
+    <h2>1. Kayıt (Register)</h2>
+    <button onclick="testRegister()">Test Register</button>
+    
+    <h2>2. Giriş (Login)</h2>
+    <button onclick="testLogin()">Test Login</button>
+    
+    <h2>Sonuç:</h2>
+    <pre id="result">Henüz test yapılmadı.</pre>
+    
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const resultEl = document.getElementById('result');
+        
+        async function testRegister() {
+            resultEl.textContent = 'Kayıt isteği gönderiliyor...';
+            try {
+                const response = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: 'test999',
+                        name: 'Test User',
+                        password: 'test123',
+                        email: 'test@example.com'
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    resultEl.innerHTML = `<div class="success">✅ Kayıt başarılı!\n${JSON.stringify(data, null, 2)}</div>`;
+                    localStorage.setItem('access_token', data.access_token);
+                } else {
+                    resultEl.innerHTML = `<div class="error">❌ Kayıt başarısız (${response.status})\n${JSON.stringify(data, null, 2)}</div>`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testLogin() {
+            resultEl.textContent = 'Giriş isteği gönderiliyor...';
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: 'test999',
+                        password: 'test123'
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    resultEl.innerHTML = `<div class="success">✅ Giriş başarılı!\n${JSON.stringify(data, null, 2)}</div>`;
+                    localStorage.setItem('access_token', data.access_token);
+                } else {
+                    resultEl.innerHTML = `<div class="error">❌ Giriş başarısız (${response.status})\n${JSON.stringify(data, null, 2)}</div>`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

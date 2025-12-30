@@ -122,6 +122,56 @@
     ]
   },
   {
+    "case_id": "infectious_child_01",
+    "rules": [
+      {
+        "target_action": "perform_oral_exam",
+        "score": 10,
+        "rule_outcome": "Oral muayene yapıldı. Dişetlerinde yaygın eritem/ödem ve rüptüre vezikül izleri görüldü.",
+        "state_updates": {
+          "score_change": 10,
+          "revealed_findings": ["clinical_appearance"]
+        }
+      },
+      {
+        "target_action": "check_fever",
+        "score": 20,
+        "rule_outcome": "KRİTİK: Ateş ve sistemik belirti kontrolü yapıldı (pediatrik viral enfeksiyonda risk değerlendirmesi).",
+        "state_updates": { "score_change": 20 }
+      },
+      {
+        "target_action": "check_vital_signs",
+        "score": 20,
+        "rule_outcome": "KRİTİK: Ateş ve sistemik belirti kontrolü yapıldı (pediatrik viral enfeksiyonda risk değerlendirmesi).",
+        "state_updates": { "score_change": 20 }
+      },
+      {
+        "target_action": "ask_hydration_nutrition",
+        "score": 20,
+        "rule_outcome": "Uzman İçgörü: Beslenme/yutkunma ve sıvı alımı sorgulandı (dehidratasyon riski).",
+        "state_updates": { "score_change": 20 }
+      },
+      {
+        "target_action": "prescribe_antibiotics",
+        "score": -20,
+        "rule_outcome": "CEZA: Viral enfeksiyonda antibiyotik verilmemelidir!",
+        "state_updates": { "score_change": -20 }
+      },
+      {
+        "target_action": "diagnose_primary_herpes",
+        "score": 40,
+        "rule_outcome": "Doğru Tanı: Primer Herpetik Gingivostomatitis.",
+        "state_updates": { "score_change": 40 }
+      },
+      {
+        "target_action": "diagnose_herpetic_gingivostomatitis",
+        "score": 40,
+        "rule_outcome": "Doğru Tanı: Primer Herpetik Gingivostomatitis.",
+        "state_updates": { "score_change": 40 }
+      }
+    ]
+  },
+  {
     "case_id": "behcet_01",
     "rules": [
       {
