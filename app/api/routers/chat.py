@@ -56,28 +56,44 @@ class ChatRequest(BaseModel):
         }
 
 
+class EvaluationResult(BaseModel):
+    """Hidden evaluation from the Silent Grader."""
+    is_clinically_accurate: bool = Field(True, description="Whether the action was clinically appropriate")
+    safety_violation: bool = Field(False, description="Whether a safety violation occurred")
+    score: float = Field(0.0, description="Points earned for this action")
+    feedback: Optional[str] = Field(None, description="Internal feedback for analytics")
+
+
 class ChatResponse(BaseModel):
     """
-    Chat response from AI.
+    Chat response from AI - Silent Evaluator Architecture.
+    The student sees response_text, but evaluation is hidden.
     """
     student_id: str
     case_id: str
-    final_feedback: str = Field(..., description="Response text to show the student")
-    score: float = Field(..., description="Points earned for this action")
-    metadata: Dict[str, Any] = Field(..., description="Full result including interpretation and assessment")
+    response_text: str = Field(..., description="Patient's dialogue response to show the student")
+    interpreted_action: str = Field(..., description="What the system understood from student input")
+    evaluation: EvaluationResult = Field(..., description="Hidden grader output (not shown to student)")
+    is_case_finished: bool = Field(False, description="Whether the case simulation is complete")
+    score: float = Field(..., description="Current session score")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Full result for debugging")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "student_id": "2021001",
                 "case_id": "olp_001",
-                "final_feedback": "Oral mukoza muayenesi yapılıyor...",
-                "score": 20.0,
-                "metadata": {
-                    "llm_interpretation": {"interpreted_action": "perform_oral_exam"},
-                    "assessment": {"score": 20, "rule_outcome": "..."},
-                    "updated_state": {"current_score": 35}
-                }
+                "response_text": "Doctor, I have a burning sensation in my cheek.",
+                "interpreted_action": "ask_complaint",
+                "evaluation": {
+                    "is_clinically_accurate": True,
+                    "safety_violation": False,
+                    "score": 10.0,
+                    "feedback": "Correctly identified the chief complaint."
+                },
+                "is_case_finished": False,
+                "score": 35.0,
+                "metadata": {}
             }
         }
 
@@ -94,14 +110,14 @@ def send_chat_message(
     
     **Authentication Required:** Yes (Bearer token in Authorization header)
     
-    This endpoint:
-    1. Validates JWT token and extracts student_id
-    2. Calls DentalEducationAgent.process_student_input()
-    3. Returns the AI's response and assessment
-    4. Automatically updates student state in the database
+    This endpoint uses the Silent Evaluator Architecture:
+    1. Gemini interprets the student's action and generates patient dialogue
+    2. AssessmentEngine scores the action against clinical rules
+    3. MedGemma silently evaluates clinical accuracy (hidden from student)
+    4. Returns patient response + hidden evaluation for analytics
     
-    The student_id is extracted from the JWT token, ensuring that users
-    can only interact with their own sessions.
+    The student sees only `response_text`. The `evaluation` object is for
+    backend analytics and should NOT be displayed to students.
     """
     if not agent:
         raise HTTPException(
@@ -117,25 +133,42 @@ def send_chat_message(
             case_id=request.case_id
         )
         
-        # Extract key fields for response
-        final_feedback = result.get("final_feedback", "")
+        # Extract key fields for Silent Evaluator response
+        llm_interpretation = result.get("llm_interpretation", {})
         assessment = result.get("assessment", {})
-        score = assessment.get("score", 0.0)
+        silent_eval = result.get("silent_evaluation", {})
+        updated_state = result.get("updated_state", {})
         
-        # Return structured response
-        return ChatResponse(
-            student_id=current_user,  # From JWT token
-            case_id=result["case_id"],
-            final_feedback=final_feedback,
-            score=score,
-            metadata=result  # Full result for debugging/advanced features
+        # Response text is the patient's dialogue (from Gemini's explanatory feedback)
+        response_text = result.get("final_feedback", "")
+        
+        # Interpreted action from LLM
+        interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
+        
+        # Build evaluation result (hidden from student UI)
+        evaluation = EvaluationResult(
+            is_clinically_accurate=silent_eval.get("is_clinically_accurate", True),
+            safety_violation=silent_eval.get("safety_violation", False),
+            score=assessment.get("score", 0.0),
+            feedback=silent_eval.get("feedback") or assessment.get("rule_outcome"),
         )
-    
-    except Exception as e:
-        logger.exception(f"Error processing chat message: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process message: {str(e)}"
+        
+        # Current session score from updated state
+        current_score = updated_state.get("current_score", 0.0)
+        
+        # Check if case is finished (placeholder logic - can be enhanced)
+        is_case_finished = updated_state.get("is_finished", False)
+        
+        # Return Silent Evaluator response
+        return ChatResponse(
+            student_id=current_user,
+            case_id=result["case_id"],
+            response_text=response_text,
+            interpreted_action=interpreted_action,
+            evaluation=evaluation,
+            is_case_finished=is_case_finished,
+            score=current_score,
+            metadata=result,  # Full result for debugging/advanced features
         )
     
     except Exception as e:
