@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.api.routers import chat, auth
+from app.api.routers import chat, auth, cases
 
 from dotenv import load_dotenv
 load_dotenv()  # .env dosyasını yükler
@@ -49,6 +49,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
 
 # Root endpoint
 @app.get("/")
