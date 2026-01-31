@@ -271,7 +271,7 @@ else:
     st.info("📭 Henüz eylem geçmişi bulunmuyor. Vaka çalışmasına başlamak için chat sayfasına gidin!")
     
     if st.button("💬 Vaka Çalışmasına Başla", type="primary"):
-        st.switch_page("pages/3_chat.py")
+        st.switch_page("pages/chat.py")
 
 st.markdown("---")
 

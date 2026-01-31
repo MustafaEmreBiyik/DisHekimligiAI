@@ -111,3 +111,86 @@ class ScenarioManager:
                     state[k].extend(v)
                 else:
                     state[k] = v
+
+    def get_case_by_id(self, case_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve full case data by case_id from loaded scenarios.
+        Returns None if case not found.
+        """
+        for case in self.case_data:
+            if case.get("case_id") == case_id:
+                return case
+        logger.warning(f"Case not found: {case_id}")
+        return None
+
+    def get_case_persona(self, case_id: str) -> str:
+        """
+        Generate a patient persona prompt for roleplay based on case data.
+        Handles inconsistent JSON keys (patient vs hasta_profili).
+        
+        Returns:
+            A Turkish-language patient persona instruction for the LLM.
+        """
+        case = self.get_case_by_id(case_id)
+        if not case:
+            return "Siz bir diş hekimliği hastasısınız. Doğal ve samimi şekilde yanıt verin."
+        
+        # Handle both Turkish (hasta_profili) and English (patient) keys
+        patient_data = case.get("patient") or case.get("hasta_profili") or {}
+        
+        # Extract patient information with fallbacks for both naming conventions
+        age = patient_data.get("age") or patient_data.get("yas") or "bilinmeyen yaş"
+        gender = patient_data.get("gender") or patient_data.get("cinsiyet") or ""
+        chief_complaint = (
+            patient_data.get("chief_complaint") or 
+            patient_data.get("sikayet") or 
+            "Şikayetim var"
+        )
+        
+        # Medical history
+        medical_history = (
+            patient_data.get("medical_history") or 
+            patient_data.get("tibbi_gecmis") or 
+            []
+        )
+        
+        # Social history
+        social_history = (
+            patient_data.get("social_history") or 
+            patient_data.get("sosyal_gecmis") or 
+            []
+        )
+        
+        # Medications
+        medications = patient_data.get("medications") or []
+        
+        # Construct persona prompt (without emojis to avoid encoding issues)
+        persona = f"""SEN BIR HASTA ROLUNDE OYNUYORSUN (ROLEPLAY):
+
+[KIMLIGIN]
+- Yas: {age} yasindasin
+{f'- Cinsiyet: {gender}' if gender else ''}
+- Ana Sikayetin: "{chief_complaint}"
+
+[TIBBI GECMISIN]
+{chr(10).join([f'- {item}' for item in medical_history]) if medical_history else '- Ozel bir hastaligim yok'}
+
+[ILACLAR]
+{chr(10).join([f'- {item}' for item in medications]) if medications else '- Duzenli ilac kullanmiyorsun'}
+
+[SOSYAL GECMIS]
+{chr(10).join([f'- {item}' for item in social_history]) if social_history else '- Ozel bir aliskanlik yok'}
+
+[ROLUNU OYNAMA KURALLARI]
+1. SEN HASTAYSIN - Dis hekimi ogrencisi sana soru soracak, sen hasta gibi yanit vereceksin
+2. DOGAL KONUS - Tibbi terimler kullanma, siradan bir hasta gibi konus
+3. TANINI ACIKLAMA - "Liken planusum var" DEME! Sadece belirtileri anlat: "Agzimda beyaz cizgiler var"
+4. KISA VE SAMIMI OL - Gercek hastalar uzun konusmaz, dogal ve ozlu yanitlar ver
+5. TURKCE KONUS - Tum yanitlarin Turkce olmali
+6. DOKTOR SANA "HOCA" DEMEYECEKTIR - Sen hastasi\nn, ona "Doktor" veya "Hocam" diyeceksin
+7. BILMEDIGINI SOYLE - Eger sana teknik bir sey sorulursa "Bilmiyorum hocam" de
+8. ACI/RAHATSIZLIK VARSA BELIRT - Eger agrin varsa dogal sekilde "Ah, aciyor" gibi ifade et
+
+SIMDI HASTA ROLUNE GIR ve ogrenci doktorun sorularini yanitla!"""
+        
+        return persona

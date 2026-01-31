@@ -15,7 +15,8 @@ CASE_OPTIONS = {
     "Kronik Periodontitis (Zor)": "perio_001",
     "Primer Herpes (Orta)": "herpes_primary_01",
     "Behçet Hastalığı (Zor)": "behcet_01",
-    "Sekonder Sifiliz (Zor)": "syphilis_02"
+    "Sekonder Sifiliz (Zor)": "syphilis_02",
+    "Deskuamatif Gingivitis (Zor)": "desquamative_01"
 }
 
 DEFAULT_MODEL = "models/gemini-2.5-flash-lite"
@@ -53,6 +54,14 @@ def render_sidebar(
     
     with st.sidebar:
         st.header("📚 Dental Tutor ")
+        
+        # Display logged-in user name if available
+        user_name = st.session_state.get("user_name", "")
+        if user_name:
+            st.info(f"👨‍⚕️ Dt. {user_name}")
+        else:
+            # Show default greeting if no user logged in
+            st.info("👋 Hoş geldiniz!")
         
         # Import and show profile card
         try:
@@ -133,7 +142,7 @@ def render_sidebar(
         
         with nav_col1:
             if st.button("🏠 Ana Sayfa", width="stretch", type="secondary"):
-                st.switch_page("pages/0_home.py")
+                st.switch_page("app.py")
         
         with nav_col2:
             if st.button("📊 İstatistikler", width="stretch", type="secondary"):
@@ -141,7 +150,7 @@ def render_sidebar(
         
         if page_type != "chat":
             if st.button("💬 Vaka Çalışması", width="stretch", type="primary"):
-                st.switch_page("pages/3_chat.py")
+                st.switch_page("pages/chat.py")
         
         # Account link
         if page_type != "account":

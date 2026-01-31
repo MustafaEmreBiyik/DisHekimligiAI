@@ -157,5 +157,55 @@
         "state_updates": { "score_change": 30 }
       }
     ]
+  },
+  {
+    "case_id": "desquamative_01",
+    "rules": [
+      {
+        "target_action": "perform_oral_exam",
+        "score": 10,
+        "rule_outcome": "Yapışık dişetinde yaygın eritem ve soyulmalar tespit edildi.",
+        "state_updates": {
+          "score_change": 10,
+          "revealed_findings": ["clinical_appearance"]
+        }
+      },
+      {
+        "target_action": "perform_nikolsky_test",
+        "score": 25,
+        "rule_outcome": "KRİTİK MANİPÜLASYON: Nikolsky Testi (+) - Otoimmün büllöz hastalık şüphesi.",
+        "state_updates": {
+          "score_change": 25,
+          "revealed_findings": ["nikolsky_sign"]
+        }
+      },
+      {
+        "target_action": "request_biopsy_he",
+        "score": 15,
+        "rule_outcome": "Biyopsi istendi (H&E ile subepitelyal ayrılma izlenir).",
+        "state_updates": { "score_change": 15 }
+      },
+      {
+        "target_action": "request_dif_biopsy",
+        "score": 30,
+        "rule_outcome": "ALTIN STANDART TEST: Direkt İmmünofloresan (DIF) istendi - Bazal membran IgG/C3 birikimi pozitif.",
+        "state_updates": {
+          "score_change": 30,
+          "revealed_findings": ["dif_finding"]
+        }
+      },
+      {
+        "target_action": "diagnose_mucous_membrane_pemphigoid",
+        "score": 40,
+        "rule_outcome": "DOĞRU TANI: Müköz Membran Pemfigoidi (Deskuamatif gingivitisin en yaygın nedeni).",
+        "state_updates": { "score_change": 40 }
+      },
+      {
+        "target_action": "diagnose_plaque_gingivitis",
+        "score": -20,
+        "rule_outcome": "YANLIŞ TANI: Plak gingiviti gibi görünse de otoimmün büllöz hastalık ayırt edilemedi.",
+        "state_updates": { "score_change": -20 }
+      }
+    ]
   }
 ]

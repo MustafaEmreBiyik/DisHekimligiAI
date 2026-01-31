@@ -173,5 +173,43 @@
       }
     ],
     "correct_diagnosis": "Sekonder Sifiliz"
+  },
+  {
+    "case_id": "desquamative_01",
+    "name": "Kronik Deskuamatif Gingivitis",
+    "difficulty": "Zor",
+    "patient": {
+      "age": 45,
+      "gender": "Kadın",
+      "chief_complaint": "Diş etlerimde yanma, soyulma ve kanama var. Asitli yiyecekleri yiyemiyorum.",
+      "medical_history": ["Yok"],
+      "medications": ["Yok"],
+      "social_history": ["Sigara kullanmıyor"],
+      "allergies": ["Yok"]
+    },
+    "hidden_findings": [
+      {
+        "finding_id": "clinical_appearance",
+        "description": "Yapışık dişetinde yaygın eritem, parlak kırmızı renk ve epitel soyulmaları. Oral mukozada veziküler lezyonlar izleniyor.",
+        "trigger_action": "perform_oral_exam"
+      },
+      {
+        "finding_id": "nikolsky_sign",
+        "description": "Nikolsky Testi POZİTİF: Dişetine hafif baskı uygulandığında epitel kolayca ayrılıyor (Mukozal pemfigoid/pemfigus bulgusu).",
+        "trigger_action": "perform_nikolsky_test"
+      },
+      {
+        "finding_id": "dif_finding",
+        "description": "Direkt İmmünofloresan (DIF) Sonucu: Bazal membranda lineer IgG ve C3 birikimi tespit edildi (Müköz membran pemfigoidi ile uyumlu).",
+        "trigger_action": "request_dif_biopsy"
+      }
+    ],
+    "correct_diagnosis": "Müköz Membran Pemfigoidi",
+    "differential_diagnoses": [
+      "Plak Gingiviti (Yanıltıcı - inflamasyon benzer)",
+      "Oral Liken Planus (Eroziv form)",
+      "Pemfigus Vulgaris",
+      "Lineer IgA Hastalığı"
+    ]
   }
 ]

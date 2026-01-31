@@ -109,7 +109,7 @@ if is_authenticated:
     
     with col2:
         if st.button("💬 Vaka Çalışması", width="stretch", type="primary"):
-            st.switch_page("pages/3_chat.py")
+            st.switch_page("pages/chat.py")
     
     with col3:
         if st.button("📊 İstatistikler", width="stretch", type="primary"):
@@ -251,7 +251,7 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     if st.button("💬 Vaka Çalışmasına Başla", width="stretch", type="primary"):
-        st.switch_page("pages/3_chat.py")
+        st.switch_page("pages/chat.py")
 
 with col2:
     if st.button("📊 İstatistiklerimi Gör", width="stretch"):

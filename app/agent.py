@@ -49,7 +49,7 @@ CRITICAL OUTPUT REQUIREMENTS:
 }
 
 Guidance:
-- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'diagnose_herpetic_gingivostomatitis', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis']. If none fit, use 'unspecified_action'.
+- **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_biopsy_he', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid', 'diagnose_plaque_gingivitis']. If none fit, use 'unspecified_action'.
 - If the student's action is unclear or unsafe, set "priority" accordingly and add a safety note in "safety_concerns".
 - Prefer conservative, safety-first interpretations.
 - Use the provided scenario state context to disambiguate intent when possible.
@@ -272,6 +272,55 @@ class DentalEducationAgent:
             logger.warning(f"Sessiz değerlendirme başarısız (kritik değil): {e}")
             return {}
 
+    def get_patient_response(self, student_question: str, case_id: str) -> str:
+        """
+        PATIENT ROLEPLAY MODE (DEMO VERSION)
+        
+        Generate a natural patient response based on the case scenario.
+        The AI acts AS THE PATIENT, not as an educator.
+        
+        Args:
+            student_question: What the student doctor asks
+            case_id: Active case scenario ID
+            
+        Returns:
+            Patient's response in Turkish (first-person, natural conversation)
+        """
+        try:
+            # Get patient persona from scenario manager
+            patient_persona = self.scenario_manager.get_case_persona(case_id)
+            
+            # Construct roleplay prompt
+            roleplay_prompt = f"""{patient_persona}
+
+ÖĞRENCİ DOKTOR SORUSU:
+\"{student_question}\"
+
+HASTA OLARAK YANIT VER (Kısa, doğal, Türkçe):"""
+            
+            # Use a new model instance for patient conversation (simpler config)
+            patient_model = genai.GenerativeModel(
+                model_name=self.model.model_name,
+                generation_config={
+                    "temperature": 0.7,  # More natural/varied responses
+                    "top_p": 0.9,
+                    "top_k": 40,
+                    "max_output_tokens": 200,  # Short patient responses
+                },
+            )
+            
+            response = patient_model.generate_content(roleplay_prompt)
+            patient_reply = getattr(response, "text", "").strip()
+            
+            if not patient_reply:
+                return "Hocam, tam anlayamadım. Tekrar sorar mısınız?"
+            
+            return patient_reply
+            
+        except Exception as e:
+            logger.error(f"Patient roleplay failed: {e}")
+            return "Üzgünüm, şu anda kendimi iyi hissetmiyorum."
+
     def _compose_final_feedback(
         self, 
         interpretation: Dict[str, Any], 
@@ -293,29 +342,41 @@ class DentalEducationAgent:
         # Bu yüzden sadece açıklayıcı metni dönüyoruz
         return explanatory
 
-    def process_student_input(self, student_id: str, raw_action: str, case_id: Optional[str] = None) -> Dict[str, Any]:
+    def process_student_input(
+        self, 
+        student_id: str, 
+        raw_action: str, 
+        case_id: Optional[str] = None,
+        patient_mode: bool = True  # NEW: Enable patient roleplay by default
+    ) -> Dict[str, Any]:
         """
-        Silent Evaluator Architecture ile Hibrit Pipeline:
+        Hybrid Pipeline with PATIENT ROLEPLAY MODE (Demo Version):
         
-        1) Gemini: Öğrenci eylemini yorumlar (Eğitim Asistanı rolünde)
-        2) AssessmentEngine: Kural bazlı puanlama yapar
-        3) MedGemma: ARKA PLANDA sessizce değerlendirir (konuşmayı engellemez)
-        4) Final feedback oluşturulur ve tüm sonuçlar döner
+        PATIENT MODE (patient_mode=True, DEFAULT for demo):
+        - AI acts AS THE PATIENT (first-person, natural conversation)
+        - Suitable for screenshots and demo presentations
+        - Still evaluates in background for scoring
+        
+        EDUCATOR MODE (patient_mode=False, legacy):
+        - AI acts as education assistant
+        - Technical feedback for learning
         
         Args:
             student_id: Öğrenci kimliği
-            raw_action: Öğrencinin ham girişi
+            raw_action: Öğrencinin ham girişi (soru veya eylem)
             case_id: Aktif vaka kimliği (opsiyonel, state'den alınabilir)
+            patient_mode: True = Hasta rolü, False = Eğitmen rolü
         
         Returns:
         {
           "student_id": str,
           "case_id": str,
-          "llm_interpretation": dict (Gemini yorumu - response_text içerir),
-          "assessment": dict (Kural motoru puanı),
-          "silent_evaluation": dict (MedGemma arka plan değerlendirmesi),
+          "llm_interpretation": dict (Gemini yorumu),
+          "assessment": dict (Kural motoru puanı - arka planda),
+          "silent_evaluation": dict (MedGemma değerlendirmesi - arka planda),
           "final_feedback": str (Öğrenciye gösterilen geri bildirim),
-          "updated_state": dict
+          "updated_state": dict,
+          "mode": str ("patient" or "educator")
         }
         """
         # Step 1: Get Context
@@ -327,6 +388,43 @@ class DentalEducationAgent:
         else:
             case_id = state.get("case_id", "default_case")
 
+        # ==================== PATIENT ROLEPLAY MODE ====================
+        if patient_mode:
+            # Generate patient response (natural conversation)
+            patient_response = self.get_patient_response(raw_action, case_id)
+            
+            # Still do background evaluation for scoring (silent)
+            interpretation = {"intent_type": "CHAT", "interpreted_action": "patient_conversation"}
+            assessment = {}
+            silent_evaluation = {}
+            
+            # Try to evaluate in background (non-blocking)
+            try:
+                interpretation_bg = self.interpret_action(raw_action, state)
+                assessment = self.assessment_engine.evaluate_action(case_id, interpretation_bg) or {}
+                silent_evaluation = self._silent_evaluation(raw_action, interpretation_bg.get("interpreted_action", ""), state)
+                
+                # Update state silently
+                state_updates = assessment.get("state_updates") or assessment.get("state_update") or {}
+                if isinstance(state_updates, dict) and state_updates:
+                    self.scenario_manager.update_state(student_id, state_updates)
+            except Exception as e:
+                logger.warning(f"Background evaluation failed (non-critical in patient mode): {e}")
+            
+            updated_state = self.scenario_manager.get_state(student_id) or state
+            
+            return {
+                "student_id": student_id,
+                "case_id": case_id,
+                "llm_interpretation": {"explanatory_feedback": patient_response, **interpretation},
+                "assessment": assessment,
+                "silent_evaluation": silent_evaluation,
+                "final_feedback": patient_response,  # Patient's natural response
+                "updated_state": updated_state,
+                "mode": "patient"
+            }
+        
+        # ==================== EDUCATOR MODE (Legacy) ====================
         # Step 2: Gemini Interpretation (Eğitim Asistanı)
         interpretation = self.interpret_action(raw_action, state)
         interpreted_action = interpretation.get("interpreted_action", "")
@@ -364,6 +462,7 @@ class DentalEducationAgent:
             "silent_evaluation": silent_evaluation,  # YENI: MedGemma değerlendirmesi
             "final_feedback": final_feedback,
             "updated_state": updated_state,
+            "mode": "educator"  # Legacy educator mode
         }
 
 
