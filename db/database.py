@@ -1,24 +1,38 @@
 """
 DentAI Database Setup
 =====================
-SQLAlchemy modelleri ve veritabanı konfigürasyonu.
-Streamlit uygulaması için SQLite kullanır.
+SQLAlchemy models and database configuration.
+Supports SQLite (Local) and PostgreSQL (Production).
 """
 
+import os
 import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # ==================== VERİTABANI KONFIGÜRASYONU ====================
 
-# SQLite veritabanı URL'i (proje kök dizininde oluşturulacak)
-DATABASE_URL = "sqlite:///./dentai_app.db"
+# Environment variable'dan DB URL'i al. Yoksa default SQLite kullan.
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Engine oluştur (Streamlit için check_same_thread=False kritik!)
+if DATABASE_URL:
+    # Render/Heroku gibi platformlar 'postgres://' verebilir, SQLAlchemy için 'postgresql://' olmalı
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # PostgreSQL için connect_args gerekmez (veya SSL vs için gerekebilir)
+    engine_kwargs = {}
+else:
+    # Lokal geliştirme için SQLite
+    DATABASE_URL = "sqlite:///./dentai_app.db"
+    # Streamlit + SQLite için check_same_thread=False kritik!
+    engine_kwargs = {"connect_args": {"check_same_thread": False}}
+
+# Engine oluştur
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False  # True yaparsanız SQL sorgularını görebilirsiniz (debug için)
+    echo=False,  # True yaparsanız SQL sorgularını görebilirsiniz (debug için)
+    **engine_kwargs
 )
 
 # Session factory (her veritabanı işlemi için yeni session)
