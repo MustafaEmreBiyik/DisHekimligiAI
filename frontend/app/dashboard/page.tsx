@@ -145,39 +145,35 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions - Temporarily Disabled */}
                 <div className="mb-8">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6">
                         ⚡ Hızlı Erişim
                     </h3>
 
                     <div className="grid md:grid-cols-3 gap-4">
-                        <Link
-                            href="/stats"
-                            className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-purple-200"
-                        >
-                            <div className="text-3xl mb-3">📊</div>
-                            <h4 className="font-bold text-gray-900 mb-1">İstatistiklerim</h4>
-                            <p className="text-sm text-gray-600">Performans analizi ve ilerleme</p>
+                        <Link href="/stats">
+                            <div className="bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer group">
+                                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📊</div>
+                                <h4 className="font-bold text-white mb-1">Araştırma Verileri</h4>
+                                <p className="text-sm text-blue-50 mb-2">CSV indirme ve analiz</p>
+                                <p className="text-xs text-blue-100">Pilot çalışma verileri →</p>
+                            </div>
                         </Link>
 
-                        <Link
-                            href="/cases"
-                            className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-purple-200"
-                        >
+                        <div className="bg-gray-100 p-6 rounded-xl shadow-md border border-gray-200 opacity-60 cursor-not-allowed">
                             <div className="text-3xl mb-3">📚</div>
-                            <h4 className="font-bold text-gray-900 mb-1">Tüm Vakalar</h4>
-                            <p className="text-sm text-gray-600">Vaka kütüphanesine göz at</p>
-                        </Link>
+                            <h4 className="font-bold text-gray-700 mb-1">Tüm Vakalar</h4>
+                            <p className="text-sm text-gray-500 mb-2">Vaka kütüphanesine göz at</p>
+                            <p className="text-xs text-gray-400 italic">Yakında aktif olacak</p>
+                        </div>
 
-                        <Link
-                            href="/profile"
-                            className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-purple-200"
-                        >
+                        <div className="bg-gray-100 p-6 rounded-xl shadow-md border border-gray-200 opacity-60 cursor-not-allowed">
                             <div className="text-3xl mb-3">👤</div>
-                            <h4 className="font-bold text-gray-900 mb-1">Profilim</h4>
-                            <p className="text-sm text-gray-600">Hesap ayarları ve bilgileri</p>
-                        </Link>
+                            <h4 className="font-bold text-gray-700 mb-1">Profilim</h4>
+                            <p className="text-sm text-gray-500 mb-2">Hesap ayarları ve bilgileri</p>
+                            <p className="text-xs text-gray-400 italic">Yakında aktif olacak</p>
+                        </div>
                     </div>
                 </div>
 

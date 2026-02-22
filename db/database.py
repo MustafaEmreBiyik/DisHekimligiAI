@@ -100,6 +100,27 @@ class ExamResult(Base):
         return f"<ExamResult(id={self.id}, user={self.user_id}, case={self.case_id}, score={self.score}/{self.max_score})>"
 
 
+class FeedbackLog(Base):
+    """
+    Geri Bildirim Tablosu
+    ---------------------
+    Öğrencilerin vaka tamamlama sonrası verdiği nitel geri bildirimleri saklar.
+    Akademik araştırma için kritik veri.
+    """
+    __tablename__ = "feedback_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False)  # Hangi oturuma ait
+    student_id = Column(String, nullable=False, index=True)  # Öğrenci kimliği
+    case_id = Column(String, nullable=False, index=True)  # Hangi vaka
+    rating = Column(Integer, nullable=False)  # 1-5 yıldız
+    comment = Column(Text, nullable=True)  # Serbest metin yorumu
+    submitted_at = Column(DateTime, default=datetime.datetime.utcnow)  # Gönderim zamanı
+
+    def __repr__(self):
+        return f"<FeedbackLog(id={self.id}, student={self.student_id}, case={self.case_id}, rating={self.rating})>"
+
+
 # ==================== VERİTABANI FONKSİYONLARI ====================
 
 def init_db():
