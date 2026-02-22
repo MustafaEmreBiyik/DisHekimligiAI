@@ -10,11 +10,13 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import os
 import logging
+import datetime
 
 from app.agent import DentalEducationAgent
 from app.assessment_engine import AssessmentEngine
 from app.scenario_manager import ScenarioManager
 from app.api.deps import get_current_user  # JWT authentication
+from db.database import SessionLocal, StudentSession, ChatLog
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ class ChatResponse(BaseModel):
     """
     student_id: str
     case_id: str
+    session_id: int = Field(..., description="Database session ID for this chat session")
     final_feedback: str = Field(..., description="Response text to show the student")
     score: float = Field(..., description="Points earned for this action")
     metadata: Dict[str, Any] = Field(..., description="Full result including interpretation and assessment")
@@ -71,6 +74,7 @@ class ChatResponse(BaseModel):
             "example": {
                 "student_id": "2021001",
                 "case_id": "olp_001",
+                "session_id": 42,
                 "final_feedback": "Oral mukoza muayenesi yapılıyor...",
                 "score": 20.0,
                 "metadata": {
@@ -80,6 +84,39 @@ class ChatResponse(BaseModel):
                 }
             }
         }
+
+
+# ==================== HELPER FUNCTIONS ====================
+
+def get_or_create_session(db, student_id: str, case_id: str) -> StudentSession:
+    """
+    Get existing session or create a new one for student + case combination.
+    Returns the most recent session for this student and case.
+    """
+    # Try to find existing session
+    session = db.query(StudentSession).filter_by(
+        student_id=student_id,
+        case_id=case_id
+    ).order_by(StudentSession.start_time.desc()).first()
+    
+    if session:
+        logger.info(f"Found existing session {session.id} for student {student_id} on case {case_id}")
+        return session
+    
+    # Create new session
+    new_session = StudentSession(
+        student_id=student_id,
+        case_id=case_id,
+        current_score=0.0,
+        state_json="{}",
+        start_time=datetime.datetime.utcnow()
+    )
+    db.add(new_session)
+    db.commit()
+    db.refresh(new_session)
+    
+    logger.info(f"Created new session {new_session.id} for student {student_id} on case {case_id}")
+    return new_session
 
 
 # ==================== ENDPOINTS ====================
@@ -96,9 +133,13 @@ def send_chat_message(
     
     This endpoint:
     1. Validates JWT token and extracts student_id
-    2. Calls DentalEducationAgent.process_student_input()
-    3. Returns the AI's response and assessment
-    4. Automatically updates student state in the database
+    2. Gets or creates a StudentSession for telemetry
+    3. Logs user message to ChatLog
+    4. Calls DentalEducationAgent.process_student_input()
+    5. Logs AI response with evaluation metadata to ChatLog
+    6. Updates session score
+    7. Commits all changes to database
+    8. Returns the AI's response and assessment
     
     The student_id is extracted from the JWT token, ensuring that users
     can only interact with their own sessions.
@@ -109,41 +150,81 @@ def send_chat_message(
             detail="Chat service is unavailable. GEMINI_API_KEY not configured."
         )
     
+    db = SessionLocal()
     try:
-        # Use authenticated student_id from JWT token (not from request)
+        # STEP 1: Get or create session for this student + case
+        session = get_or_create_session(db, current_user, request.case_id)
+        
+        # STEP 2: Log student's message to database
+        user_log = ChatLog(
+            session_id=session.id,
+            role='user',
+            content=request.message,
+            metadata_json=None,  # User messages don't have metadata
+            timestamp=datetime.datetime.utcnow()
+        )
+        db.add(user_log)
+        
+        # STEP 3: Process with AI agent
         result = agent.process_student_input(
             student_id=current_user,  # From JWT token
             raw_action=request.message,
             case_id=request.case_id
         )
         
-        # Extract key fields for response
+        # STEP 4: Extract key fields for response and logging
         final_feedback = result.get("final_feedback", "")
         assessment = result.get("assessment", {})
         score = assessment.get("score", 0.0)
+        llm_interpretation = result.get("llm_interpretation", {})
         
-        # Return structured response
+        # STEP 5: Log AI's response to database with metadata
+        assistant_log = ChatLog(
+            session_id=session.id,
+            role='assistant',
+            content=final_feedback,
+            metadata_json={
+                "score": score,
+                "interpreted_action": llm_interpretation.get("interpreted_action", ""),
+                "clinical_intent": llm_interpretation.get("clinical_intent", ""),
+                "priority": llm_interpretation.get("priority", ""),
+                "assessment": assessment,
+                "silent_evaluation": result.get("silent_evaluation", {})
+            },
+            timestamp=datetime.datetime.utcnow()
+        )
+        db.add(assistant_log)
+        
+        # STEP 6: Update session score
+        session.current_score += score
+        
+        # STEP 7: Commit all changes to database
+        db.commit()
+        
+        logger.info(
+            f"✅ Logged interaction for student {current_user} on case {request.case_id}. "
+            f"Score: {score}, Total: {session.current_score}"
+        )
+        
+        # STEP 8: Return structured response to frontend
         return ChatResponse(
-            student_id=current_user,  # From JWT token
+            student_id=current_user,
             case_id=result["case_id"],
+            session_id=session.id,  # Include session_id for feedback tracking
             final_feedback=final_feedback,
             score=score,
             metadata=result  # Full result for debugging/advanced features
         )
     
     except Exception as e:
+        db.rollback()
         logger.exception(f"Error processing chat message: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process message: {str(e)}"
         )
-    
-    except Exception as e:
-        logger.exception(f"Error processing chat message: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process message: {str(e)}"
-        )
+    finally:
+        db.close()
 
 
 @router.get("/history/{student_id}/{case_id}", status_code=status.HTTP_200_OK)

@@ -7,14 +7,15 @@ Runs alongside the Streamlit app without interference.
 Run with: uvicorn app.api.main:app --reload --port 8000
 """
 
+# CRITICAL: Load .env file FIRST before any imports that use environment variables
+from dotenv import load_dotenv
+load_dotenv()  # Must be called before routers are imported
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.api.routers import chat, auth
-
-from dotenv import load_dotenv
-load_dotenv()  # .env dosyasını yükler
+from app.api.routers import chat, auth, feedback, analytics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,10 +36,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React development server
+        "http://127.0.0.1:3000",  # Localhost alternative
+        "http://192.168.1.72:3000",  # Local network IP
         "http://localhost:5173",  # Vite development server
-        "http://localhost:3001",  # React dev server on alternate port
-        "null",  # Allow local HTML files (file:// protocol)
-        "https://dental-tutor.vercel.app",  # Production frontend (example)
+        "http://localhost:8000",  # Backend self-reference
+        "*",  # Fallback for any other origin (development only)
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
@@ -48,6 +50,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 
 # Root endpoint
 @app.get("/")
