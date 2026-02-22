@@ -129,4 +129,48 @@ export const chatAPI = {
     },
 };
 
+/**
+ * Feedback API
+ */
+export const feedbackAPI = {
+    /**
+     * Submit feedback after case completion
+     */
+    submitFeedback: async (session_id: number, case_id: string, rating: number, comment?: string) => {
+        const response = await apiClient.post('/api/feedback/submit', {
+            session_id,
+            case_id,
+            rating,
+            comment,
+        });
+        return response.data;
+    },
+};
+
+/**
+ * Analytics API
+ */
+export const analyticsAPI = {
+    /**
+     * Download actions CSV
+     */
+    downloadActionsCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/actions`, '_blank');
+    },
+
+    /**
+     * Download feedback CSV
+     */
+    downloadFeedbackCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/feedback`, '_blank');
+    },
+
+    /**
+     * Download sessions CSV
+     */
+    downloadSessionsCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/sessions`, '_blank');
+    },
+};
+
 export default apiClient;
