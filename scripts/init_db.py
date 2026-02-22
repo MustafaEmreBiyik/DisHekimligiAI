@@ -47,6 +47,7 @@ def setup_database():
         print("  - student_sessions")
         print("  - chat_logs")
         print("  - exam_results")
+        print("  - feedback_logs")
         
         # Verify database
         print("\n🔍 Verifying database connection...")
