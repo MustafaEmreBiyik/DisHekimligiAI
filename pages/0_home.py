@@ -1,5 +1,5 @@
 """
-Dashboard Ana Sayfa - Dental Tutor AI
+Dashboard Ana Sayfa - DentAI
 """
 
 import streamlit as st
@@ -22,7 +22,7 @@ init_student_profile()
 
 # Page config
 st.set_page_config(
-    page_title="Dental Tutor AI - Ana Sayfa",
+    page_title="DentAI - Ana Sayfa",
     page_icon="🦷",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -84,7 +84,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<div class="main-header">🦷 Dental Tutor AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🦷 DentAI</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Akıllı Diş Hekimliği Eğitim Asistanı</div>', unsafe_allow_html=True)
 
 st.divider()
@@ -135,7 +135,7 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("## 👋 Hoş Geldiniz!")
     st.markdown("""
-    **Dental Tutor AI**, diş hekimliği öğrencileri için tasarlanmış interaktif bir klinik simülasyon platformudur.
+    **DentAI**, diş hekimliği öğrencileri için tasarlanmış interaktif bir klinik simülasyon platformudur.
     
     ### 🎯 Neler Yapabilirsiniz?
     
@@ -293,7 +293,7 @@ st.divider()
 # Footer
 st.markdown("""
 <div style="text-align: center; color: #757575; padding: 2rem 0;">
-    <p>🦷 <strong>Dental Tutor AI</strong> | Yapay Zeka Destekli Eğitim Platformu</p>
+    <p>🦷 <strong>DentAI</strong> | Yapay Zeka Destekli Eğitim Platformu</p>
     <p><small>Hibrit Mimari: LLM + Kural Tabanlı Değerlendirme</small></p>
 </div>
 """, unsafe_allow_html=True)

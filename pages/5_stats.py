@@ -1,5 +1,5 @@
 """
-İstatistik Sayfası - Dental Tutor AI
+İstatistik Sayfası - DentAI
 """
 
 import streamlit as st
@@ -27,7 +27,7 @@ init_db()
 
 # Page config
 st.set_page_config(
-    page_title="Dental Tutor AI - İstatistikler",
+    page_title="DentAI - İstatistikler",
     page_icon="📊",
     layout="wide"
 )

@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This sprint implements comprehensive database analytics and progress tracking for the Dental Tutor AI platform. Users can now save completed case results and view their performance statistics.
+This sprint implements comprehensive database analytics and progress tracking for the DentAI platform. Users can now save completed case results and view their performance statistics.
 
 ---
 
@@ -13,6 +13,7 @@ This sprint implements comprehensive database analytics and progress tracking fo
 Stores completed case results with detailed scoring information.
 
 **Schema:**
+
 ```sql
 CREATE TABLE exam_results (
     id INTEGER PRIMARY KEY,
@@ -26,6 +27,7 @@ CREATE TABLE exam_results (
 ```
 
 **Fields:**
+
 - `user_id`: Student identifier
 - `case_id`: Which case was completed
 - `score`: Points earned
@@ -38,9 +40,11 @@ CREATE TABLE exam_results (
 ### 2. **Database Helper Functions**
 
 #### `save_exam_result(user_id, case_id, score, max_score, details=None)`
+
 Saves a completed case result to the database.
 
 **Usage:**
+
 ```python
 from db.database import save_exam_result
 
@@ -54,9 +58,11 @@ result = save_exam_result(
 ```
 
 #### `get_user_stats(user_id)`
+
 Retrieves comprehensive statistics for a user.
 
 **Returns:**
+
 ```python
 {
     "total_solved": 5,           # Number of completed cases
@@ -68,6 +74,7 @@ Retrieves comprehensive statistics for a user.
 ```
 
 **Usage:**
+
 ```python
 from db.database import get_user_stats
 
@@ -85,11 +92,13 @@ print(f"Completed: {stats['total_solved']} cases")
 Location: Sidebar → Custom Actions
 
 **Functionality:**
+
 - Saves current session score to `exam_results` table
 - Shows success message with score
 - Marks case as completed
 
 **Implementation:**
+
 ```python
 # In pages/3_chat.py - sidebar custom actions
 def finish_case():
@@ -106,21 +115,25 @@ def finish_case():
 **Real-Time User Stats Display**
 
 **Before (Sprint 1):**
+
 - Hardcoded zeros
 - Session state variables
 
 **After (Sprint 2):**
+
 - Real database queries
 - User-specific statistics
 - Dynamic level calculation
 
 **Displayed Metrics:**
+
 - 📊 **Toplam Puan**: Total points earned across all cases
 - 📚 **Tamamlanan Vaka**: Number of completed cases
 - 📈 **Ortalama Başarı**: Average score percentage
 - 🏆 **Seviye**: User level (Başlangıç → Uzman)
 
 **Level Thresholds:**
+
 - 🥉 **Başlangıç**: < 60%
 - 🥈 **Orta**: 60-74%
 - 🥇 **İleri**: 75-89%
@@ -135,11 +148,13 @@ def finish_case():
 **Purpose:** Create all database tables on first setup
 
 **Usage:**
+
 ```bash
 python scripts/init_db.py
 ```
 
 **Output:**
+
 ```
 ============================================================
 DATABASE INITIALIZATION
@@ -181,11 +196,13 @@ DATABASE INITIALIZATION
 ### For Developers:
 
 1. **Initialize Database (First Time):**
+
    ```bash
    python scripts/init_db.py
    ```
 
 2. **Query User Stats:**
+
    ```python
    from db.database import get_user_stats
    stats = get_user_stats("user_id")
@@ -264,6 +281,7 @@ DATABASE INITIALIZATION
 ## ✅ Testing
 
 **Test Scenario:**
+
 1. Start Streamlit: `streamlit run main.py`
 2. Log in as a user
 3. Select "Oral Liken Planus" case
@@ -274,6 +292,7 @@ DATABASE INITIALIZATION
 8. Verify stats are updated
 
 **Expected Results:**
+
 - ✅ Score saved to database
 - ✅ Home page shows updated numbers
 - ✅ Level calculated correctly

@@ -1,5 +1,5 @@
 """
-Reusable UI Components for Dental Tutor AI
+Reusable UI Components for DentAI
 """
 
 from .sidebar import render_sidebar, CASE_OPTIONS, MODEL_OPTIONS, DEFAULT_MODEL

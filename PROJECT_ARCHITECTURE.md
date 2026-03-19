@@ -326,7 +326,7 @@ def analyze_performance(df: pd.DataFrame) -> Dict[str, Any]:
 
 ```python
 app = FastAPI(
-    title="Dental Tutor AI API",
+    title="DentAI API",
     description="RESTful API for dental education simulation platform",
     version="1.0.0"
 )
@@ -637,12 +637,10 @@ sequenceDiagram
 ### Case Session Management
 
 1. **Session Start**: `POST /api/cases/{caseId}/start`
-
    - Creates new session or retrieves existing
    - Initializes case-specific state
 
 2. **During Conversation**: State persisted per message
-
    - Score accumulation
    - Revealed findings tracking
    - Chat history logging

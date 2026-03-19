@@ -1,7 +1,7 @@
 """
 End-to-End Integration Test Script
 ===================================
-Tests the complete student journey through the Dental Tutor AI system.
+Tests the complete student journey through the DentAI system.
 
 Requirements:
 - FastAPI server running on http://localhost:8000
@@ -198,7 +198,7 @@ def test_analytics_export(token, endpoint_name, endpoint_path):
 def main():
     """Main test execution"""
     print(f"\n{BLUE}{'='*70}{RESET}")
-    print(f"{BLUE}   🧪 DENTAL TUTOR AI - END-TO-END INTEGRATION TEST{RESET}")
+    print(f"{BLUE}   🧪 DentAI - END-TO-END INTEGRATION TEST{RESET}")
     print(f"{BLUE}   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{RESET}")
     print(f"{BLUE}{'='*70}{RESET}\n")
     

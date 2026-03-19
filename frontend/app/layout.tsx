@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import AppLayout from "@/components/AppLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dental Tutor AI - Diş Hekimliği Eğitim Asistanı",
+  title: "DentAI - Diş Hekimliği Eğitim Asistanı",
   description: "Yapay zeka destekli interaktif diş hekimliği eğitim platformu",
 };
 
@@ -29,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          {children}
+          <AppLayout>{children}</AppLayout>
         </AuthProvider>
       </body>
     </html>

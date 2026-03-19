@@ -226,7 +226,7 @@ with st.expander("❓ Şifremi Unuttum"):
     st.info("""
     Şifrenizi sıfırlamak için lütfen sistem yöneticinize başvurun.
     
-    📧 E-posta: support@dentaltutor.ai  
+    📧 E-posta: betul.danismaz@istun.edu.tr  
     📞 Telefon: +90 (XXX) XXX XX XX
     """)
 
@@ -243,6 +243,6 @@ st.divider()
 st.markdown("""
 <div style="text-align: center; color: #757575; padding: 2rem 0;">
     <p>🔐 <strong>Güvenli Giriş</strong> | Tüm verileriniz güvenle korunur</p>
-    <p><small>© 2025 Dental Tutor AI - Tüm hakları saklıdır</small></p>
+    <p><small>© 2025 DentAI - Tüm hakları saklıdır</small></p>
 </div>
 """, unsafe_allow_html=True)
