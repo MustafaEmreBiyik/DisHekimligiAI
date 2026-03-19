@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-Refactored the Dental Tutor AI project to use a **reusable sidebar component** instead of duplicating sidebar code across multiple pages.
+Refactored the DentAI project to use a **reusable sidebar component** instead of duplicating sidebar code across multiple pages.
 
 ---
 

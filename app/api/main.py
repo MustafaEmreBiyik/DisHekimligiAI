@@ -1,7 +1,7 @@
 """
 FastAPI Main Application
 =========================
-Entry point for the Dental Tutor AI REST API.
+Entry point for the DentAI REST API.
 Runs alongside the Streamlit app without interference.
 
 Run with: uvicorn app.api.main:app --reload --port 8000
@@ -15,22 +15,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-<<<<<<< main
-from app.api.routers import chat, auth, feedback, analytics
-=======
-from app.api.routers import chat, auth, cases
-
-from dotenv import load_dotenv
-load_dotenv()  # .env dosyasını yükler
->>>>>>> betul
-
+from app.api.routers import chat, auth, cases, feedback, analytics
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Dental Tutor AI API",
+    title="DentAI API",
     description="RESTful API for dental education simulation platform",
     version="1.0.0",
     docs_url="/docs",
@@ -42,12 +34,18 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # React development server
-        "http://127.0.0.1:3000",  # Localhost alternative
-        "http://192.168.1.72:3000",  # Local network IP
-        "http://localhost:5173",  # Vite development server
-        "http://localhost:8000",  # Backend self-reference
-        "*",  # Fallback for any other origin (development only)
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:8000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
+        "http://192.168.1.5:3000",
+        "http://192.168.1.5:3001",
+        "http://192.168.1.72:3000",
+        "http://localhost:5173",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
@@ -57,12 +55,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-<<<<<<< main
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
-=======
 app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
->>>>>>> betul
 
 # Root endpoint
 @app.get("/")
@@ -85,7 +80,7 @@ def health_check():
     """
     return {
         "status": "healthy",
-        "service": "Dental Tutor AI API",
+        "service": "DentAI API",
         "version": "1.0.0"
     }
 

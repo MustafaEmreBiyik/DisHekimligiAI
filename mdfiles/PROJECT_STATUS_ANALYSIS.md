@@ -1,4 +1,5 @@
-# 🏥 DENTAL TUTOR AI - PROJECT STATUS & ARCHITECTURE ANALYSIS
+# 🏥 DentAI - PROJECT STATUS & ARCHITECTURE ANALYSIS
+
 **Document Date:** December 22, 2025  
 **Purpose:** Comprehensive system analysis for React + FastAPI migration planning  
 **Current Architecture:** Streamlit + Gemini + SQLAlchemy
@@ -6,6 +7,7 @@
 ---
 
 ## 📖 TABLE OF CONTENTS
+
 1. [Executive Overview](#executive-overview)
 2. [Core Components Deep Dive](#core-components-deep-dive)
 3. [Data Architecture](#data-architecture)
@@ -17,9 +19,10 @@
 
 ## 🎯 EXECUTIVE OVERVIEW
 
-### What is Dental Tutor AI?
+### What is DentAI?
 
-**Dental Tutor AI** is an intelligent clinical simulation platform for dental students. It uses:
+**DentAI** is an intelligent clinical simulation platform for dental students. It uses:
+
 - **Gemini 2.5 Flash** for natural language understanding (interprets student actions)
 - **Rule-based scoring engine** for objective assessment
 - **MedGemma** (optional) for silent clinical validation
@@ -29,6 +32,7 @@
 ### Core Value Proposition
 
 Students interact with simulated clinical cases using **natural language**:
+
 ```
 Student Input: "Hastanın alerjilerini kontrol ediyorum"
 ↓
@@ -112,8 +116,9 @@ Feedback shown → "Alerji sorgusu yapıldı..."
 #### Key Methods (API-Ready)
 
 **1. `interpret_action(action: str, state: Dict) -> Dict`**
+
 ```python
-Input: 
+Input:
   action = "Hastanın alerjilerini kontrol ediyorum"
   state = {"case_id": "olp_001", "patient": {...}}
 
@@ -129,6 +134,7 @@ Streamlit Dependencies: NONE ✅
 ```
 
 **2. `process_student_input(student_id: str, raw_action: str, case_id: str) -> Dict`**
+
 ```python
 Input:
   student_id = "2021001"
@@ -153,6 +159,7 @@ FastAPI Ready: YES ✅
 #### Silent Evaluation Pattern
 
 The MedGemma service runs **asynchronously** in the background:
+
 - **Does NOT block** the conversation flow
 - Saves evaluation metadata to `ChatLog.metadata_json`
 - Used for analytics, NOT shown to students during chat
@@ -219,6 +226,7 @@ When certain actions are performed, **clinical images are revealed**:
 ```
 
 The UI then:
+
 1. Extracts `revealed_findings` from assessment
 2. Looks up `bulgu_001` in `case_scenarios.json`
 3. Finds the media path: `"assets/images/olp_clinical.jpg"`
@@ -260,11 +268,13 @@ _STUDENT_STATES["2021001"] = {
 #### Methods
 
 **`get_state(student_id: str) -> Dict`**
+
 - Returns current state for student
 - Creates initial state if new student
 - Loads case data from `case_scenarios.json`
 
 **`update_state(student_id: str, updates: Dict) -> None`**
+
 - Merges updates into student state
 - Handles score changes additively
 - Updates `revealed_findings` list
@@ -272,15 +282,17 @@ _STUDENT_STATES["2021001"] = {
 #### Migration Path
 
 **Current:**
+
 ```python
 state = scenario_manager.get_state("2021001")
 # Reads from _STUDENT_STATES dict
 ```
 
 **Future (API-ready):**
+
 ```python
 session = db.query(StudentSession).filter_by(
-  student_id="2021001", 
+  student_id="2021001",
   case_id="olp_001"
 ).first()
 
@@ -389,6 +401,7 @@ for entry in rules:
 #### Valid Action Keys
 
 The system recognizes these standardized actions:
+
 ```python
 VALID_ACTIONS = [
     'gather_medical_history',
@@ -409,6 +422,7 @@ VALID_ACTIONS = [
 #### Schema
 
 **StudentSession Table**
+
 ```sql
 CREATE TABLE student_sessions (
     id INTEGER PRIMARY KEY,
@@ -420,6 +434,7 @@ CREATE TABLE student_sessions (
 ```
 
 **ChatLog Table**
+
 ```sql
 CREATE TABLE chat_logs (
     id INTEGER PRIMARY KEY,
@@ -432,6 +447,7 @@ CREATE TABLE chat_logs (
 ```
 
 **ExamResult Table**
+
 ```sql
 CREATE TABLE exam_results (
     id INTEGER PRIMARY KEY,
@@ -773,11 +789,13 @@ StudentSession.current_score += 20
 ### Analytics Engine (`app/analytics_engine.py`)
 
 #### Purpose
+
 Identify **weakest performance categories** and provide personalized recommendations.
 
 #### Function: `analyze_performance(df: pd.DataFrame) -> Dict`
 
 **Input:** DataFrame from database
+
 ```python
 df = pd.DataFrame([
     {"action": "diagnose_lichen_planus", "score": 10, "outcome": "Correct"},
@@ -787,7 +805,9 @@ df = pd.DataFrame([
 ```
 
 **Processing:**
+
 1. **Map actions to categories:**
+
    ```python
    action_categories = {
        'diagnose_lichen_planus': 'diagnosis',
@@ -798,6 +818,7 @@ df = pd.DataFrame([
    ```
 
 2. **Calculate category performance:**
+
    ```python
    category_stats = df.groupby('category').agg({
        'score': ['count', 'mean', 'sum']
@@ -805,6 +826,7 @@ df = pd.DataFrame([
    ```
 
 3. **Find weakest category:**
+
    ```python
    weakest = category_stats['avg_score'].idxmin()
    ```
@@ -821,6 +843,7 @@ df = pd.DataFrame([
    ```
 
 **Output:**
+
 ```python
 {
     "weakest_category": "diagnosis",
@@ -852,6 +875,7 @@ st.bar_chart(analysis["category_performance"])
 ```
 
 **API Endpoint Design:**
+
 ```
 GET /api/analytics/performance?student_id=2021001
 Response: {
@@ -868,37 +892,38 @@ Response: {
 
 ### Components Ready for API (✅ Green)
 
-| Component | File | Status | Notes |
-|-----------|------|--------|-------|
-| **Agent Core** | `app/agent.py` | ✅ Ready | Zero Streamlit deps |
-| **Assessment Engine** | `app/assessment_engine.py` | ✅ Ready | Pure rule matching |
-| **Analytics Engine** | `app/analytics_engine.py` | ✅ Ready | Stateless function |
-| **Database Models** | `db/database.py` | ✅ Ready | SQLAlchemy ORM |
-| **Case Data Loader** | JSON files | ✅ Ready | Static resources |
-| **Scoring Rules** | JSON files | ✅ Ready | Static resources |
+| Component             | File                       | Status   | Notes               |
+| --------------------- | -------------------------- | -------- | ------------------- |
+| **Agent Core**        | `app/agent.py`             | ✅ Ready | Zero Streamlit deps |
+| **Assessment Engine** | `app/assessment_engine.py` | ✅ Ready | Pure rule matching  |
+| **Analytics Engine**  | `app/analytics_engine.py`  | ✅ Ready | Stateless function  |
+| **Database Models**   | `db/database.py`           | ✅ Ready | SQLAlchemy ORM      |
+| **Case Data Loader**  | JSON files                 | ✅ Ready | Static resources    |
+| **Scoring Rules**     | JSON files                 | ✅ Ready | Static resources    |
 
 ### Components Needing Refactor (⚠️ Yellow)
 
-| Component | Issue | Solution | Effort |
-|-----------|-------|----------|--------|
-| **ScenarioManager** | In-memory global dict | Migrate to DB (add `state_json` column) | 4-6 hours |
-| **Auth System** | `st.session_state` auth | Implement JWT tokens | 4-6 hours |
-| **File Upload** | Streamlit uploader | FastAPI `UploadFile` | 2-3 hours |
+| Component           | Issue                   | Solution                                | Effort    |
+| ------------------- | ----------------------- | --------------------------------------- | --------- |
+| **ScenarioManager** | In-memory global dict   | Migrate to DB (add `state_json` column) | 4-6 hours |
+| **Auth System**     | `st.session_state` auth | Implement JWT tokens                    | 4-6 hours |
+| **File Upload**     | Streamlit uploader      | FastAPI `UploadFile`                    | 2-3 hours |
 
 ### Components to Rebuild (🔄 Blue)
 
-| Component | Current | Future | Effort |
-|-----------|---------|--------|--------|
-| **UI Pages** | Streamlit widgets | React components | 2-3 weeks |
-| **Chat Interface** | `st.chat_message()` | React chat UI | 1 week |
-| **Stats Dashboard** | Streamlit charts | Chart.js/Recharts | 1 week |
-| **Sidebar** | `st.sidebar` | React navigation | 3-4 days |
+| Component           | Current             | Future            | Effort    |
+| ------------------- | ------------------- | ----------------- | --------- |
+| **UI Pages**        | Streamlit widgets   | React components  | 2-3 weeks |
+| **Chat Interface**  | `st.chat_message()` | React chat UI     | 1 week    |
+| **Stats Dashboard** | Streamlit charts    | Chart.js/Recharts | 1 week    |
+| **Sidebar**         | `st.sidebar`        | React navigation  | 3-4 days  |
 
 ---
 
 ## 🎯 RECOMMENDED MIGRATION SEQUENCE
 
 ### Phase 1: Backend API (Week 1-2)
+
 1. ✅ Create FastAPI project structure
 2. ✅ Implement `/api/chat/send` endpoint (reuse `agent.py`)
 3. ⚠️ Fix ScenarioManager (migrate to DB)
@@ -907,18 +932,21 @@ Response: {
 6. ✅ Create `/api/analytics` endpoints
 
 ### Phase 2: React Scaffold (Week 3)
+
 1. 🔄 Initialize Next.js/Vite project
 2. 🔄 Create login page
 3. 🔄 Create chat UI mockup
 4. 🔄 Connect to backend API
 
 ### Phase 3: Feature Implementation (Week 4-6)
+
 1. 🔄 Implement full chat functionality
 2. 🔄 Implement stats dashboard
 3. 🔄 Implement case selection
 4. 🔄 Implement image display for findings
 
 ### Phase 4: Testing & Deployment (Week 7)
+
 1. End-to-end testing
 2. Performance optimization
 3. Production deployment
@@ -929,21 +957,25 @@ Response: {
 ## 📝 CRITICAL INSIGHTS FOR REACT DEVELOPER
 
 ### What Works Well (Keep This)
+
 - ✅ **Agent returns pure JSON** - Perfect for REST API
 - ✅ **Database stores all state** - Can reconstruct session from DB
 - ✅ **Clear separation of concerns** - Agent, Assessment, Analytics are independent
 
 ### What Needs Attention (Fix This)
+
 - ⚠️ **ScenarioManager uses memory** - Migrate to `StudentSession.state_json`
 - ⚠️ **Auth is session-based** - Need JWT for stateless API
 - ⚠️ **No WebSocket support** - Consider for real-time chat
 
 ### Architecture Wins
+
 1. **Silent Evaluator Pattern** - MedGemma validates in background without blocking
 2. **Hybrid Intelligence** - Gemini for NLU + Rules for objectivity
 3. **Metadata-Rich Logging** - All evaluations saved to `ChatLog.metadata_json`
 
 ### Data Flow Summary
+
 ```
 Student Input (Turkish text)
   ↓
@@ -965,16 +997,19 @@ Database Persistence (ChatLog + StudentSession)
 ## 🚀 NEXT ACTIONS
 
 ### Immediate (Today)
+
 1. Run prototype API (`chat_prototype.py` from audit doc)
 2. Test agent isolation (no Streamlit imports)
 3. Review database schema
 
 ### This Week
+
 1. Add `state_json` column to `StudentSession`
 2. Refactor `ScenarioManager.get_state()` to read from DB
 3. Create basic FastAPI structure
 
 ### Next Week
+
 1. Implement full chat API endpoint
 2. Set up JWT authentication
 3. Create React project scaffold
@@ -984,4 +1019,3 @@ Database Persistence (ChatLog + StudentSession)
 **Document Status:** ✅ Complete  
 **Migration Readiness:** 80% (Core logic ready, infrastructure needs work)  
 **Estimated Migration Time:** 5-7 weeks (1 FTE)
-

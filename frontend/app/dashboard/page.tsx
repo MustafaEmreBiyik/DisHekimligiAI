@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
   // Get difficulty badge color
   const getDifficultyBadge = (
-    difficulty: string | null
+    difficulty: string | null,
   ): { bg: string; text: string } => {
     if (!difficulty) return { bg: "bg-gray-100", text: "text-gray-800" };
 
@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                🦷 Dental Tutor AI
+                🦷 DentAI
               </h1>
             </div>
             <div className="flex items-center gap-4">
@@ -186,37 +186,6 @@ export default function DashboardPage() {
         </div>
       </header>
 
-<<<<<<< main
-                {/* Quick Actions - Temporarily Disabled */}
-                <div className="mb-8">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                        ⚡ Hızlı Erişim
-                    </h3>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                        <Link href="/stats">
-                            <div className="bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer group">
-                                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📊</div>
-                                <h4 className="font-bold text-white mb-1">Araştırma Verileri</h4>
-                                <p className="text-sm text-blue-50 mb-2">CSV indirme ve analiz</p>
-                                <p className="text-xs text-blue-100">Pilot çalışma verileri →</p>
-                            </div>
-                        </Link>
-
-                        <div className="bg-gray-100 p-6 rounded-xl shadow-md border border-gray-200 opacity-60 cursor-not-allowed">
-                            <div className="text-3xl mb-3">📚</div>
-                            <h4 className="font-bold text-gray-700 mb-1">Tüm Vakalar</h4>
-                            <p className="text-sm text-gray-500 mb-2">Vaka kütüphanesine göz at</p>
-                            <p className="text-xs text-gray-400 italic">Yakında aktif olacak</p>
-                        </div>
-
-                        <div className="bg-gray-100 p-6 rounded-xl shadow-md border border-gray-200 opacity-60 cursor-not-allowed">
-                            <div className="text-3xl mb-3">👤</div>
-                            <h4 className="font-bold text-gray-700 mb-1">Profilim</h4>
-                            <p className="text-sm text-gray-500 mb-2">Hesap ayarları ve bilgileri</p>
-                            <p className="text-xs text-gray-400 italic">Yakında aktif olacak</p>
-                        </div>
-=======
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}
@@ -262,7 +231,6 @@ export default function DashboardPage() {
                         <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
                         <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                       </div>
->>>>>>> betul
                     </div>
                   </div>
                 </div>
@@ -281,7 +249,7 @@ export default function DashboardPage() {
                   >
                     <div
                       className={`h-2 bg-gradient-to-r ${getCaseColor(
-                        caseItem.difficulty
+                        caseItem.difficulty,
                       )}`}
                     ></div>
                     <div className="p-6">
