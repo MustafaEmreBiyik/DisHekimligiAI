@@ -8,6 +8,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 
 interface User {
@@ -27,6 +28,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -104,8 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('student_id');
         localStorage.removeItem('name');
 
-        // Redirect to home
-        window.location.href = '/';
+        // Redirect to home using Next.js router (SPA navigation)
+        router.push('/');
     };
 
     return (
