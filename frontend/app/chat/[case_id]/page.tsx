@@ -325,7 +325,7 @@ export default function ChatPage() {
                             onChange={(e) => setInputMessage(e.target.value)}
                             placeholder="Eylemlerinizi yazın (ör: Hastanın şikayetini dinliyorum)..."
                             disabled={isLoading}
-                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed placeholder:text-gray-400 text-gray-900"
                         />
                         <button
                             type="submit"
@@ -398,7 +398,7 @@ export default function ChatPage() {
                                 onChange={(e) => setFeedbackComment(e.target.value)}
                                 placeholder="Vaka hakkında düşüncelerinizi paylaşın..."
                                 rows={4}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400 text-gray-900"
                             />
                         </div>
                         
