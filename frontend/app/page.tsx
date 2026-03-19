@@ -24,8 +24,11 @@ export default function Home() {
             Hemen Başla
           </Link>
 
-          <button className="px-8 py-3 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold hover:bg-gray-50 transition-all">
-            Dokümantasyon
+          <button 
+            disabled
+            className="px-8 py-3 bg-gray-200 text-gray-400 border border-gray-300 rounded-full font-semibold cursor-not-allowed"
+          >
+            Dokümantasyon (Yakında)
           </button>
         </div>
 
