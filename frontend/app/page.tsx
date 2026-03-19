@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       <div className="text-center space-y-6 max-w-2xl bg-white p-10 rounded-2xl shadow-xl">
         <div className="space-y-2">
           <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-            Dental Tutor AI
+            DentAI
           </h1>
           <p className="text-gray-500 text-lg">
             Diş Hekimliği Öğrencileri İçin Yapay Zeka Destekli Eğitim Asistanı
@@ -24,7 +24,7 @@ export default function Home() {
             Hemen Başla
           </Link>
 
-          <button 
+          <button
             disabled
             className="px-8 py-3 bg-gray-200 text-gray-400 border border-gray-300 rounded-full font-semibold cursor-not-allowed"
           >

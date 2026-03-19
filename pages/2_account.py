@@ -1,5 +1,5 @@
 """
-Öğrenci Profili & Hesap Sayfası - Dental Tutor AI
+Öğrenci Profili & Hesap Sayfası - DentAI
 """
 
 import streamlit as st
@@ -23,7 +23,7 @@ init_student_profile()
 
 # Page config
 st.set_page_config(
-    page_title="Dental Tutor AI - Hesabım",
+    page_title="DentAI - Hesabım",
     page_icon="👤",
     layout="wide"
 )
@@ -313,7 +313,7 @@ st.divider()
 # Footer
 st.markdown("""
 <div style="text-align: center; color: #757575; padding: 2rem 0;">
-    <p>📧 Destek: support@dentaltutor.ai | 🔐 Gizlilik Politikası | 📜 Kullanım Koşulları</p>
+    <p>📧 Destek: betul.danismaz@istun.edu.tr | 🔐 Gizlilik Politikası | 📜 Kullanım Koşulları</p>
     <p><small>Son güncelleme: Aralık 2025</small></p>
 </div>
 """, unsafe_allow_html=True)

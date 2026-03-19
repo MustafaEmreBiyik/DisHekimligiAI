@@ -1,0 +1,228 @@
+.sidebarContainer {
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.02);
+  z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 24px 24px;
+  margin-bottom: 24px;
+}
+
+.logoIcon {
+  color: #0066cc;
+  background: rgba(0, 102, 204, 0.1);
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  letter-spacing: -0.5px;
+}
+
+.mobileClose {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #4a5568;
+  padding: 4px;
+  margin-left: auto;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.mobileClose:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.navMenu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-y: auto;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: #4a5568;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.navItem:hover {
+  background: rgba(0, 102, 204, 0.04);
+  color: #0066cc;
+}
+
+.navItem[data-active="true"] {
+  background: linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 102, 204, 0.02) 100%);
+  color: #0066cc;
+  font-weight: 600;
+}
+
+.navItem[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background-color: #0066cc;
+  border-radius: 0 4px 4px 0;
+}
+
+.footer {
+  padding: 24px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #e53e3e;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.logoutBtn:hover {
+  background: rgba(229, 62, 62, 0.05);
+}
+
+/* Hamburger & Mobile Overlay */
+.mobileToggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 98;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  color: #1a202c;
+  transition: background 0.2s;
+}
+
+.mobileToggle:hover {
+  background: #ffffff;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .sidebarContainer {
+    transform: translateX(-100%);
+  }
+
+  .sidebarContainer[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .mobileToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobileClose {
+    display: block;
+  }
+
+  .overlay[data-open="true"] {
+    display: block;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .sidebarContainer {
+    background: rgba(23, 23, 23, 0.85);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .logoArea {
+    color: #ededed;
+  }
+  .logoText {
+    color: #ededed;
+  }
+  .navItem {
+    color: #a0aec0;
+  }
+  .navItem:hover {
+    background: rgba(49, 130, 206, 0.1);
+    color: #63b3ed;
+  }
+  .navItem[data-active="true"] {
+    background: linear-gradient(135deg, rgba(49, 130, 206, 0.2) 0%, rgba(49, 130, 206, 0.05) 100%);
+    color: #63b3ed;
+  }
+  .navItem[data-active="true"]::before {
+    background-color: #63b3ed;
+  }
+  .footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .mobileToggle {
+    background: rgba(23, 23, 23, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ededed;
+  }
+  .mobileClose {
+    color: #a0aec0;
+  }
+  .mobileClose:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

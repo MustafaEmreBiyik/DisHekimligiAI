@@ -1,5 +1,5 @@
 """
-FastAPI Backend for Dental Tutor AI
+FastAPI Backend for DentAI
 ====================================
 RESTful API that reuses existing business logic from app/agent.py
 """

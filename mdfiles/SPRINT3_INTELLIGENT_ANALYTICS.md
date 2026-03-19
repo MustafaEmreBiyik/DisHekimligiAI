@@ -13,6 +13,7 @@
 **New Functions:**
 
 #### `analyze_performance(df: pd.DataFrame) → Dict`
+
 - **Purpose:** Identifies weakest performance category and generates recommendations
 - **Algorithm:**
   - Maps 23+ action types to 5 broad categories:
@@ -25,8 +26,8 @@
   - Requires minimum 2 actions per category for reliability
   - Identifies category with lowest average score
   - Generates Turkish recommendations based on weak area
-  
 - **Output:**
+
   ```python
   {
       "weakest_category": "diagnosis",  # Category name
@@ -42,6 +43,7 @@
   - 🟢 **İyileştirilebilir** (7.0+): Decent but room for improvement
 
 #### `generate_report_text(stats: Dict, analysis: Dict) → str`
+
 - **Purpose:** Creates downloadable text report of performance
 - **Content:**
   - Header with general stats (total score, actions, avg, cases)
@@ -57,6 +59,7 @@
 **New Function:**
 
 #### `get_student_detailed_history(user_id: str) → Dict`
+
 - **Purpose:** Centralized data fetching for analytics (replaces inline SQL in 5_stats.py)
 - **Process:**
   1. Queries all `StudentSession` records for user
@@ -64,7 +67,6 @@
   3. Parses `metadata_json` for action details
   4. Filters out non-actions (general_chat, error)
   5. Builds comprehensive action history
-  
 - **Returns:**
   ```python
   {
@@ -85,6 +87,7 @@
   ```
 
 **Benefits:**
+
 - ✅ Single source of truth for action history
 - ✅ Reusable across multiple pages
 - ✅ Easier to test and maintain
@@ -97,6 +100,7 @@
 **Changes Made:**
 
 #### Imports
+
 ```python
 # Added:
 from app.analytics_engine import analyze_performance, generate_report_text
@@ -108,6 +112,7 @@ import json  # No longer needed for metadata parsing
 ```
 
 #### Data Loading (Line ~72)
+
 ```python
 # OLD (80+ lines of inline SQL):
 def load_student_stats():
@@ -127,11 +132,12 @@ stats = get_student_detailed_history(student_id)
 #### New Features
 
 **1. Weakness Detection Display (after metrics, before charts)**
+
 ```python
 if action_history:
     df = pd.DataFrame(action_history)
     analysis = analyze_performance(df)
-    
+
     if analysis.get('recommendation'):
         st.markdown("## 💡 Gelişim Önerileri")
         st.warning(analysis['recommendation'])  # Yellow warning box
@@ -139,6 +145,7 @@ if action_history:
 ```
 
 **Display Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ ⚠️ WARNING                                              │
@@ -155,14 +162,15 @@ if action_history:
 ```
 
 **2. Download Report Button (before action history)**
+
 ```python
 if action_history:
     col_download1, col_download2 = st.columns([3, 1])
-    
+
     with col_download2:
         analysis_for_report = analyze_performance(pd.DataFrame(action_history))
         report_text = generate_report_text(stats, analysis_for_report)
-        
+
         st.download_button(
             label="📄 Karneyi İndir",
             data=report_text,
@@ -173,9 +181,10 @@ if action_history:
 ```
 
 **Downloaded File Format:**
+
 ```
 ════════════════════════════════════════════════════════════
-              DENTAL TUTOR AI - PERFORMANS KARNESI
+              DentAI - PERFORMANS KARNESI
 ════════════════════════════════════════════════════════════
 
 📊 GENEL PERFORMANS
@@ -189,6 +198,7 @@ if action_history:
 ```
 
 **3. Preserved Existing Charts**
+
 - ✅ Line chart (cumulative score trend)
 - ✅ Pie chart (case distribution)
 - ✅ Histogram (score distribution)
@@ -198,14 +208,14 @@ if action_history:
 
 ## 🎯 Key Improvements
 
-| Aspect | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Code Lines (5_stats.py)** | 281 lines | 242 lines | -14% |
-| **Data Fetching** | Inline SQL (80 lines) | Function call (3 lines) | -96% |
-| **Reusability** | Page-specific | Centralized in DB layer | ♾️ |
-| **Intelligence** | No weakness detection | Smart category analysis | 🧠 |
-| **Export Feature** | None | Downloadable text report | 📄 |
-| **Recommendations** | None | 5 category-specific tips | 💡 |
+| Aspect                      | Before                | After                    | Improvement |
+| --------------------------- | --------------------- | ------------------------ | ----------- |
+| **Code Lines (5_stats.py)** | 281 lines             | 242 lines                | -14%        |
+| **Data Fetching**           | Inline SQL (80 lines) | Function call (3 lines)  | -96%        |
+| **Reusability**             | Page-specific         | Centralized in DB layer  | ♾️          |
+| **Intelligence**            | No weakness detection | Smart category analysis  | 🧠          |
+| **Export Feature**          | None                  | Downloadable text report | 📄          |
+| **Recommendations**         | None                  | 5 category-specific tips | 💡          |
 
 ---
 
@@ -224,6 +234,7 @@ if action_history:
 ## 📊 Analytics Algorithm Details
 
 ### Category Mapping Logic
+
 ```python
 action_categories = {
     'diagnose_lichen_planus': 'diagnosis',
@@ -236,6 +247,7 @@ action_categories = {
 ```
 
 ### Performance Calculation
+
 ```python
 # Group by category, calculate stats
 category_stats = df.groupby('category').agg({
@@ -250,6 +262,7 @@ weakest = significant['avg_score'].idxmin()
 ```
 
 ### Recommendation Generator
+
 - **Diagnosis issues** → Review pathology findings, differential diagnosis
 - **Anamnesis problems** → Improve patient questioning, check medication history
 - **Examination weaknesses** → Systematic oral exam, use special tests appropriately
@@ -274,11 +287,11 @@ weakest = significant['avg_score'].idxmin()
 
 ## 📝 Files Modified
 
-| File | Lines Changed | Type |
-|------|--------------|------|
-| `app/analytics_engine.py` | +261 lines | **NEW** |
-| `db/database.py` | +98 lines | Enhanced |
-| `pages/5_stats.py` | -39 lines | Refactored |
+| File                      | Lines Changed | Type       |
+| ------------------------- | ------------- | ---------- |
+| `app/analytics_engine.py` | +261 lines    | **NEW**    |
+| `db/database.py`          | +98 lines     | Enhanced   |
+| `pages/5_stats.py`        | -39 lines     | Refactored |
 
 **Total Impact:** +320 lines (new intelligence features)
 
@@ -291,7 +304,7 @@ weakest = significant['avg_score'].idxmin()
 ✅ **Download feature added** → Comprehensive text report export  
 ✅ **Code quality improved** → 96% reduction in page complexity  
 ✅ **User experience enhanced** → Actionable recommendations  
-✅ **Existing features preserved** → All charts still functional  
+✅ **Existing features preserved** → All charts still functional
 
 **Status:** Production-ready 🚀
 

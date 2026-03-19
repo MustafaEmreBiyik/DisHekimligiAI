@@ -1,5 +1,5 @@
 """
-Analytics Engine - Dental Tutor AI
+Analytics Engine - DentAI
 Weakness Detection & Performance Analysis
 """
 
@@ -169,7 +169,7 @@ def generate_report_text(stats: Dict[str, Any], analysis: Dict[str, Any]) -> str
     
     report = f"""
 ════════════════════════════════════════════════════════════
-              DENTAL TUTOR AI - PERFORMANS KARNESI
+              DentAI - PERFORMANS KARNESI
 ════════════════════════════════════════════════════════════
 
 📊 GENEL PERFORMANS
@@ -225,7 +225,7 @@ def generate_report_text(stats: Dict[str, Any], analysis: Dict[str, Any]) -> str
             report += f"   Sonuç: {action.get('outcome', 'N/A')}\n\n"
     
     report += "════════════════════════════════════════════════════════════\n"
-    report += "               Dental Tutor AI ile başarılar!\n"
+    report += "               DentAI ile başarılar!\n"
     report += "════════════════════════════════════════════════════════════\n"
     
     return report
