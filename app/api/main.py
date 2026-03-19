@@ -1,7 +1,7 @@
 """
 FastAPI Main Application
 =========================
-Entry point for the Dental Tutor AI REST API.
+Entry point for the DentAI REST API.
 Runs alongside the Streamlit app without interference.
 
 Run with: uvicorn app.api.main:app --reload --port 8000
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Dental Tutor AI API",
+    title="DentAI API",
     description="RESTful API for dental education simulation platform",
     version="1.0.0",
     docs_url="/docs",
@@ -80,7 +80,7 @@ def health_check():
     """
     return {
         "status": "healthy",
-        "service": "Dental Tutor AI API",
+        "service": "DentAI API",
         "version": "1.0.0"
     }
 

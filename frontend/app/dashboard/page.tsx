@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
   // Get difficulty badge color
   const getDifficultyBadge = (
-    difficulty: string | null
+    difficulty: string | null,
   ): { bg: string; text: string } => {
     if (!difficulty) return { bg: "bg-gray-100", text: "text-gray-800" };
 
@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                🦷 Dental Tutor AI
+                🦷 DentAI
               </h1>
             </div>
             <div className="flex items-center gap-4">
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                   >
                     <div
                       className={`h-2 bg-gradient-to-r ${getCaseColor(
-                        caseItem.difficulty
+                        caseItem.difficulty,
                       )}`}
                     ></div>
                     <div className="p-6">

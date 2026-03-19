@@ -1,5 +1,5 @@
 """
-Öğrenci Profil Sistemi - Dental Tutor AI
+Öğrenci Profil Sistemi - DentAI
 """
 
 import streamlit as st
