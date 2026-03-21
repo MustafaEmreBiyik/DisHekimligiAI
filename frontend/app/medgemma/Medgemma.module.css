@@ -1,0 +1,348 @@
+.container {
+  display: flex;
+  gap: 2rem;
+  height: calc(100vh - 4rem);
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Left Sidebar - Scenarios */
+.scenarioPanel {
+  width: 30%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.scenarioHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.scenarioList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+
+.scenarioCard {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 2px solid transparent;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.scenarioCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+}
+
+.scenarioCard[data-active="true"] {
+  border-color: #0066cc;
+  background: linear-gradient(135deg, rgba(0, 102, 204, 0.05) 0%, rgba(0, 102, 204, 0.01) 100%);
+}
+
+.scenarioTitle {
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
+  font-size: 1.05rem;
+}
+
+.scenarioSubtitle {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+/* Right Console - Chat */
+.consolePanel {
+  width: 70%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.consoleHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: white;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.messageArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Messages */
+.messageRow {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.messageRow[data-role="user"] {
+  align-self: flex-end;
+}
+
+.messageRow[data-role="assistant"] {
+  align-self: flex-start;
+}
+
+.userBubble {
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  background: #0066cc;
+  color: white;
+  border-bottom-right-radius: 0.25rem;
+  box-shadow: 0 4px 12px rgba(0,102,204,0.2);
+}
+
+/* Feedback Card */
+.feedbackCard {
+  border-radius: 1.25rem;
+  border: 1px solid transparent;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  animation: slideIn 0.3s ease-out;
+  background: white;
+  width: 100%;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.feedbackHeader {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.feedbackBody {
+  padding: 1.25rem;
+  background: white;
+}
+
+.feedbackLabel {
+  font-weight: 700;
+  color: #4a5568;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.feedbackText {
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.missingList {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.missingList li {
+  margin-bottom: 0.35rem;
+}
+
+/* Themes */
+.themeViolation {
+  border-color: #feb2b2;
+}
+.themeViolation .feedbackHeader {
+  background: #fff5f5;
+  color: #c53030;
+  border-bottom: 1px solid #fed7d7;
+}
+
+.themeWarning {
+  border-color: #fbd38d;
+}
+.themeWarning .feedbackHeader {
+  background: #fffaf0;
+  color: #dd6b20;
+  border-bottom: 1px solid #feebc8;
+}
+
+.themeSuccess {
+  border-color: #9ae6b4;
+}
+.themeSuccess .feedbackHeader {
+  background: #f0fff4;
+  color: #2f855a;
+  border-bottom: 1px solid #c6f6d5;
+}
+
+/* Accordion */
+.accordion {
+  margin-top: 1.25rem;
+  border-top: 1px solid #edf2f7;
+  padding-top: 0.5rem;
+}
+
+.accordionBtn {
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.accordionBtn:hover {
+  color: #4a5568;
+}
+
+.rawJson {
+  background: #1a202c;
+  color: #A6E22E;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  font-family: inherit;
+  font-family: monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+}
+
+/* Input Area */
+.inputArea {
+  padding: 1.5rem;
+  background: white;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.inputField {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  resize: none;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  min-height: 24px;
+}
+
+.inputField:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+  background: white;
+}
+
+.sendBtn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #0052a3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+}
+
+.sendBtn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* Loading State */
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #718096;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 1rem;
+  align-self: flex-start;
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 4rem);
+  }
+  .scenarioPanel {
+    width: 100%;
+  }
+  .consolePanel {
+    width: 100%;
+    height: 700px;
+  }
+}
