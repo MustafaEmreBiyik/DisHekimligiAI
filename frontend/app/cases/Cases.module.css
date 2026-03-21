@@ -1,0 +1,302 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header & Controls */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1a202c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  align-items: center;
+}
+
+.searchWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3.5rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  font-size: 1.05rem;
+  background: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+  color: #2d3748;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1);
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filterBtn {
+  padding: 0.5rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.filterBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.filterBtn[data-active="true"] {
+  background: #1a202c;
+  color: white;
+  border-color: #1a202c;
+}
+
+/* Grid & Cards */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.caseCard {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1.25rem;
+  border: 1px solid #e9ecef;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.caseCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.caseCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  transition: background 0.3s ease;
+}
+
+.caseCard:hover::before {
+  background: #0066cc;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.caseTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.badgeKolay { background: #c6f6d5; color: #22543d; }
+.badgeOrta { background: #fefcbf; color: #744210; }
+.badgeZor { background: #fed7d7; color: #822727; }
+
+.patientInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4a5568;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.desc {
+  color: #718096;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1; /* Pushes tags and button to bottom */
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.btnStart {
+  width: 100%;
+  padding: 0.875rem;
+  background: transparent;
+  border: 2px solid #e2e8f0;
+  color: #4a5568;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.caseCard:hover .btnStart {
+  background: #0066cc;
+  border-color: #0066cc;
+  color: white;
+}
+
+/* Responsive Grid */
+@media (max-width: 1024px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  .searchWrapper { max-width: 100%; }
+}
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  .title, .caseTitle { color: #ededed; }
+  .subtitle, .desc { color: #a0aec0; }
+  .searchIcon { color: #a0aec0; }
+  .searchInput {
+    background: #1a202c;
+    border-color: #2d3748;
+    color: #e2e8f0;
+  }
+  .searchInput:focus {
+    background: #1e1e1e;
+  }
+  .filterBtn {
+    background: #1a202c;
+    border-color: #2d3748;
+    color: #a0aec0;
+  }
+  .filterBtn:hover {
+    background: #2d3748;
+  }
+  .filterBtn[data-active="true"] {
+    background: #e2e8f0;
+    color: #1a202c;
+    border-color: #e2e8f0;
+  }
+  .caseCard {
+    background: rgba(30, 30, 30, 0.85);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  .caseCard::before {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .caseCard:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .caseCard:hover::before {
+    background: #3182ce;
+  }
+  .patientInfo { color: #cbd5e1; }
+  .tag { background: #2d3748; color: #e2e8f0; }
+  .btnStart {
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+  .caseCard:hover .btnStart {
+    background: #3182ce;
+    border-color: #3182ce;
+  }
+  
+  /* Adjusted Badge Colors for Dark Mode visually */
+  .badgeKolay { background: rgba(198, 246, 213, 0.15); color: #68d391; }
+  .badgeOrta { background: rgba(254, 252, 191, 0.15); color: #f6e05e; }
+  .badgeZor { background: rgba(254, 215, 215, 0.15); color: #fc8181; }
+}
