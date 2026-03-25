@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DentAI – Academic Paper Supplementary Material</title>
+    <style>
+      :root {
+        --primary: #1a365d;
+        --accent: #2b6cb0;
+        --accent-light: #ebf4ff;
+        --danger: #c53030;
+        --danger-bg: #fff5f5;
+        --success: #276749;
+        --success-bg: #f0fff4;
+        --warn: #7b341e;
+        --warn-bg: #fffaf0;
+        --purple: #553c9a;
+        --purple-bg: #faf5ff;
+        --border: #cbd5e0;
+        --text: #2d3748;
+        --muted: #718096;
+        --page-bg: #f7fafc;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--text);
+        background: var(--page-bg);
+        padding: 40px 20px 80px;
+      }
+      .page {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      /* Header */
+      header {
+        background: var(--primary);
+        color: #fff;
+        border-radius: 10px;
+        padding: 32px 40px;
+        margin-bottom: 36px;
+      }
+      header .badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.15);
+        color: #bee3f8;
+        font-size: 11px;
+        font-family: monospace;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+      }
+      header h1 {
+        font-size: 24px;
+        margin-bottom: 6px;
+      }
+      header p {
+        color: #bee3f8;
+        font-size: 13.5px;
+      }
+
+      /* Section */
+      .section {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 32px 36px;
+        margin-bottom: 28px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      }
+      .section-label {
+        display: inline-block;
+        font-family: monospace;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: var(--accent-light);
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 8px;
+      }
+      h2 {
+        font-size: 19px;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+      .section-desc {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 22px;
+        font-style: italic;
+      }
+
+      /* Case top strip */
+      .case-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 24px;
+      }
+      .case-icon {
+        width: 52px;
+        height: 52px;
+        background: var(--purple-bg);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+      }
+      .case-meta h3 {
+        font-size: 17px;
+        color: var(--primary);
+        margin-bottom: 5px;
+      }
+      .tags {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .tag {
+        font-size: 11px;
+        font-family: monospace;
+        padding: 2px 9px;
+        border-radius: 12px;
+        font-weight: bold;
+      }
+      .tag-id {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+      .tag-diff {
+        background: #fefcbf;
+        color: #7b341e;
+      }
+      .tag-cat {
+        background: #e9d8fd;
+        color: #553c9a;
+      }
+      .tag-opmd {
+        background: #fed7e2;
+        color: #97266d;
+      }
+
+      /* Grid */
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      @media (max-width: 640px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .info-box {
+        background: #f7fafc;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .info-box .lbl {
+        font-size: 10.5px;
+        font-family: monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+      .info-box p {
+        font-size: 13.5px;
+      }
+
+      /* Narrative box */
+      .narr-box {
+        border-left: 3px solid #805ad5;
+        background: var(--purple-bg);
+        border-radius: 0 8px 8px 0;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        font-size: 13.5px;
+        font-style: italic;
+      }
+      .narr-box .narr-label {
+        font-style: normal;
+        font-family: monospace;
+        font-size: 10.5px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--purple);
+        margin-bottom: 4px;
+      }
+
+      /* Sub-headings inside section */
+      .sub-h {
+        font-size: 13px;
+        font-family: monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 5px;
+        margin: 20px 0 12px;
+      }
+
+      /* Finding rows */
+      .finding {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 9px;
+      }
+      .finding-reward {
+        background: var(--success-bg);
+        border-left: 3px solid #48bb78;
+      }
+      .finding-warn {
+        background: var(--warn-bg);
+        border-left: 3px solid #ed8936;
+      }
+      .finding-purple {
+        background: var(--purple-bg);
+        border-left: 3px solid #805ad5;
+      }
+      .finding .f-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .finding .f-lbl {
+        font-size: 10.5px;
+        font-family: monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 3px;
+      }
+      .lbl-reward {
+        color: var(--success);
+      }
+      .lbl-warn {
+        color: var(--warn);
+      }
+      .lbl-purple {
+        color: var(--purple);
+      }
+      .finding p {
+        font-size: 13.5px;
+      }
+
+      /* Biopsy result block */
+      .biopsy-block {
+        background: #f7fafc;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 18px;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+      .biopsy-block .biopsy-lbl {
+        font-family: monospace;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      thead th {
+        background: var(--primary);
+        color: #fff;
+        padding: 10px 13px;
+        text-align: left;
+        font-family: monospace;
+        font-size: 11px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+      }
+      thead th:first-child {
+        border-radius: 6px 0 0 6px;
+      }
+      thead th:last-child {
+        border-radius: 0 6px 6px 0;
+      }
+      tbody tr:nth-child(even) {
+        background: #f7fafc;
+      }
+      tbody td {
+        padding: 10px 13px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      .score-pos {
+        color: var(--success);
+        font-weight: bold;
+        font-family: monospace;
+      }
+      .score-neg {
+        color: var(--danger);
+        font-weight: bold;
+        font-family: monospace;
+      }
+      .rule-key {
+        font-family: monospace;
+        background: #edf2f7;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11.5px;
+        color: var(--primary);
+      }
+      .rationale {
+        font-style: italic;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .severity-crit {
+        display: inline-block;
+        font-size: 10px;
+        font-family: monospace;
+        text-transform: uppercase;
+        padding: 1px 7px;
+        border-radius: 10px;
+        background: #fff5f5;
+        color: var(--danger);
+        border: 1px solid #feb2b2;
+        font-weight: bold;
+        margin-left: 4px;
+      }
+      .severity-std {
+        display: inline-block;
+        font-size: 10px;
+        font-family: monospace;
+        text-transform: uppercase;
+        padding: 1px 7px;
+        border-radius: 10px;
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid #9ae6b4;
+        font-weight: bold;
+        margin-left: 4px;
+      }
+
+      /* Transcript */
+      .transcript {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .turn {
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+        margin-top: 3px;
+      }
+      .avatar-sys {
+        background: var(--accent);
+        color: #fff;
+      }
+      .avatar-student {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+      .avatar-penalty {
+        background: var(--danger);
+        color: #fff;
+      }
+      .avatar-ok {
+        background: var(--success);
+        color: #fff;
+      }
+      .bubble {
+        padding: 11px 15px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        max-width: 88%;
+      }
+      .bubble-sys {
+        background: var(--accent-light);
+        border: 1px solid #bee3f8;
+      }
+      .bubble-student {
+        background: #f7fafc;
+        border: 1px solid var(--border);
+      }
+      .bubble-penalty {
+        background: var(--danger-bg);
+        border: 1px solid #feb2b2;
+      }
+      .bubble-ok {
+        background: var(--success-bg);
+        border: 1px solid #9ae6b4;
+      }
+      .bubble-penalty strong {
+        color: var(--danger);
+        display: block;
+        margin-bottom: 4px;
+      }
+      .delta {
+        display: inline-block;
+        font-family: monospace;
+        font-size: 11.5px;
+        font-weight: bold;
+        margin-top: 5px;
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+      .delta-neg {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid #feb2b2;
+      }
+      .delta-pos {
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid #9ae6b4;
+      }
+      .delta-neu {
+        background: #edf2f7;
+        color: #4a5568;
+        border: 1px solid var(--border);
+      }
+
+      /* Mistake summary box */
+      .mistake-box {
+        background: var(--danger-bg);
+        border: 1px solid #feb2b2;
+        border-radius: 8px;
+        padding: 16px 18px;
+        margin-top: 22px;
+      }
+      .mistake-box h4 {
+        color: var(--danger);
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      .mistake-box ul {
+        padding-left: 18px;
+        font-size: 13.5px;
+      }
+      .mistake-box li {
+        margin-bottom: 4px;
+      }
+
+      code {
+        font-family: monospace;
+        background: #edf2f7;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+
+      footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="badge">Supplementary Material · Academic Paper</div>
+        <h1>DentAI — Oral Pathology Assessment Platform</h1>
+        <p>
+          Case example, symbolic scoring rules, and worked example transcript
+          for the paper. All data extracted from
+          <code>case_scenarios.json</code> and <code>scoring_rules.json</code>.
+        </p>
+      </header>
+
+      <!-- ═══════════════════════════════
+       TABLE 5 — Complete Case Example
+  ═══════════════════════════════ -->
+      <div class="section">
+        <span class="section-label">Table 5</span>
+        <h2>Complete Case Example</h2>
+        <p class="section-desc">
+          Case <strong>olp_001</strong> as defined in
+          <code>case_scenarios.json</code>. This case deliberately employs an
+          "unreliable narrator" mechanic in which the patient withholds
+          clinically critical systemic information, simulating realistic
+          consultation challenges.
+        </p>
+
+        <!-- Case identity -->
+        <div class="case-header">
+          <div class="case-icon">🦷</div>
+          <div class="case-meta">
+            <h3>Oral Lichen Planus (Erosive / Reticular Pattern)</h3>
+            <div class="tags">
+              <span class="tag tag-id">case_id: olp_001</span>
+              <span class="tag tag-diff">Difficulty: Advanced</span>
+              <span class="tag tag-cat">Category: Immunologic / Mucosal</span>
+              <span class="tag tag-opmd">⚠ OPMD</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Patient + Chief Complaint -->
+        <div class="grid2">
+          <div class="info-box">
+            <div class="lbl">Patient</div>
+            <p>
+              <strong>Eleanor Vance</strong> · Female · 58 years old<br />High
+              School Administrator
+            </p>
+          </div>
+          <div class="info-box">
+            <div class="lbl">Chief Complaint (Initial Presentation)</div>
+            <p>
+              <em
+                >"My gums are incredibly raw and they burn constantly,
+                especially when I eat anything spicy, salty, or acidic."</em
+              >
+            </p>
+          </div>
+        </div>
+
+        <!-- Unreliable Narrator block -->
+        <div class="sub-h">
+          Patient Psychology / Unreliable Narrator Mechanics
+        </div>
+
+        <div class="narr-box">
+          <div class="narr-label">Baseline State &amp; Communication Style</div>
+          Anxious and exhausted by chronic discomfort. Polite but
+          <strong>evasive regarding her full medical history</strong>. She
+          firmly believes her problem is a local allergic reaction to a new
+          whitening toothpaste or excessively hot coffee. She has
+          <strong>moderate health literacy</strong> but dismisses OTC
+          supplements and pain relievers as "non-medical" and irrelevant to
+          dental care.
+        </div>
+
+        <div class="grid2">
+          <div class="info-box">
+            <div class="lbl">
+              Disclosed Medical History
+              <span style="color: var(--success); font-size: 11px"
+                >(Volunteered)</span
+              >
+            </div>
+            <p>
+              • Hyperlipidaemia — Atorvastatin 20 mg daily<br />• Mild
+              Osteoarthritis (hands and knees)
+            </p>
+          </div>
+          <div class="info-box">
+            <div class="lbl">
+              Hidden Medical History
+              <span style="color: var(--danger); font-size: 11px"
+                >(Requires Direct Questioning)</span
+              >
+            </div>
+            <p>
+              • Naproxen sodium (OTC, self-medicating for arthritis pain)<br />•
+              Ibuprofen (occasional, believes it is not "a real medication")
+            </p>
+          </div>
+        </div>
+
+        <!-- Physical Exam Nodes -->
+        <div class="sub-h">Physical Examination Nodes</div>
+
+        <div class="finding finding-warn">
+          <div class="f-icon">🔎</div>
+          <div>
+            <div class="f-lbl lbl-warn">
+              Trigger: perform_extraoral_exam → Skin inspection (wrists &amp;
+              ankles)
+            </div>
+            <p>
+              Several small,
+              <strong
+                >violaceous, flat-topped, pruritic polygonal papules</strong
+              >
+              observed on the flexor surfaces of the wrists and ankles —
+              pathognomonic cutaneous lichen planus, confirming the systemic
+              autoimmune nature of the condition.
+            </p>
+          </div>
+        </div>
+
+        <div class="finding finding-warn">
+          <div class="f-icon">🦷</div>
+          <div>
+            <div class="f-lbl lbl-warn">
+              Trigger: perform_intraoral_exam → Buccal Mucosa
+            </div>
+            <p>
+              Bilateral fine, white, <strong>lace-like network</strong> of
+              intersecting lines (Wickham's striae) on the posterior buccal
+              mucosa, superimposed over a slightly erythematous base.
+            </p>
+          </div>
+        </div>
+
+        <div class="finding finding-warn">
+          <div class="f-icon">🩸</div>
+          <div>
+            <div class="f-lbl lbl-warn">
+              Trigger: perform_intraoral_exam → Gingiva
+            </div>
+            <p>
+              Attached gingiva of maxillary and mandibular anterior quadrants:
+              diffuse, <strong>bright red, raw-appearing patches</strong>.
+              Mucosa appears thinned, glazed, and without stippling — consistent
+              with <strong>Desquamative Gingivitis</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div class="finding finding-reward">
+          <div class="f-icon">🧻</div>
+          <div>
+            <div class="f-lbl lbl-reward">
+              Trigger: perform_gauze_wipe_test (Clinical Distinction Test)
+            </div>
+            <p>
+              Firmly wiping the white lace-like striae with dry gauze
+              <strong>does not remove the white network</strong>. It remains
+              firmly fixed to the underlying epithelium.
+              <em
+                >This eliminates pseudomembranous candidiasis from the
+                differential diagnosis.</em
+              >
+            </p>
+          </div>
+        </div>
+
+        <div class="finding finding-reward">
+          <div class="f-icon">🔬</div>
+          <div>
+            <div class="f-lbl lbl-reward">
+              Trigger: perform_nikolsky_test (Clinical Distinction Test)
+            </div>
+            <p>
+              Lateral shearing pressure on normal-appearing adjacent mucosa does
+              <strong>not</strong> induce bulla formation or epithelial
+              separation. <strong>Nikolsky sign: Negative</strong>.
+              <em>This differentiates OLP from Mucous Membrane Pemphigoid.</em>
+            </p>
+          </div>
+        </div>
+
+        <!-- Diagnostic Results -->
+        <div class="sub-h">
+          Diagnostic Testing — Results Revealed by Student Actions
+        </div>
+
+        <div class="biopsy-block">
+          <div class="biopsy-lbl">
+            Trigger: order_incisional_biopsy → H&amp;E Histopathology
+          </div>
+          Hyperparakeratosis; thickening of the granular cell layer;
+          <strong>characteristic saw-toothed rete pegs</strong>; prominent
+          <strong>liquefaction degeneration of the basal cell layer</strong>;
+          dense, band-like T-lymphocytic infiltrate in the superficial lamina
+          propria; multiple <strong>Civatte bodies</strong> (apoptotic
+          keratinocytes).
+          <strong>No evidence of epithelial dysplasia or invasive SCC.</strong>
+        </div>
+
+        <div class="biopsy-block">
+          <div class="biopsy-lbl">
+            Trigger: order_incisional_biopsy → Direct Immunofluorescence (DIF)
+          </div>
+          <strong>Positive:</strong> continuous, shaggy, linear
+          <strong>fibrinogen band</strong> at the basement membrane zone.
+          <strong>Negative:</strong> for linear or intercellular deposits of
+          IgG, IgA, IgM, and C3.
+          <em
+            >(This pattern is characteristic of OLP and distinguishes it from
+            Mucous Membrane Pemphigoid, which shows linear IgG + C3.)</em
+          >
+        </div>
+
+        <div class="grid2">
+          <div class="info-box">
+            <div class="lbl">Serology (Trigger: request_serology)</div>
+            <p>
+              HCV antibody: <strong>Negative</strong>.<br />Fasting blood
+              glucose: 95 mg/dL (Normal).
+            </p>
+          </div>
+          <div class="info-box">
+            <div class="lbl">Correct Diagnosis</div>
+            <p>
+              <strong>Oral Lichen Planus</strong> — Erosive &amp; Reticular
+              pattern (OPMD classification).<br />Differential: OLP vs Lichenoid
+              Drug Reaction (NSAIDs — Naproxen), Candidiasis, MMP.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="info-box">
+            <div class="lbl">Correct Treatment</div>
+            <p>
+              Topical corticosteroid (e.g., Fluocinonide gel) to erosive lesions
+              — <em>only after biopsy confirms diagnosis.</em> Candidiasis
+              prophylaxis/monitoring. Suspect and investigate NSAID lichenoid
+              reaction.
+            </p>
+          </div>
+          <div class="info-box">
+            <div class="lbl">Maximum Score Potential</div>
+            <p>
+              <strong>~120 pts</strong> across history (20 pts), extraoral exam
+              (10), intraoral exam (20), clinical tests (25+25), biopsy (30),
+              correct diagnosis (40).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════
+       TABLE 6 — Symbolic Scoring Rules
+  ═══════════════════════════════ -->
+      <div class="section">
+        <span class="section-label">Table 6</span>
+        <h2>Symbolic Scoring Rules</h2>
+        <p class="section-desc">
+          Five representative rules from <code>scoring_rules.json</code>. Rules
+          1–2 are new OLP safety rules (from <code>olp_001</code>); Rules 3–5
+          are drawn from other cases, illustrating the cross-case consistency of
+          the rule engine.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student Action</th>
+              <th>Condition / Rule</th>
+              <th>Score</th>
+              <th>Clinical Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>
+                <span class="rule-key">prescribe_corticosteroid</span>
+                <span class="severity-crit">BLOCK</span>
+              </td>
+              <td>
+                Student prescribes topical immunosuppressive therapy
+                <em>before</em> ordering a confirmatory incisional biopsy for a
+                suspected OPMD lesion.
+              </td>
+              <td class="score-neg">−50 pts</td>
+              <td class="rationale">
+                OLP and lichenoid lesions are Oral Potentially Malignant
+                Disorders. Prescribing immunosuppressants before
+                histopathological exclusion of dysplasia or invasive SCC is a
+                critical safety violation — the therapy could mask or accelerate
+                malignant transformation.
+              </td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>
+                <span class="rule-key">prescribe_antifungal</span><br />
+                <span class="rule-key">prescribe_antibiotic</span>
+                <span class="severity-crit">PENALTY</span>
+              </td>
+              <td>
+                Student prescribes an antimicrobial agent for presumed
+                candidiasis or infection <em>without</em> first performing the
+                gauze-wipe test to clinically differentiate Wickham's striae
+                from pseudomembranous candidal plaques.
+              </td>
+              <td class="score-neg">−20 pts</td>
+              <td class="rationale">
+                A simple, non-invasive chair-side test (gauze wipe) immediately
+                excludes candidiasis: candidal pseudomembranes wipe off; OLP
+                striae do not. Skipping this step constitutes empirical
+                prescribing without baseline diagnostics.
+              </td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>
+                <span class="rule-key">order_incisional_biopsy</span>
+                <span class="severity-std">REWARD</span>
+              </td>
+              <td>
+                Student orders a perilesional incisional biopsy for H&amp;E
+                staining and Direct Immunofluorescence for a mucosal lesion in
+                an OPMD category case.
+              </td>
+              <td class="score-pos">+30 pts</td>
+              <td class="rationale">
+                Mandatory gold-standard investigation. H&amp;E confirms the
+                lichenoid interface pattern; DIF pattern (fibrinogen vs IgG/C3)
+                definitively differentiates OLP from Mucous Membrane Pemphigoid
+                and rules out dysplasia.
+              </td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>
+                <span class="rule-key">check_pacemaker</span>
+                <span class="severity-std">REWARD</span>
+              </td>
+              <td>
+                Student explicitly queries the presence of implanted cardiac
+                devices before initiating any periodontal instrumentation (case:
+                <em>perio_001</em>).
+              </td>
+              <td class="score-pos">+25 pts</td>
+              <td class="rationale">
+                Ultrasonic scalers generate electromagnetic interference and are
+                contraindicated in patients with pacemakers. This safety screen
+                must precede all powered periodontal treatment and is a critical
+                device-safety rule.
+              </td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>
+                <span class="rule-key">prescribe_antibiotics</span>
+                <span class="severity-crit">PENALTY</span>
+              </td>
+              <td>
+                Student prescribes antibiotic therapy for a confirmed viral
+                presentation (Primary Herpetic Gingivostomatitis, case:
+                <em>herpes_primary_01</em>).
+              </td>
+              <td class="score-neg">−20 pts</td>
+              <td class="rationale">
+                Antibiotics have no mechanism of action against HSV-1.
+                Prescribing them exposes the patient to unnecessary side-effects
+                and contributes to antimicrobial resistance. This rule enforces
+                the viral/bacterial distinction central to safe prescribing.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ═══════════════════════════════
+       WORKED EXAMPLE — Transcript
+  ═══════════════════════════════ -->
+      <div class="section">
+        <span class="section-label">Worked Example</span>
+        <h2>Fictional Student Interaction Transcript</h2>
+        <p class="section-desc">
+          Illustrates the critical safety mistake in case
+          <strong>olp_001</strong>: the student jumps to prescribing
+          immunosuppressive therapy for a white mucosal lesion
+          <em>before</em> performing the necessary biopsy, triggering the −50
+          BLOCK rule.
+        </p>
+
+        <div class="transcript">
+          <!-- System presents case -->
+          <div class="turn">
+            <div class="avatar avatar-sys">🤖</div>
+            <div class="bubble bubble-sys">
+              <strong>System (DentAI):</strong><br />
+              Eleanor Vance, 58F, presents. Chief complaint:
+              <em
+                >"My gums are incredibly raw and they burn constantly,
+                especially with spicy, salty, or acidic foods."</em
+              >
+              She mentions she takes Atorvastatin for high cholesterol and has
+              mild arthritis. How would you like to proceed?
+              <div><span class="delta delta-neu">Score: 0</span></div>
+            </div>
+          </div>
+
+          <!-- Student performs oral exam -->
+          <div class="turn" style="flex-direction: row-reverse">
+            <div class="avatar avatar-student">👩‍🎓</div>
+            <div class="bubble bubble-student" style="text-align: right">
+              <strong>Student:</strong> I'll perform an intraoral examination.
+            </div>
+          </div>
+
+          <!-- System reveals findings -->
+          <div class="turn">
+            <div class="avatar avatar-sys">🤖</div>
+            <div class="bubble bubble-sys">
+              <strong>System →</strong> [Finding Unlocked] Buccal mucosa:
+              bilateral fine, white, lace-like Wickham's striae on an
+              erythematous base. Gingiva: diffuse, raw, desquamative patches —
+              glazed, no stippling.<br />
+              Tongue and palate: unremarkable.
+              <div>
+                <span class="delta delta-pos">+20 pts → Score: 20</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student sees white lesions, jumps to treatment -->
+          <div class="turn" style="flex-direction: row-reverse">
+            <div class="avatar avatar-student">👩‍🎓</div>
+            <div class="bubble bubble-student" style="text-align: right">
+              <strong>Student:</strong> These white lesions with the gingival
+              involvement strongly suggest <em>Oral Lichen Planus</em>. I will
+              prescribe <strong>Fluocinonide 0.05% gel</strong> (topical
+              corticosteroid) to the erosive gingival areas, twice daily.
+            </div>
+          </div>
+
+          <!-- CRITICAL PENALTY fires -->
+          <div class="turn">
+            <div class="avatar avatar-penalty">⛔</div>
+            <div class="bubble bubble-penalty">
+              <strong
+                >⛔ CRITICAL RULE TRIGGERED — OLP_SAFETY_001
+                (BLOCK_AND_PENALIZE)</strong
+              >
+              <strong>Premature Closure &amp; Unsafe Prescribing.</strong> You
+              have prescribed a potent topical immunosuppressant for a white
+              mucosal lesion
+              <em>before obtaining histopathological confirmation</em>. Oral
+              Lichen Planus is classified as an
+              <strong>Oral Potentially Malignant Disorder (OPMD)</strong>.
+              Without a biopsy, epithelial dysplasia or early invasive squamous
+              cell carcinoma cannot be excluded. Administering an
+              immunosuppressant in the presence of undetected malignancy could
+              accelerate tumour progression and constitutes a severe breach of
+              patient safety. <br /><br />
+              <strong>Required prerequisite action:</strong>
+              <code>order_incisional_biopsy</code>
+              <div>
+                <span class="delta delta-neg">−50 pts → Score: −30</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student corrects — orders biopsy -->
+          <div class="turn" style="flex-direction: row-reverse">
+            <div class="avatar avatar-student">👩‍🎓</div>
+            <div class="bubble bubble-student" style="text-align: right">
+              <strong>Student:</strong> Understood. Before prescribing, I should
+              perform a gauze-wipe test to distinguish the striae from candidal
+              plaques, and then order an incisional biopsy with both H&amp;E and
+              Direct Immunofluorescence.
+            </div>
+          </div>
+
+          <!-- System reveals biopsy + gauze results -->
+          <div class="turn">
+            <div class="avatar avatar-sys">🤖</div>
+            <div class="bubble bubble-sys">
+              <strong>System →</strong> [Gauze Wipe Test: +10 pts] White network
+              does NOT wipe off — candidiasis excluded.<br />
+              [Biopsy Result: +30 pts] H&amp;E: saw-toothed rete pegs,
+              T-lymphocytic band infiltrate, basal layer liquefaction, Civatte
+              bodies. <strong>No dysplasia.</strong> DIF: fibrinogen deposit at
+              BMZ — IgG/IgA/IgM/C3 negative.
+              <em>Pattern confirms OLP; excludes MMP.</em>
+              <div>
+                <span class="delta delta-pos">+40 pts → Score: 10</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student gives correct final diagnosis & plan -->
+          <div class="turn" style="flex-direction: row-reverse">
+            <div class="avatar avatar-student">👩‍🎓</div>
+            <div class="bubble bubble-student" style="text-align: right">
+              <strong>Student:</strong> Confirmed diagnosis:
+              <strong>Oral Lichen Planus (Erosive + Reticular)</strong>.
+              Management: Fluocinonide 0.05% gel to erosive areas only, with
+              antifungal prophylaxis monitoring for secondary candidiasis. I
+              will also investigate whether Naproxen (if identified in history)
+              may be causing a lichenoid drug reaction.
+            </div>
+          </div>
+
+          <!-- Session summary -->
+          <div class="turn">
+            <div class="avatar avatar-ok">✅</div>
+            <div class="bubble bubble-ok">
+              <strong>Session Summary:</strong><br />
+              Oral examination:
+              <span style="color: var(--success)">+20</span> &nbsp;|&nbsp;
+              Gauze-wipe test:
+              <span style="color: var(--success)">+10</span> &nbsp;|&nbsp;
+              Biopsy (H&amp;E + DIF):
+              <span style="color: var(--success)">+30</span> &nbsp;|&nbsp;
+              Correct diagnosis: <span style="color: var(--success)">+40</span
+              ><br />
+              Premature corticosteroid prescription:
+              <span style="color: var(--danger)">−50</span> <br /><br />
+              <strong>Final Score: 50 / 120</strong> &nbsp;·&nbsp;
+              <em
+                >Performance: Below expectations — critical safety violation
+                detected and corrected, but penalty stands.</em
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="mistake-box">
+          <h4>🔎 Key Mistake Summary (For Paper Write-Up)</h4>
+          <ul>
+            <li>
+              <strong>Mistake:</strong> Prescribed topical immunosuppressive
+              corticosteroid (Fluocinonide) immediately after observing white
+              mucosal lesions, without first ordering a biopsy.
+            </li>
+            <li>
+              <strong>Rule triggered:</strong>
+              <code>prescribe_corticosteroid</code> + prerequisite
+              <code>order_incisional_biopsy</code> → Enforcement:
+              <code>BLOCK_AND_PENALIZE</code>
+            </li>
+            <li>
+              <strong>Penalty:</strong> −50 pts (most severe rule in the
+              system).
+            </li>
+            <li>
+              <strong>Clinical rationale:</strong> OPMD classification mandates
+              histopathological dysplasia screening
+              <em>before</em> immunosuppression. Masking a malignancy with
+              steroids is a patient safety catastrophe.
+            </li>
+            <li>
+              <strong>Pedagogical value:</strong> Trains students in the
+              essential OPMD protocol:
+              <em>Observe → Clinically test → Biopsy → Diagnose → Treat</em>.
+              The severity of the penalty (−50 vs the standard −20) reflects the
+              real-world stakes of this specific error class.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <footer>
+        <p>
+          Generated from <code>case_scenarios.json</code> ·
+          <code>scoring_rules.json</code> — Project:
+          <code>d:\Projects\dentai</code>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
