@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.api.routers import chat, auth, cases, feedback, analytics
+from app.api.routers import chat, auth, cases, feedback, analytics, quiz
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,6 +58,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
+app.include_router(quiz.router, prefix="/api/quiz", tags=["quiz"])
 
 # Root endpoint
 @app.get("/")
