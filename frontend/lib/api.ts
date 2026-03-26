@@ -215,4 +215,39 @@ export const analyticsAPI = {
     },
 };
 
+/**
+ * User / Student Stats API
+ */
+export const userAPI = {
+    /**
+     * Get comprehensive stats for the authenticated student
+     */
+    getStats: async () => {
+        const response = await apiClient.get('/api/analytics/student-stats');
+        return response.data;
+    },
+};
+
+/**
+ * Quiz API
+ */
+export const quizAPI = {
+    /**
+     * Get all questions (optionally filtered by topic)
+     */
+    getQuestions: async (topic?: string) => {
+        const params = topic && topic !== 'Tümü' ? `?topic=${encodeURIComponent(topic)}` : '';
+        const response = await apiClient.get(`/api/quiz/questions${params}`);
+        return response.data;
+    },
+
+    /**
+     * Get available topics
+     */
+    getTopics: async () => {
+        const response = await apiClient.get('/api/quiz/topics');
+        return response.data;
+    },
+};
+
 export default apiClient;

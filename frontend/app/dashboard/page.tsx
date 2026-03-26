@@ -316,7 +316,7 @@ export default function DashboardPage() {
 
           <div className="grid md:grid-cols-3 gap-4">
             <Link
-              href="/stats"
+              href="/statistics"
               className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-purple-200"
             >
               <div className="text-3xl mb-3">📊</div>
