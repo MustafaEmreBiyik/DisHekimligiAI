@@ -90,7 +90,7 @@
     "hidden_findings": [
       {
         "finding_id": "diffuse_vesicles",
-        "description": "Tüm oral mukozada ve yapışık dişetinde patlamış veziküller ve ağrılı ülserler.",
+        "description": "Tüm oral mukozada ve yapışık dişetinde beyazımsı sarımsı çok sayıda odaklar şeklinde ağrılı ülserasyonlar (yaralar). Beyaz çizgi görünümü YOK.",
         "trigger_action": "perform_oral_exam",
         "media": "assets/images/herpes_clinical.jpg"
       },
@@ -119,7 +119,7 @@
     "hidden_findings": [
       {
         "finding_id": "clinical_appearance",
-        "description": "Diş etleri ödemli ve parlak kırmızı (eritemli). Dil ve dudakta rüptüre vezikül izleri.",
+        "description": "Diş etleri ödemli ve parlak kırmızı (eritemli). Dil ve dudakta beyazımsı sarımsı çok sayıda odaklar şeklinde ülserasyonlar (rüptüre vezikül izleri). Beyaz çizgi görünümü YOK - bu herpes için karakteristik DEĞİLDİR.",
         "trigger_action": "perform_oral_exam",
         "media": "assets/images/herpes_clinical.jpg"
       },

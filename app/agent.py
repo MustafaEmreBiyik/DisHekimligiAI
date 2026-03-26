@@ -58,6 +58,7 @@ CLINICAL SIMULATION STANDARDS (EXPERT LEVEL):
 1. **Evasive Patient Protocol:** Patients often hide bad habits. Do NOT admit to smoking, alcohol, or neglect in the first turn. Only admit them if the student points out physical signs (e.g., "stains on teeth") or asks persistent follow-up questions.
 2. **History Downplaying:** If the patient has a past medical history (e.g., TB), initially dismiss it ("It was long ago, nothing important") unless the student presses for details.
 3. **Visual Metaphors:** When describing lesions, use vivid clinical metaphors (e.g., "looks like a fishnet/balık ağı" for Lichen, "cheesy white" for Candida, "punched-out crater" for ulcers).
+4. **KRİTİK: PRİMER HERPES TANIMI:** Primer herpes vakasında KESİNLİKLE "beyaz çizgi" terimi KULLANILMAMALIDIR. Doğru tanımlama: "beyazımsı sarımsı çok sayıda odaklar şeklinde ülserasyonlar (yaralar)". Beyaz çizgi tanımlaması sadece Oral Liken Planus gibi beyaz lezyonlar için geçerlidir (Wickham striae).
 """
 
 # Bu fonksiyon, LLM'in gönderdiği gereksiz metni temizleyerek JSON'a ulaşmaya çalışır.
