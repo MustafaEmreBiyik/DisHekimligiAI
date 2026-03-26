@@ -1,466 +1,191 @@
-# 🦷 DentAI - Dental Education AI Simulator
-
-> An intelligent, AI-powered dental education platform that simulates realistic clinical patient encounters for dental students using Google's Gemini AI.
-
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688.svg)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6.svg)](https://www.typescriptlang.org/)
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#️-system-architecture)
-- [Technology Stack](#-technology-stack)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Running the Application](#-running-the-application)
-- [Project Structure](#-project-structure)
-- [Available Cases](#-available-cases)
-- [API Documentation](#-api-documentation)
-- [Development](#-development)
-- [Contributing](#-contributing)
-- [License](#-license)
-
----
-
-## 🎯 Overview
-
-**DentAI** is a comprehensive dental education simulator that leverages Google's Gemini AI to create realistic patient interaction scenarios. The platform enables dental students to practice clinical decision-making in a safe, simulated environment with real-time AI-powered feedback.
-
-### What Makes DentAI Unique?
-
-- **Hybrid AI Architecture**: Combines Large Language Models (Google Gemini) with deterministic rule-based assessment for accurate, safe, and objective feedback
-- **Realistic Patient Simulation**: AI-powered conversational patient that responds naturally to student interactions
-- **Objective Grading**: Rule-based scoring system aligned with clinical protocols
-- **Performance Analytics**: Identifies weaknesses and provides personalized recommendations
-- **Bilingual Support**: Turkish patient responses with English internal logic
-
----
-
-## ✨ Key Features
-
-### 🎭 Interactive Clinical Scenarios
-
-- Multiple realistic patient simulations covering various pathology categories
-- Cases include: Oral Lichen Planus, Chronic Periodontitis, Primary Herpetic Gingivostomatitis, Behçet's Disease, Secondary Syphilis, and more
-- Difficulty levels: Easy, Medium, Hard
-
-### 🤖 Hybrid Assessment Engine
+# DentAI
 
-- **LLM Layer**: Interprets student intent and natural language inputs using Google Gemini
-- **Rule Layer**: Scores actions against strict clinical protocols defined in JSON rules
-- **Silent Evaluator**: Background validation without interrupting conversation flow
+DentAI is an AI-supported dental education platform designed to help students practice clinical reasoning through interactive patient cases. Instead of studying pathology only as static notes or slide decks, learners work through simulated oral medicine and oral pathology encounters, ask questions, perform examinations, gather findings, form differentials, and move toward diagnosis and management decisions inside a guided digital environment.
 
-### 📊 Performance Tracking
-
-- Real-time score tracking during case sessions
-- Category-based performance analysis
-- Weakness identification with actionable recommendations
-- Downloadable performance reports
+The project focuses on turning clinical knowledge into repeatable practice. It is built around the idea that students improve faster when they can actively test their decision-making, receive immediate feedback, and revisit their own performance patterns over time.
 
-### 🔐 User Management
+## Project purpose
 
-- Secure authentication with JWT tokens
-- Individual student profiles
-- Session persistence across multiple cases
-- Chat history tracking
+DentAI was created to support dental students during the difficult transition from theoretical learning to clinical reasoning. In many traditional learning settings, students memorize lesion descriptions, disease names, and treatment principles, but have fewer chances to practice the flow of an actual encounter: what to ask first, what to inspect, which hidden clues matter, what is risky to miss, and how to distinguish similar-looking conditions.
 
-### 💻 Modern Web Interface
+DentAI addresses that gap by presenting cases as interactive simulations rather than passive content. The learner is not just shown the answer. They are expected to investigate, interpret, and act.
 
-- Responsive Next.js frontend with TypeScript
-- Real-time chat interface
-- Interactive dashboard showing all available cases
-- Clean, intuitive user experience
+## What the app is
 
----
+At its core, DentAI is a case-based simulator with a hybrid evaluation model:
 
-## 🏗️ System Architecture
+- An AI layer interprets the student's free-text clinical actions and conversational input.
+- A rule-based assessment layer scores meaningful actions against case-specific expectations.
+- A persistent session layer keeps track of what the student has already discovered, what findings are still hidden, and how the case is progressing.
+- An analytics layer converts session history into performance trends, action breakdowns, and recommendations.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Next.js)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Login/     │  │  Dashboard   │  │  Chat Page   │      │
-│  │   Register   │  │              │  │   (Case)     │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│                           │                                  │
-│                    ┌──────▼──────┐                          │
-│                    │  API Client  │                          │
-│                    │   (Axios)    │                          │
-└────────────────────┴──────────────┴──────────────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │   FastAPI       │
-                    │   REST API      │
-                    └────────┬────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-   ┌────▼─────┐      ┌──────▼──────┐      ┌─────▼─────┐
-   │  Agent   │      │ Assessment  │      │ Scenario  │
-   │          │◄─────┤   Engine    │◄─────┤  Manager  │
-   └────┬─────┘      └─────────────┘      └─────┬─────┘
-        │                                        │
-   ┌────▼─────┐                          ┌──────▼──────┐
-   │  Gemini  │                          │   SQLite    │
-   │   API    │                          │  Database   │
-   └──────────┘                          └─────────────┘
-```
+This makes the project more than a chatbot and more than a quiz bank. It is a structured educational system that combines open-ended interaction with controlled educational scoring.
 
-### Core Components
+## Learning experience
 
-1. **DentalEducationAgent** (`app/agent.py`): Orchestrates the hybrid AI workflow
-2. **AssessmentEngine** (`app/assessment_engine.py`): Rule-based scoring and evaluation
-3. **ScenarioManager** (`app/scenario_manager.py`): Case and session state management
-4. **AnalyticsEngine** (`app/analytics_engine.py`): Performance analysis and reporting
+DentAI is designed around a realistic student workflow.
 
----
+The learner begins by logging in and choosing a case. Each case represents a clinical scenario with a patient profile, a chief complaint, and hidden findings that are only revealed when the student performs relevant actions. The student then interacts with the system in natural language, for example by asking about medical history, checking allergies, performing an oral examination, requesting a relevant test, or exploring systemic symptoms.
 
-## 🛠 Technology Stack
+As the interaction continues, the system interprets the learner's intent and maps it into normalized clinical actions. Those actions are then compared with case rules to determine whether the learner is progressing appropriately, missing key information, or taking a weak or unsafe route. This creates a training flow that feels conversational while still staying anchored to specific educational objectives.
 
-### Backend
+The student experience is meant to reward good habits:
 
-- **Python 3.10+**: Core programming language
-- **FastAPI**: Modern, high-performance REST API framework
-- **SQLAlchemy**: ORM for database management
-- **SQLite**: Lightweight database for data persistence
-- **Pydantic v2**: Data validation and serialization
-- **Google Generative AI**: Gemini API integration
-- **python-jose**: JWT token authentication
-- **Passlib**: Password hashing with bcrypt
+- asking relevant history questions before jumping to conclusions
+- performing focused oral and extraoral examinations
+- recognizing findings that support or challenge a diagnosis
+- considering systemic context rather than treating lesions in isolation
+- avoiding unsafe or clinically inappropriate shortcuts
 
-### Frontend
+## Educational philosophy
 
-- **Next.js 14+**: React framework with App Router
-- **TypeScript 5+**: Type-safe JavaScript
-- **React 18+**: UI library
-- **Axios**: HTTP client for API communication
-- **CSS Modules**: Component-scoped styling
+DentAI emphasizes clinical reasoning over simple answer retrieval. The project is not built around "guess the diagnosis" alone. It encourages a broader sequence of professional thinking:
 
-### AI/ML
+- gather information
+- identify meaningful findings
+- prioritize safety
+- connect the case presentation to pathology knowledge
+- decide on next steps
+- reflect on performance afterward
 
-- **Google Gemini 2.5 Flash Lite**: Cost-effective LLM for patient simulation
-- **Custom Rules Engine**: Clinical protocol validation
+That matters because in real clinical education, knowing a disease name is only one part of competence. Students also need to learn how to arrive at a diagnosis responsibly and how to justify their decisions.
 
----
+## Core simulation model
 
-## 📋 Prerequisites
+Each case in DentAI contains educational structure behind the scenes. A scenario can include:
 
-Before you begin, ensure you have the following installed:
+- patient demographics
+- chief complaint
+- medical and social history
+- hidden clinical findings
+- expected learner actions
+- diagnosis targets
+- differential diagnosis context
+- treatment-related expectations
 
-- **Python 3.10 or higher**
-- **Node.js 18+ and npm** (for frontend)
-- **Google Gemini API Key** ([Get one here](https://ai.google.dev/))
-- **Git** (for cloning the repository)
+Some findings remain concealed until the learner performs the appropriate step. For example, a case may not reveal an oral lesion pattern until the student performs an oral exam, or may not expose an important systemic clue until the student asks the right follow-up question. This makes the interaction feel closer to a guided clinical encounter than a static case card.
 
----
+## Hybrid AI and rules approach
 
-## 📦 Installation
+One of the most important ideas in DentAI is that educational simulation should not rely entirely on a generative model.
 
-### 1. Clone the Repository
+The project uses AI where flexibility is useful and rules where reliability is necessary.
 
-```bash
-git clone https://github.com/betuldanismaz/dentai.git
-cd dentai/dentai
-```
+The AI component helps the system understand student language. Students do not need to type exact predefined commands. They can express themselves more naturally, and the model attempts to interpret whether the learner is chatting casually, taking a clinical action, checking a safety issue, requesting a diagnostic step, or moving toward treatment planning.
 
-### 2. Backend Setup
+The rule engine then provides structure. Once an action is interpreted, DentAI compares it to the scoring rules for the active case. This allows the platform to award points, reveal findings, update state, and keep evaluation tied to educational intent rather than to vague model impressions.
 
-#### Create a Virtual Environment (Recommended)
+This hybrid design is especially important in a medical or dental learning context because it balances flexibility with consistency.
 
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
+## Silent evaluation concept
 
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
+The project also includes a "silent evaluator" idea in its workflow. The learner mainly sees the patient-facing or tutor-facing response, while deeper evaluation can happen in the background. That means the conversation can continue naturally without exposing every internal scoring decision in the middle of the interaction.
 
-#### Install Backend Dependencies
+This is useful educationally because the student can stay engaged with the case instead of being interrupted by technical scoring output after every message. At the same time, the system still collects enough structured information to support analytics, feedback, and research-oriented review later.
 
-```bash
-# Install Streamlit dependencies (legacy)
-pip install -r requirements.txt
+## Types of cases currently represented
 
-# Install FastAPI dependencies (API server)
-pip install -r requirements-api.txt
-```
+The case library centers on oral pathology and clinically important oral lesions. Current scenarios in the repository include cases such as:
 
-#### Configure Environment Variables
+- Oral lichen planus
+- Chronic periodontitis in a medically relevant patient
+- Primary herpetic gingivostomatitis
+- Pediatric infectious oral presentation
+- Behcet disease
+- Secondary syphilis with oral findings
+- Desquamative gingivitis and mucous membrane pemphigoid context
 
-Create a `.env` file in the root directory:
+These cases are educationally valuable because they mix local oral findings with broader clinical interpretation. Some require recognition of lesion pattern, some emphasize systemic history, some test safety awareness, and some challenge the learner to separate similar-looking conditions.
 
-```ini
-# .env file
-GEMINI_API_KEY=your_google_gemini_api_key_here
-SECRET_KEY=your_secret_key_for_jwt_here
-DATABASE_URL=sqlite:///./db/dental_tutor.db
-```
+## What students practice inside DentAI
 
-> **Note**: Generate a secure `SECRET_KEY` using:
->
-> ```bash
-> python -c "import secrets; print(secrets.token_urlsafe(32))"
-> ```
+DentAI is built to support repeated practice of the kinds of micro-decisions that matter during case work. Depending on the scenario, students may practice:
 
-### 3. Frontend Setup
+- medical history taking
+- allergy and medication review
+- oral examination
+- extraoral examination
+- differential diagnosis thinking
+- identifying red flags
+- asking for diagnostic tests
+- linking symptoms to systemic disease
+- deciding whether a management pathway is appropriate
+- recognizing when an intervention would be unsafe or irrelevant
 
-Navigate to the frontend directory and install dependencies:
-
-```bash
-cd frontend
-npm install
-```
-
-#### Configure Frontend Environment
-
-Create a `.env.local` file in the `frontend` directory:
-
-```ini
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
----
-
-## 🚀 Running the Application
-
-### Start the Backend Server
-
-From the root directory (with virtual environment activated):
-
-```bash
-# Navigate to the project root
-cd dentai
-
-# Start the FastAPI server
-uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at:
-
-- **API**: http://localhost:8000
-- **API Documentation (Swagger)**: http://localhost:8000/docs
-- **Alternative Documentation (ReDoc)**: http://localhost:8000/redoc
-
-### Start the Frontend Development Server
-
-In a new terminal, navigate to the frontend directory:
-
-```bash
-cd dentai/frontend
-npm run dev
-```
-
-The frontend will be available at:
-
-- **Frontend**: http://localhost:3000
-
-### Access the Application
-
-1. Open your browser and go to http://localhost:3000
-2. Register a new student account
-3. Log in with your credentials
-4. Select a case from the dashboard
-5. Start practicing!
-
----
-
-## 📁 Project Structure
-
-```
-dentai/
-├── 📂 app/                          # Backend application core
-│   ├── 📂 api/                      # FastAPI REST API
-│   │   ├── 📂 routers/              # API endpoint routers
-│   │   │   ├── auth.py              # Authentication endpoints
-│   │   │   ├── chat.py              # Chat/conversation endpoints
-│   │   │   └── cases.py             # Case management endpoints
-│   │   ├── main.py                  # FastAPI app initialization
-│   │   └── deps.py                  # Dependency injection
-│   │
-│   ├── 📂 services/                 # External service integrations
-│   │   ├── med_gemma_service.py     # MedGemma AI service
-│   │   └── rule_service.py          # Rule processing service
-│   │
-│   ├── agent.py                     # 🧠 Main AI orchestrator
-│   ├── assessment_engine.py         # 📊 Scoring engine
-│   ├── scenario_manager.py          # 🎭 State management
-│   ├── analytics_engine.py          # 📈 Performance analytics
-│   └── student_profile.py           # 👤 Student data management
-│
-├── 📂 frontend/                     # Next.js frontend application
-│   ├── 📂 app/                      # Next.js App Router pages
-│   │   ├── 📂 chat/[caseId]/        # Dynamic chat page
-│   │   ├── 📂 dashboard/            # Student dashboard
-│   │   ├── 📂 login/                # Login page
-│   │   ├── 📂 register/             # Registration page
-│   │   └── layout.tsx               # Root layout
-│   │
-│   ├── 📂 components/               # Reusable React components
-│   ├── 📂 context/                  # React context providers
-│   ├── 📂 lib/                      # Utility libraries
-│   │   └── api.ts                   # Axios API client
-│   └── 📂 public/                   # Static assets
-│
-├── 📂 data/                         # Application data files
-│   ├── case_scenarios.json          # Clinical case definitions
-│   ├── scoring_rules.json           # Scoring rule configurations
-│   └── mcq_questions.json           # Multiple choice questions
-│
-├── 📂 db/                           # Database layer
-│   └── database.py                  # SQLAlchemy models & session
-│
-├── 📂 assets/                       # Media assets (images, etc.)
-├── 📂 tests/                        # Test suite
-│
-├── main.py                          # Streamlit entry point (legacy)
-├── requirements.txt                 # Streamlit dependencies
-├── requirements-api.txt             # FastAPI dependencies
-├── README.md                        # This file
-└── PROJECT_ARCHITECTURE.md          # Detailed architecture documentation
-```
+Because the cases are interactive, learners can experience the consequences of missing a clue or taking a less effective path. That makes the project useful not just for content recall, but for judgment training.
 
----
+## Feedback and analytics
 
-## 🏥 Available Cases
+DentAI does not stop at the simulated conversation. The project also tracks student interactions over time and turns those into performance insights.
 
-| Case ID               | Name                                           | Difficulty | Category    |
-| --------------------- | ---------------------------------------------- | ---------- | ----------- |
-| `olp_001`             | Oral Lichen Planus                             | Medium     | Immunologic |
-| `perio_001`           | Chronic Periodontitis                          | Hard       | Infectious  |
-| `herpes_primary_01`   | Primary Herpetic Gingivostomatitis             | Medium     | Infectious  |
-| `infectious_child_01` | Primary Herpetic Gingivostomatitis (Pediatric) | Hard       | Infectious  |
-| `behcet_01`           | Behçet's Disease                               | Hard       | Immunologic |
-| `syphilis_02`         | Secondary Syphilis                             | Hard       | Infectious  |
-| `desquamative_01`     | Chronic Desquamative Gingivitis                | Hard       | Immunologic |
+The platform records sessions, chat actions, scores, and feedback data. These can be used to generate:
 
----
+- total score trends
+- action histories
+- action-type breakdowns
+- per-student performance summaries
+- simple recommendations about weaker areas
 
-## 📚 API Documentation
+This matters because students often need more than "right" or "wrong." They benefit from seeing patterns in how they work. A learner may discover that they consistently perform well in history-taking but miss critical examination steps, or that they frequently underperform in one type of scenario. DentAI tries to make those patterns visible.
 
-### Authentication Endpoints
+## Quiz and reinforcement features
 
-| Endpoint             | Method | Description                  | Auth Required |
-| -------------------- | ------ | ---------------------------- | ------------- |
-| `/api/auth/register` | POST   | Register new student account | No            |
-| `/api/auth/login`    | POST   | Authenticate and receive JWT | No            |
-| `/api/auth/me`       | GET    | Get current user info        | Yes           |
+In addition to interactive cases, the repository includes multiple-choice question support. These questions appear to be organized around oral pathology, infectious disease, and traumatic lesion topics. That gives the project a second learning mode:
 
-### Chat Endpoints
+- open-ended simulation for reasoning practice
+- structured question review for reinforcement and recall
 
-| Endpoint                                   | Method | Description                       | Auth Required |
-| ------------------------------------------ | ------ | --------------------------------- | ------------- |
-| `/api/chat/send`                           | POST   | Send message, receive AI response | Yes           |
-| `/api/chat/history/{student_id}/{case_id}` | GET    | Retrieve chat history             | Yes           |
+This combination is valuable because students often need both. Simulation helps with process and judgment, while question banks help consolidate factual distinctions and key diagnostic principles.
 
-### Cases Endpoints
+## Research and academic value
 
-| Endpoint                      | Method | Description                           | Auth Required |
-| ----------------------------- | ------ | ------------------------------------- | ------------- |
-| `/api/cases`                  | GET    | List all available cases              | Yes           |
-| `/api/cases/{caseId}`         | GET    | Get specific case (student-safe view) | Yes           |
-| `/api/cases/{caseId}/start`   | POST   | Start or resume session               | Yes           |
-| `/api/cases/{caseId}/session` | GET    | Get current session info              | Yes           |
+DentAI also has value as an educational research platform. Because it stores session data, feedback, and interaction history, it can support analysis of how students engage with cases, where they struggle, and which kinds of prompts or scenarios produce stronger learning patterns.
 
-### Interactive API Documentation
+The repository already includes analytics export routes and supporting documentation artifacts, which suggests the system is not only for direct teaching use but also for studying educational outcomes and learner behavior.
 
-Visit http://localhost:8000/docs for the interactive Swagger UI where you can test all endpoints.
+## Who the project is for
 
----
+DentAI is especially suited for:
 
-## 🔧 Development
+- dental students learning oral pathology and oral diagnosis
+- instructors who want a guided digital practice environment
+- curriculum projects exploring AI-assisted clinical education
+- researchers interested in interaction data from simulated case learning
 
-### Running Tests
+It is most useful in contexts where learners need practice reasoning through oral lesions and patient presentation rather than only memorizing textbook descriptions.
 
-```bash
-# Run all tests
-pytest
+## What makes DentAI distinct
 
-# Run specific test file
-pytest tests/test_auth.py -v
+Several things make the project stand out from a standard educational chatbot:
 
-# Run with coverage
-pytest --cov=app tests/
-```
+- it uses case progression rather than isolated prompt-response interaction
+- it keeps hidden findings and discovery logic inside each scenario
+- it combines natural language interpretation with explicit scoring rules
+- it preserves session state and student history
+- it includes analytics, feedback capture, and quiz support alongside simulation
 
-### Adding New Cases
+That combination gives the project a stronger educational shape. The system is trying to teach a process, not just generate plausible answers.
 
-1. Add case definition to `data/case_scenarios.json`
-2. Add corresponding scoring rules to `data/scoring_rules.json`
-3. Add clinical images to `assets/images/` (if applicable)
-4. Test with API endpoint `GET /api/cases`
+## Current product shape
 
-### Code Standards
+In its current form, DentAI includes:
 
-- **Python**: Follow PEP 8, use type hints
-- **TypeScript**: Strict mode enabled, explicit types preferred
-- **API Design**: RESTful conventions, consistent error responses
+- authenticated student access
+- a case dashboard
+- chat-based case interaction
+- profile and progress-related views
+- statistics pages for performance review
+- quiz-related views
+- API support for cases, chat, analytics, feedback, and authentication
 
-### Useful Development Commands
+The repository also still contains a legacy Streamlit entrypoint from an earlier stage of the project, but the main application experience now centers on the FastAPI and Next.js implementation.
 
-```bash
-# Backend - Format code
-black app/
+## Short technical note
 
-# Backend - Lint code
-flake8 app/
+DentAI is implemented with a Python backend and a Next.js frontend. The backend handles case logic, authentication, session persistence, evaluation, and analytics. The frontend provides the student-facing experience for login, case selection, chat interaction, statistics, quizzes, and related pages.
 
-# Frontend - Lint code
-cd frontend
-npm run lint
+## Related documents
 
-# Frontend - Build for production
-npm run build
-```
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 📞 Support
-
-For questions, issues, or suggestions:
-
-- **GitHub Issues**: [Create an issue](https://github.com/betuldanismaz/dentai/issues)
-- **Documentation**: See [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) for detailed technical documentation
-
----
-
-## 🙏 Acknowledgments
-
-- **Google Gemini AI**: For providing the powerful LLM capabilities
-- **FastAPI**: For the excellent API framework
-- **Next.js**: For the modern React framework
-- **All Contributors**: Thank you for your contributions!
-
----
-
-<div align="center">
-
-**Built with ❤️ for dental education**
-
-[⬆ Back to Top](#-dentai---dental-education-ai-simulator)
-
-</div>
+- `PROJECT_ARCHITECTURE.md`
+- `frontend/README.md`
+- `mdfiles/REACT_MIGRATION_AUDIT.md`
