@@ -108,8 +108,8 @@ export default function ChatPage() {
             };
             setMessages(prev => [...prev, aiMessage]);
             
-            // Update total score
-            setCurrentScore(prev => prev + response.score);
+            // Update score (backend returns cumulative session score)
+            setCurrentScore(response.score);
             
         } catch (err: any) {
             console.error('Chat error:', err);
