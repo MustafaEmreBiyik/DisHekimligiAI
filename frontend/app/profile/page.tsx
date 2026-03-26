@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   User,
   GraduationCap,
@@ -19,41 +19,88 @@ import {
   Trash2,
 } from "lucide-react";
 import styles from "./Profile.module.css";
+import { useAuth } from "@/context/AuthContext";
+import { authAPI, userAPI } from "@/lib/api";
+import { useRouter } from "next/navigation";
+
+interface UserInfo {
+  student_id: string;
+  name: string;
+  email?: string;
+}
+
+interface UserStats {
+  total_sessions: number;
+  completed_cases: number;
+  total_actions: number;
+  average_score: number;
+}
 
 export default function ProfilePage() {
-  // Mock Data (equivalent to Streamlit fallback data)
-  const student = {
-    name: "Kullanıcı",
-    role: "Öğrenci",
-    id: "N/A",
-    email: "kullanici@example.com",
-    stats: {
-      totalSessions: 12,
-      completedCases: 8,
-      totalActions: 45,
-      averageScore: 82.5,
-    },
-    recentActivity: [
-      {
-        text: '"Oral Liken Planus" vakası tamamlandı',
-        time: "10 Aralık 2025, 14:23",
-      },
-      {
-        text: '"Kronik Periodontitis" vakasına başlandı',
-        time: "10 Aralık 2025, 13:45",
-      },
-      { text: "Profil bilgileri güncellendi", time: "9 Aralık 2025, 16:10" },
-      {
-        text: '"Primer Herpes" vakası tamamlandı',
-        time: "9 Aralık 2025, 11:30",
-      },
-      { text: "Sistem giriş yapıldı", time: "8 Aralık 2025, 15:20" },
-    ],
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [stats, setStats] = useState<UserStats>({
+    total_sessions: 0,
+    completed_cases: 0,
+    total_actions: 0,
+    average_score: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch user info and stats in parallel
+      const [meData, statsData] = await Promise.all([
+        authAPI.getCurrentUser().catch(() => null),
+        userAPI.getStats().catch(() => null),
+      ]);
+
+      if (meData) {
+        setUserInfo(meData);
+      } else {
+        // Fallback to auth context data
+        setUserInfo({ student_id: user!.student_id, name: user!.name });
+      }
+
+      if (statsData) {
+        setStats({
+          total_sessions: statsData.total_sessions ?? 0,
+          completed_cases: statsData.completed_cases ?? 0,
+          total_actions: statsData.total_actions ?? 0,
+          average_score: statsData.average_score ?? 0,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load profile data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFeatureAlert = () => {
     alert("Bu özellik yakında aktif olacak!");
   };
+
+  if (authLoading || (!user && !isLoading)) return null;
+
+  const displayName = userInfo?.name ?? user?.name ?? "Kullanıcı";
+  const displayId = userInfo?.student_id ?? user?.student_id ?? "N/A";
+  const displayEmail = userInfo?.email ?? "";
 
   return (
     <div className={styles.container}>
@@ -62,10 +109,10 @@ export default function ProfilePage() {
         <div className={styles.avatarContainer}>
           <User size={48} color="white" strokeWidth={1.5} />
         </div>
-        <h1 className={styles.studentName}>{student.name}</h1>
+        <h1 className={styles.studentName}>{displayName}</h1>
         <div className={styles.studentRole}>
           <GraduationCap size={18} />
-          <span>{student.role}</span>
+          <span>Öğrenci</span>
         </div>
       </div>
 
@@ -79,22 +126,26 @@ export default function ProfilePage() {
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
             <div className={styles.statValue}>
-              {student.stats.totalSessions}
+              {isLoading ? "—" : stats.total_sessions}
             </div>
             <div className={styles.statLabel}>Toplam Oturum</div>
           </div>
           <div className={styles.statCard}>
             <div className={styles.statValue}>
-              {student.stats.completedCases}
+              {isLoading ? "—" : stats.completed_cases}
             </div>
             <div className={styles.statLabel}>Tamamlanan Vaka</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{student.stats.totalActions}</div>
+            <div className={styles.statValue}>
+              {isLoading ? "—" : stats.total_actions}
+            </div>
             <div className={styles.statLabel}>Toplam Eylem</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{student.stats.averageScore}</div>
+            <div className={styles.statValue}>
+              {isLoading ? "—" : stats.average_score.toFixed(1)}
+            </div>
             <div className={styles.statLabel}>Ortalama Puan</div>
           </div>
         </div>
@@ -122,7 +173,7 @@ export default function ProfilePage() {
               <input
                 type="text"
                 className={styles.input}
-                value={student.name}
+                value={displayName}
                 disabled
               />
             </div>
@@ -132,7 +183,7 @@ export default function ProfilePage() {
               <input
                 type="text"
                 className={styles.input}
-                value={student.id}
+                value={displayId}
                 disabled
               />
             </div>
@@ -142,7 +193,8 @@ export default function ProfilePage() {
               <input
                 type="email"
                 className={styles.input}
-                value={student.email}
+                value={displayEmail}
+                placeholder="—"
                 disabled
               />
             </div>
@@ -220,30 +272,16 @@ export default function ProfilePage() {
             </div>
 
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked
-                disabled
-              />
+              <input type="checkbox" className={styles.checkbox} checked disabled />
               <span className={styles.checkboxLabel}>E-posta bildirimleri</span>
             </div>
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked
-                disabled
-              />
-              <span className={styles.checkboxLabel}>
-                Haftalık ilerleme raporu
-              </span>
+              <input type="checkbox" className={styles.checkbox} checked disabled />
+              <span className={styles.checkboxLabel}>Haftalık ilerleme raporu</span>
             </div>
             <div className={styles.checkboxGroup}>
               <input type="checkbox" className={styles.checkbox} disabled />
-              <span className={styles.checkboxLabel}>
-                Yeni vaka bildirimleri
-              </span>
+              <span className={styles.checkboxLabel}>Yeni vaka bildirimleri</span>
             </div>
 
             <button className={styles.btnPrimary} onClick={handleFeatureAlert}>
@@ -283,7 +321,7 @@ export default function ProfilePage() {
                 className={styles.input}
                 min="12"
                 max="20"
-                value="14"
+                defaultValue="14"
                 disabled
                 style={{ padding: 0 }}
               />
@@ -293,30 +331,6 @@ export default function ProfilePage() {
               <Save size={18} />
               Ayarları Kaydet
             </button>
-          </div>
-        </div>
-      </section>
-
-      <div className={styles.divider} />
-
-      {/* Recent Activity */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <History size={28} color="#0066cc" />
-          <h2 className={styles.sectionTitle}>Son Aktiviteler</h2>
-        </div>
-
-        <div className={`${styles.card} ${styles.activityCard}`}>
-          <div className={styles.activityList}>
-            {student.recentActivity.map((activity, index) => (
-              <div key={index} className={styles.activityItem}>
-                <div className={styles.activityDot}></div>
-                <div className={styles.activityContent}>
-                  <div className={styles.activityText}>{activity.text}</div>
-                  <div className={styles.activityTime}>{activity.time}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -343,18 +357,12 @@ export default function ProfilePage() {
             <span>Dikkat: Bu işlemler geri alınamaz!</span>
           </div>
 
-          <div
-            className={styles.grid2}
-            style={{ gap: "1rem", marginTop: "1rem" }}
-          >
+          <div className={styles.grid2} style={{ gap: "1rem", marginTop: "1rem" }}>
             <button className={styles.btnDanger} onClick={handleFeatureAlert}>
               <RefreshCcw size={18} />
               Tüm İlerlememi Sıfırla
             </button>
-            <button
-              className={styles.btnDangerSolid}
-              onClick={handleFeatureAlert}
-            >
+            <button className={styles.btnDangerSolid} onClick={handleFeatureAlert}>
               <Trash2 size={18} />
               Hesabımı Sil
             </button>

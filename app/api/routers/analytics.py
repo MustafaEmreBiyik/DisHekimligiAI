@@ -12,7 +12,7 @@ import csv
 import io
 
 from app.api.deps import get_current_user
-from db.database import SessionLocal, StudentSession, ChatLog, FeedbackLog
+from db.database import SessionLocal, StudentSession, ChatLog, FeedbackLog, get_student_detailed_history, get_user_stats
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +254,123 @@ def export_sessions_csv(current_user: str = Depends(get_current_user)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate CSV: {str(e)}"
+        )
+
+
+@router.get("/student-stats")
+def get_student_stats(current_user: str = Depends(get_current_user)):
+    """
+    Get comprehensive statistics for the authenticated student.
+
+    Returns real data from the database including action history,
+    trend data, and action type breakdown for analytics display.
+    """
+    try:
+        # Detailed action history from chat logs
+        detailed = get_student_detailed_history(current_user)
+        # High-level stats from exam results
+        user_stats = get_user_stats(current_user)
+
+        action_history = detailed.get("action_history", [])
+        total_score = detailed.get("total_score", 0)
+        total_actions = detailed.get("total_actions", 0)
+        completed_cases = detailed.get("completed_cases", set())
+
+        # Compute average score per action
+        average_score = round(total_score / total_actions, 1) if total_actions > 0 else 0.0
+
+        # Count sessions
+        db = SessionLocal()
+        try:
+            total_sessions = db.query(StudentSession).filter_by(student_id=current_user).count()
+        finally:
+            db.close()
+
+        # Build trend data (cumulative score over actions)
+        trend_data = []
+        cumulative = 0
+        for idx, action in enumerate(action_history, 1):
+            cumulative += action.get("score", 0)
+            if idx % max(1, len(action_history) // 10) == 0 or idx == len(action_history):
+                trend_data.append({"actionIndex": idx, "cumulative": round(cumulative, 1)})
+
+        # Action type stats
+        action_type_map: dict = {}
+        for action in action_history:
+            atype = action.get("action", "unknown")
+            score = action.get("score", 0)
+            if atype not in action_type_map:
+                action_type_map[atype] = {"usage": 0, "total": 0}
+            action_type_map[atype]["usage"] += 1
+            action_type_map[atype]["total"] += score
+
+        action_type_stats = [
+            {
+                "type": atype,
+                "usage": vals["usage"],
+                "total": round(vals["total"], 1),
+                "mean": round(vals["total"] / vals["usage"], 1) if vals["usage"] > 0 else 0.0
+            }
+            for atype, vals in action_type_map.items()
+        ]
+        action_type_stats.sort(key=lambda x: x["usage"], reverse=True)
+
+        # Pie data (top action types by usage)
+        pie_data = [{"name": s["type"], "value": s["usage"]} for s in action_type_stats[:6]]
+
+        # Score distribution (histogram buckets)
+        buckets = {"0-2 Puan": 0, "3-5 Puan": 0, "6-8 Puan": 0, "9-10 Puan": 0}
+        for action in action_history:
+            s = action.get("score", 0)
+            if s <= 2:
+                buckets["0-2 Puan"] += 1
+            elif s <= 5:
+                buckets["3-5 Puan"] += 1
+            elif s <= 8:
+                buckets["6-8 Puan"] += 1
+            else:
+                buckets["9-10 Puan"] += 1
+        histogram_data = [{"scoreRange": k, "count": v} for k, v in buckets.items()]
+
+        # Recommendation: find weakest action type
+        recommendation = ""
+        if action_type_stats:
+            weakest = min(action_type_stats, key=lambda x: x["mean"])
+            if weakest["mean"] < 7:
+                recommendation = (
+                    f"'{weakest['type']}' eylem tipinde ortalama puanınız "
+                    f"{weakest['mean']} ile düşük görünüyor. "
+                    "Bu alanda daha fazla pratik yapmanız önerilir."
+                )
+            else:
+                best = max(action_type_stats, key=lambda x: x["mean"])
+                recommendation = (
+                    f"Genel performansınız iyi. '{best['type']}' alanında "
+                    f"ortalama {best['mean']} puan ile en yüksek başarıyı gösteriyorsunuz."
+                )
+
+        return {
+            "total_sessions": total_sessions,
+            "completed_cases": len(completed_cases),
+            "total_score": round(total_score, 1),
+            "total_actions": total_actions,
+            "average_score": average_score,
+            "action_history": action_history[-10:],  # last 10
+            "trend_data": trend_data,
+            "action_type_stats": action_type_stats,
+            "pie_data": pie_data,
+            "histogram_data": histogram_data,
+            "recommendation": recommendation,
+            # From exam results
+            "exam_completed_cases": user_stats.get("total_solved", 0),
+            "user_level": user_stats.get("user_level", "Başlangıç"),
+        }
+
+    except Exception as e:
+        logger.exception(f"Error computing student stats for {current_user}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute student stats: {str(e)}"
         )
 
 
