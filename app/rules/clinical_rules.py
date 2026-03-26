@@ -25,6 +25,16 @@ CLINICAL_RULES_DB = {
             "Viral lezyonlarda (Herpes vb.) antibiyotik KESİNLİKLE verilmemelidir.",
             "Çocuk hastalarda 'yutkunma/beslenme' ve 'dehidratasyon' riski sorgulanmalıdır."
         ],
+        "diagnostic_criteria": {
+            "primer_herpes": [
+                "UYARI: Primer herpes vakasında klinik olarak BEYAZ ÇİZGİLER GÖZÜKMEZ!",
+                "Beyaz çizgi tanımlaması herpes için GEÇERLİ DEĞİLDİR.",
+                "Klinik görünüm: Beyazımsı sarımsı çok sayıda odaklar şeklinde ülserasyonlar (yaralar)",
+                "Patlamış veziküller ve ağrılı ülserler",
+                "Beyaz çizgi tanımlaması başka beyaz lezyonlarda kullanılır (ör: Oral Liken Planus - Wickham striae)",
+                "Ateş, lenfadenopati, foeter ex ore (ağız kokusu) eşlik edebilir"
+            ]
+        },
         "recommended_antibiotics": {
             "first_line": ["Amoxicillin 500mg TID", "Amoxicillin-Clavulanate 875/125mg BID"],
             "penicillin_allergy": ["Clindamycin 300mg QID", "Azithromycin 500mg OD", "Clarithromycin 500mg BID"],
