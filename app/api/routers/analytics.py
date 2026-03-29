@@ -166,6 +166,30 @@ def generate_sessions_csv() -> str:
         db.close()
 
 
+def get_latest_reasoning_pattern(student_id: str):
+    """
+    Fetch the most recent reasoning pattern classification for the student.
+    """
+    db = SessionLocal()
+    try:
+        logs = (
+            db.query(ChatLog)
+            .join(StudentSession, ChatLog.session_id == StudentSession.id)
+            .filter(StudentSession.student_id == student_id, ChatLog.role == "assistant")
+            .order_by(ChatLog.timestamp.desc(), ChatLog.id.desc())
+            .all()
+        )
+
+        for log in logs:
+            metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+            reasoning = metadata.get("reasoning_pattern")
+            if isinstance(reasoning, dict) and reasoning.get("pattern"):
+                return reasoning
+        return None
+    finally:
+        db.close()
+
+
 # ==================== ENDPOINTS ====================
 
 @router.get("/export/actions")
@@ -286,6 +310,8 @@ def get_student_stats(current_user: str = Depends(get_current_user)):
         finally:
             db.close()
 
+        reasoning_pattern = get_latest_reasoning_pattern(current_user)
+
         # Build trend data (cumulative score over actions)
         trend_data = []
         cumulative = 0
@@ -361,6 +387,7 @@ def get_student_stats(current_user: str = Depends(get_current_user)):
             "pie_data": pie_data,
             "histogram_data": histogram_data,
             "recommendation": recommendation,
+            "reasoning_pattern": reasoning_pattern,
             # From exam results
             "exam_completed_cases": user_stats.get("total_solved", 0),
             "user_level": user_stats.get("user_level", "Başlangıç"),
