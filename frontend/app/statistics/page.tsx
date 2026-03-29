@@ -49,6 +49,17 @@ interface StatsData {
   pie_data: Array<{ name: string; value: number }>;
   histogram_data: Array<{ scoreRange: string; count: number }>;
   recommendation: string;
+  reasoning_pattern: {
+    pattern: string;
+    confidence: number;
+    evidence?: {
+      total_actions?: number;
+      history_actions?: number;
+      test_actions?: number;
+      diagnosis_position?: number;
+      deviation_flags_after_diagnosis?: number;
+    };
+  } | null;
 }
 
 const EMPTY_STATS: StatsData = {
@@ -68,7 +79,24 @@ const EMPTY_STATS: StatsData = {
     { scoreRange: "9-10 Puan", count: 0 },
   ],
   recommendation: "",
+  reasoning_pattern: null,
 };
+
+function getReasoningPatternUI(pattern: string) {
+  if (pattern === "HYPOTHESIS_DRIVEN_INQUIRY") {
+    return { label: "Hypothesis-Driven Inquiry", bg: "#f0fff4", color: "#276749", border: "#9ae6b4" };
+  }
+  if (pattern === "DATA_DRIVEN_EXPLORATION") {
+    return { label: "Data-Driven Exploration", bg: "#fffbea", color: "#975a16", border: "#f6e05e" };
+  }
+  if (pattern === "FAILED_HYPOTHESIS_REVISION") {
+    return { label: "Failed Hypothesis Revision", bg: "#fff5f5", color: "#c53030", border: "#feb2b2" };
+  }
+  if (pattern === "PREMATURE_DIAGNOSTIC_CLOSURE") {
+    return { label: "Premature Diagnostic Closure", bg: "#fff5f5", color: "#c53030", border: "#feb2b2" };
+  }
+  return { label: pattern, bg: "#edf2f7", color: "#4a5568", border: "#cbd5e0" };
+}
 
 export default function StatisticsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -114,6 +142,7 @@ export default function StatisticsPage() {
             ? data.histogram_data
             : EMPTY_STATS.histogram_data,
         recommendation: data.recommendation ?? "",
+        reasoning_pattern: data.reasoning_pattern ?? null,
       });
     } catch (err: any) {
       console.error("Failed to load stats:", err);
@@ -147,6 +176,40 @@ export default function StatisticsPage() {
           }}
         >
           ⚠️ {error}
+        </div>
+      )}
+
+      {!isLoading && stats.reasoning_pattern?.pattern && (
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "12px",
+            padding: "0.9rem 1rem",
+            marginBottom: "1rem",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <span style={{ color: "#4a5568", fontWeight: 700 }}>Reasoning Pattern:</span>
+          <span
+            style={{
+              background: getReasoningPatternUI(stats.reasoning_pattern.pattern).bg,
+              color: getReasoningPatternUI(stats.reasoning_pattern.pattern).color,
+              border: `1px solid ${getReasoningPatternUI(stats.reasoning_pattern.pattern).border}`,
+              borderRadius: "999px",
+              padding: "0.2rem 0.7rem",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+            }}
+          >
+            {getReasoningPatternUI(stats.reasoning_pattern.pattern).label}
+          </span>
+          <span style={{ color: "#718096", fontSize: "0.85rem" }}>
+            Confidence: {(stats.reasoning_pattern.confidence * 100).toFixed(0)}%
+          </span>
         </div>
       )}
 

@@ -16,11 +16,13 @@ from app.agent import DentalEducationAgent
 from app.assessment_engine import AssessmentEngine
 from app.scenario_manager import ScenarioManager
 from app.api.deps import get_current_user  # JWT authentication
+from app.services.reasoning_classifier import ReasoningPatternClassifier
 from db.database import SessionLocal, StudentSession, ChatLog
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+reasoning_classifier = ReasoningPatternClassifier()
 
 # Initialize the agent (same as Streamlit version)
 try:
@@ -137,6 +139,39 @@ def get_or_create_session(db, student_id: str, case_id: str) -> StudentSession:
     return new_session
 
 
+def build_reasoning_action_history(db, session_id: int) -> list[dict[str, Any]]:
+    """
+    Build ordered action history from assistant logs for reasoning classification.
+    """
+    logs = (
+        db.query(ChatLog)
+        .filter_by(session_id=session_id, role="assistant")
+        .order_by(ChatLog.timestamp.asc(), ChatLog.id.asc())
+        .all()
+    )
+
+    history: list[dict[str, Any]] = []
+    for log in logs:
+        metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+        interpreted_action = str(metadata.get("interpreted_action", "")).strip()
+        if not interpreted_action or interpreted_action in {"general_chat", "error", "unknown"}:
+            continue
+
+        silent_eval = metadata.get("silent_evaluation", {})
+        if not isinstance(silent_eval, dict):
+            silent_eval = {}
+
+        history.append(
+            {
+                "action": interpreted_action,
+                "reasoning_deviation": bool(silent_eval.get("reasoning_deviation", False)),
+                "reasoning_deviation_flags": int(silent_eval.get("reasoning_deviation_flags", 0) or 0),
+            }
+        )
+
+    return history
+
+
 # ==================== ENDPOINTS ====================
 
 @router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
@@ -203,6 +238,7 @@ def send_chat_message(
         
         # Interpreted action from LLM
         interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
+        is_diagnosis_action = interpreted_action.startswith("diagnose_")
         
         # Build evaluation result (hidden from student UI)
         evaluation = EvaluationResult(
@@ -215,8 +251,21 @@ def send_chat_message(
         # Current session score from updated state
         current_score = updated_state.get("current_score", session.current_score + score)
         
-        # Check if case is finished (placeholder logic - can be enhanced)
-        is_case_finished = updated_state.get("is_finished", False)
+        # Consider diagnosis actions as case completion checkpoints.
+        is_case_finished = updated_state.get("is_finished", False) or is_diagnosis_action
+
+        reasoning_pattern = None
+        if is_diagnosis_action:
+            past_history = build_reasoning_action_history(db, session.id)
+            current_history_item = {
+                "action": interpreted_action,
+                "reasoning_deviation": bool(silent_eval.get("reasoning_deviation", False)),
+                "reasoning_deviation_flags": int(silent_eval.get("reasoning_deviation_flags", 0) or 0),
+            }
+            reasoning_pattern = reasoning_classifier.classify(
+                session_id=session.id,
+                action_history=[*past_history, current_history_item],
+            )
 
         # STEP 5: Log AI's response to database with metadata
         assistant_log = ChatLog(
@@ -229,7 +278,8 @@ def send_chat_message(
                 "clinical_intent": llm_interpretation.get("clinical_intent", ""),
                 "priority": llm_interpretation.get("priority", ""),
                 "assessment": assessment,
-                "silent_evaluation": silent_eval
+                "silent_evaluation": silent_eval,
+                "reasoning_pattern": reasoning_pattern,
             },
             timestamp=datetime.datetime.utcnow()
         )
