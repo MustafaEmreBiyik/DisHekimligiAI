@@ -16,6 +16,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.api.routers import chat, auth, cases, feedback, analytics, quiz
+from app.api.deps import validate_auth_configuration
+from db.database import init_db
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,6 +57,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(chat.sessions_router, prefix="/api", tags=["sessions"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
@@ -88,6 +91,8 @@ def health_check():
 # Startup event
 @app.on_event("startup")
 async def startup_event():
+    validate_auth_configuration()
+    init_db()
     logger.info("🚀 Dental Tutor API starting up...")
     logger.info("📚 API documentation available at: http://localhost:8000/docs")
 

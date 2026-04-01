@@ -44,6 +44,7 @@ def setup_database():
         
         # List created tables
         print("\n📋 Created tables:")
+        print("  - users")
         print("  - student_sessions")
         print("  - chat_logs")
         print("  - exam_results")
