@@ -11,6 +11,8 @@ import sqlite3
 from urllib.parse import urlparse
 from typing import Optional
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
+from sqlalchemy import Boolean, Enum
+import enum
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # ==================== VERİTABANI KONFIGÜRASYONU ====================
@@ -34,6 +36,13 @@ Base = declarative_base()
 
 # ==================== VERİTABANI MODELLERİ ====================
 
+class UserRole(str, enum.Enum):
+    """Role enum for authentication and authorization boundaries."""
+
+    STUDENT = "student"
+    INSTRUCTOR = "instructor"
+    ADMIN = "admin"
+
 class StudentSession(Base):
     """
     Öğrenci Oturumu Tablosu
@@ -56,6 +65,32 @@ class StudentSession(Base):
     def __repr__(self):
         return f"<StudentSession(id={self.id}, student={self.student_id}, case={self.case_id}, score={self.current_score})>"
 
+class User(Base):
+    """
+    Application user table.
+    Uses soft-delete fields so accounts can be archived instead of hard deleted.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, unique=True, nullable=False, index=True)  # student_id for now
+    display_name = Column(String, nullable=False)
+    email = Column(String, nullable=True, index=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.STUDENT)
+    is_archived = Column(Boolean, nullable=False, default=False, index=True)
+    archived_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
+
+    def __repr__(self):
+        return f"<User(id={self.id}, user_id={self.user_id}, role={self.role}, archived={self.is_archived})>"
 
 class ChatLog(Base):
     """

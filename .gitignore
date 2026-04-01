@@ -11,6 +11,7 @@ myenv/
 env/
 
 # Environment variables
+# Sprint 1 security: never commit runtime secrets
 .env
 .env.*
 !.env.example
