@@ -1,41 +1,30 @@
-#!/usr/bin/env python
-"""Test paterji testi eylemini"""
+"""Unit tests for pathergy action interpretation."""
 
-import sys
-import os
-from dotenv import load_dotenv
 
-# Add project root to path
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+def test_pathergy_action_is_interpreted_correctly(mock_gemini_response):
+    from app.agent import DentalEducationAgent
 
-load_dotenv()
+    mock_gemini_response(
+        {
+            "intent_type": "ACTION",
+            "interpreted_action": "perform_pathergy_test",
+            "clinical_intent": "diagnosis_gathering",
+            "priority": "medium",
+            "safety_concerns": [],
+            "explanatory_feedback": "Paterji testi istemen klinik olarak anlamli.",
+            "structured_args": {},
+        }
+    )
 
-from app.agent import DentalEducationAgent
-
-try:
-    agent = DentalEducationAgent()
-    
-    # Test için state
-    test_state = {
+    agent = DentalEducationAgent(api_key="test-gemini-key")
+    state = {
         "case_id": "behcet_01",
-        "patient": {"age": 32, "chief_complaint": "Ağızda yaralar"},
-        "revealed_findings": []
+        "patient": {"age": 32, "chief_complaint": "Oral ulcers"},
+        "revealed_findings": [],
     }
-    
-    print("🧪 Test: 'Paterji testi yapıyorum' eylemini yorumlama\n")
-    
-    raw_action = "Paterji testi yapıyorum"
-    
-    interpretation = agent.interpret_action(raw_action, test_state)
-    
-    print("✅ Yorumlama başarılı!")
-    print(f"   Intent Type: {interpretation.get('intent_type')}")
-    print(f"   Action: {interpretation.get('interpreted_action')}")
-    print(f"   Feedback: {interpretation.get('explanatory_feedback')}")
-    print(f"   Clinical Intent: {interpretation.get('clinical_intent')}")
-    
-except Exception as e:
-    print(f"❌ HATA: {e}")
-    import traceback
-    traceback.print_exc()
+
+    interpretation = agent.interpret_action("Paterji testi yapiyorum", state)
+
+    assert interpretation["intent_type"] == "ACTION"
+    assert interpretation["interpreted_action"] == "perform_pathergy_test"
+    assert interpretation["clinical_intent"] == "diagnosis_gathering"

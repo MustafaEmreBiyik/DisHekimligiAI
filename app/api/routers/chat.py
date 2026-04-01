@@ -7,7 +7,7 @@ Reuses existing DentalEducationAgent from app/agent.py.
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import os
 import logging
 import datetime
@@ -15,13 +15,18 @@ import datetime
 from app.agent import DentalEducationAgent
 from app.assessment_engine import AssessmentEngine
 from app.scenario_manager import ScenarioManager
-from app.api.deps import get_current_user  # JWT authentication
+from app.api.deps import (
+    AuthenticatedUser,
+    get_current_user_context,
+    require_roles,
+)
 from app.services.reasoning_classifier import ReasoningPatternClassifier
-from db.database import SessionLocal, StudentSession, ChatLog
+from db.database import SessionLocal, StudentSession, ChatLog, UserRole
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+sessions_router = APIRouter()
 reasoning_classifier = ReasoningPatternClassifier()
 
 # Initialize the agent (same as Streamlit version)
@@ -60,50 +65,52 @@ class ChatRequest(BaseModel):
         }
 
 
-class EvaluationResult(BaseModel):
-    """Hidden evaluation from the Silent Grader."""
-    is_clinically_accurate: bool = Field(True, description="Whether the action was clinically appropriate")
-    safety_violation: bool = Field(False, description="Whether a safety violation occurred")
-    score: float = Field(0.0, description="Points earned for this action")
-    feedback: Optional[str] = Field(None, description="Internal feedback for analytics")
-
-
 class ChatResponse(BaseModel):
     """
-    Chat response from AI - Silent Evaluator Architecture.
-    The student sees response_text, but evaluation is hidden.
+    Student-safe chat response payload.
+    Hidden grader and metadata outputs are not exposed.
     """
-    student_id: str
-    case_id: str
     session_id: Optional[int] = Field(None, description="Database session ID for this chat session")
+    ai_response: str = Field(..., description="Patient-facing response text")
     final_feedback: Optional[str] = Field(None, description="Response text to show the student")
-    response_text: str = Field(..., description="Patient's dialogue response to show the student")
-    interpreted_action: str = Field(..., description="What the system understood from student input")
-    evaluation: EvaluationResult = Field(..., description="Hidden grader output (not shown to student)")
-    is_case_finished: bool = Field(False, description="Whether the case simulation is complete")
-    score: float = Field(..., description="Current session score")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Full result for debugging")
+    state_updates: Dict[str, Any] = Field(default_factory=dict, description="Safe state updates")
+    revealed_findings: List[str] = Field(default_factory=list, description="Newly revealed findings")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "student_id": "2021001",
-                "case_id": "olp_001",
                 "session_id": 42,
+                "ai_response": "Doctor, I have a burning sensation in my cheek.",
                 "final_feedback": "Doctor, I have a burning sensation in my cheek.",
-                "response_text": "Doctor, I have a burning sensation in my cheek.",
-                "interpreted_action": "ask_complaint",
-                "evaluation": {
-                    "is_clinically_accurate": True,
-                    "safety_violation": False,
-                    "score": 10.0,
-                    "feedback": "Correctly identified the chief complaint."
+                "state_updates": {
+                    "case_id": "olp_001",
+                    "is_case_finished": False
                 },
-                "is_case_finished": False,
-                "score": 35.0,
-                "metadata": {}
+                "revealed_findings": ["reticular white striae"]
             }
         }
+
+
+class SessionEvaluationItem(BaseModel):
+    """Internal evaluation metadata for instructor/admin review."""
+
+    log_id: int
+    timestamp: Optional[str] = None
+    interpreted_action: str = "unknown"
+    score: float = 0.0
+    assessment: Dict[str, Any] = Field(default_factory=dict)
+    silent_evaluation: Dict[str, Any] = Field(default_factory=dict)
+    reasoning_pattern: Optional[Dict[str, Any]] = None
+
+
+class SessionEvaluationResponse(BaseModel):
+    """Internal session-level evaluation response."""
+
+    session_id: int
+    student_id: str
+    case_id: str
+    current_score: float
+    evaluations: List[SessionEvaluationItem]
 
 
 # ==================== HELPER FUNCTIONS ====================
@@ -172,12 +179,37 @@ def build_reasoning_action_history(db, session_id: int) -> list[dict[str, Any]]:
     return history
 
 
+def enforce_student_resource_access(
+    *,
+    current_user: AuthenticatedUser,
+    target_student_id: str,
+) -> None:
+    """Allow students to access only their own resources; staff can access all."""
+    if current_user.role == UserRole.STUDENT and current_user.user_id != target_student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden",
+        )
+
+
+def build_student_state_updates(
+    *,
+    case_id: str,
+    is_case_finished: bool,
+) -> Dict[str, Any]:
+    """Build safe, non-scoring state updates for student clients."""
+    return {
+        "case_id": case_id,
+        "is_case_finished": is_case_finished,
+    }
+
+
 # ==================== ENDPOINTS ====================
 
 @router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 def send_chat_message(
     request: ChatRequest,
-    current_user: str = Depends(get_current_user)  # JWT Authentication Required
+    current_user: AuthenticatedUser = Depends(get_current_user_context),
 ):
     """
     Process a student's chat message and return AI response.
@@ -206,7 +238,7 @@ def send_chat_message(
     db = SessionLocal()
     try:
         # STEP 1: Get or create session for this student + case
-        session = get_or_create_session(db, current_user, request.case_id)
+        session = get_or_create_session(db, current_user.user_id, request.case_id)
         
         # STEP 2: Log student's message to database
         user_log = ChatLog(
@@ -220,7 +252,7 @@ def send_chat_message(
         
         # STEP 3: Process with AI agent
         result = agent.process_student_input(
-            student_id=current_user,  # From JWT token
+            student_id=current_user.user_id,
             raw_action=request.message,
             case_id=request.case_id
         )
@@ -239,14 +271,6 @@ def send_chat_message(
         # Interpreted action from LLM
         interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
         is_diagnosis_action = interpreted_action.startswith("diagnose_")
-        
-        # Build evaluation result (hidden from student UI)
-        evaluation = EvaluationResult(
-            is_clinically_accurate=silent_eval.get("is_clinically_accurate", True),
-            safety_violation=silent_eval.get("safety_violation", False),
-            score=score,
-            feedback=silent_eval.get("feedback") or assessment.get("rule_outcome"),
-        )
         
         # Current session score from updated state
         current_score = updated_state.get("current_score", session.current_score + score)
@@ -292,29 +316,37 @@ def send_chat_message(
         db.commit()
         
         logger.info(
-            f"✅ Logged interaction for student {current_user} on case {request.case_id}. "
+            f"✅ Logged interaction for student {current_user.user_id} on case {request.case_id}. "
             f"Action Score: {score}, Total: {current_score}"
         )
-        
-        # STEP 8: Return structured response to frontend
-        return ChatResponse(
-            student_id=current_user,
+
+        revealed_findings = updated_state.get("revealed_findings", [])
+        if not isinstance(revealed_findings, list):
+            revealed_findings = []
+
+        safe_state_updates = build_student_state_updates(
             case_id=result.get("case_id", request.case_id),
-            session_id=session.id,
-            final_feedback=final_feedback,
-            response_text=response_text,
-            interpreted_action=interpreted_action,
-            evaluation=evaluation,
             is_case_finished=is_case_finished,
-            score=current_score,
-            metadata=result,
+        )
+        
+        # STEP 8: Return student-safe response payload
+        return ChatResponse(
+            session_id=session.id,
+            ai_response=response_text,
+            final_feedback=final_feedback,
+            state_updates=safe_state_updates,
+            revealed_findings=revealed_findings,
         )
     finally:
         db.close()
 
 
 @router.get("/history/{student_id}/{case_id}", status_code=status.HTTP_200_OK)
-def get_chat_history(student_id: str, case_id: str):
+def get_chat_history(
+    student_id: str,
+    case_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user_context),
+):
     """
     Get chat history for a student's session.
     
@@ -322,6 +354,11 @@ def get_chat_history(student_id: str, case_id: str):
     """
     from db.database import SessionLocal, StudentSession, ChatLog
     
+    enforce_student_resource_access(
+        current_user=current_user,
+        target_student_id=student_id,
+    )
+
     db = SessionLocal()
     try:
         # Find the session
@@ -341,6 +378,8 @@ def get_chat_history(student_id: str, case_id: str):
             session_id=session.id
         ).order_by(ChatLog.timestamp).all()
         
+        include_internal_metadata = current_user.role in {UserRole.INSTRUCTOR, UserRole.ADMIN}
+
         return {
             "student_id": student_id,
             "case_id": case_id,
@@ -351,7 +390,7 @@ def get_chat_history(student_id: str, case_id: str):
                     "role": msg.role,
                     "content": msg.content,
                     "timestamp": msg.timestamp.isoformat() if msg.timestamp else None,
-                    "metadata": msg.metadata_json
+                    "metadata": msg.metadata_json if include_internal_metadata else None,
                 }
                 for msg in messages
             ]
@@ -380,3 +419,55 @@ def chat_service_status():
         "agent_initialized": agent is not None,
         "model": "gemini-2.5-flash-lite" if agent else None
     }
+
+
+@sessions_router.get(
+    "/sessions/{session_id}/evaluation",
+    response_model=SessionEvaluationResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_session_evaluation(
+    session_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    """Return internal evaluation metadata for a session (staff only)."""
+    db = SessionLocal()
+    try:
+        session = db.query(StudentSession).filter_by(id=session_id).first()
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session {session_id} not found",
+            )
+
+        assistant_logs = (
+            db.query(ChatLog)
+            .filter_by(session_id=session_id, role="assistant")
+            .order_by(ChatLog.timestamp.asc(), ChatLog.id.asc())
+            .all()
+        )
+
+        evaluations: List[SessionEvaluationItem] = []
+        for log in assistant_logs:
+            metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+            evaluations.append(
+                SessionEvaluationItem(
+                    log_id=log.id,
+                    timestamp=log.timestamp.isoformat() if log.timestamp else None,
+                    interpreted_action=str(metadata.get("interpreted_action", "unknown")),
+                    score=float(metadata.get("score", 0.0) or 0.0),
+                    assessment=metadata.get("assessment", {}) or {},
+                    silent_evaluation=metadata.get("silent_evaluation", {}) or {},
+                    reasoning_pattern=metadata.get("reasoning_pattern"),
+                )
+            )
+
+        return SessionEvaluationResponse(
+            session_id=session.id,
+            student_id=session.student_id,
+            case_id=session.case_id,
+            current_score=session.current_score,
+            evaluations=evaluations,
+        )
+    finally:
+        db.close()

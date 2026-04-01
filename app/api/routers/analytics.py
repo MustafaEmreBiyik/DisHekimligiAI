@@ -6,13 +6,20 @@ Endpoints for exporting research data as CSV files.
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import StreamingResponse
-from typing import List
 import logging
 import csv
 import io
 
-from app.api.deps import get_current_user
-from db.database import SessionLocal, StudentSession, ChatLog, FeedbackLog, get_student_detailed_history, get_user_stats
+from app.api.deps import AuthenticatedUser, get_current_user, require_roles
+from db.database import (
+    SessionLocal,
+    StudentSession,
+    ChatLog,
+    FeedbackLog,
+    UserRole,
+    get_student_detailed_history,
+    get_user_stats,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +200,9 @@ def get_latest_reasoning_pattern(student_id: str):
 # ==================== ENDPOINTS ====================
 
 @router.get("/export/actions")
-def export_actions_csv(current_user: str = Depends(get_current_user)):
+def export_actions_csv(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN))
+):
     """
     Export all chat action logs as CSV.
     
@@ -225,7 +234,9 @@ def export_actions_csv(current_user: str = Depends(get_current_user)):
 
 
 @router.get("/export/feedback")
-def export_feedback_csv(current_user: str = Depends(get_current_user)):
+def export_feedback_csv(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN))
+):
     """
     Export all student feedback submissions as CSV.
     
@@ -255,7 +266,9 @@ def export_feedback_csv(current_user: str = Depends(get_current_user)):
 
 
 @router.get("/export/sessions")
-def export_sessions_csv(current_user: str = Depends(get_current_user)):
+def export_sessions_csv(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN))
+):
     """
     Export all student sessions (summary) as CSV.
     
