@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import pytest
 
+import json
+
 from app.api import deps
 from app.api.routers import auth
 from db.database import Base, User, UserRole
@@ -237,3 +239,40 @@ def test_admin_can_archive_user_and_archived_user_cannot_login(auth_client):
         json={"student_id": "student001", "password": "test123"},
     )
     assert login_response.status_code == 401
+
+
+def test_login_imports_legacy_student_profiles_seed(auth_client, tmp_path, monkeypatch):
+    client, db_factory = auth_client
+    seed_path = tmp_path / "student_profiles.json"
+    seed_path.write_text(
+        json.dumps(
+            {
+                "220601026": {
+                    "student_id": "220601026",
+                    "name": "Legacy Student",
+                    "password": "dental123",
+                    "email": "legacy@example.com",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(auth, "SEED_USER_FILES", [seed_path])
+
+    login_response = client.post(
+        "/api/auth/login",
+        json={"student_id": "220601026", "password": "dental123"},
+    )
+
+    assert login_response.status_code == 200
+    body = login_response.json()
+    assert body["student_id"] == "220601026"
+    assert body["name"] == "Legacy Student"
+
+    db = db_factory()
+    try:
+        user = db.query(User).filter(User.user_id == "220601026").first()
+        assert user is not None
+        assert user.display_name == "Legacy Student"
+    finally:
+        db.close()
