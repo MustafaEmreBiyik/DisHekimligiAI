@@ -1,12 +1,49 @@
 [
   {
     "case_id": "olp_001",
+    "schema_version": "2.0",
+    "title": "Oral Liken Planus",
+    "category": "oral_pathology",
+    "difficulty": "intermediate",
+    "estimated_duration_minutes": 20,
+    "is_active": true,
+    "learning_objectives": [
+      "Retikuler beyaz lezyonlari sistematik oral muayene ile tanimlama",
+      "Oral liken planus icin ayirici tani plani olusturma"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_reasoning",
+      "diagnosis"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 45,
+      "chief_complaint": "Ağzımda beyaz çizgiler ve acı hissediyorum",
+      "medical_history": [
+        "Hipertansiyon (ACE inhibitörü)"
+      ],
+      "social_history": [
+        "Sigara içmiyor",
+        "Alkol kullanmıyor"
+      ]
+    },
     "zorluk_seviyesi": "Orta",
     "hasta_profili": {
       "yas": 45,
       "sikayet": "Ağzımda beyaz çizgiler ve acı hissediyorum",
-      "tibbi_gecmis": ["Hipertansiyon (ACE inhibitörü)"],
-      "sosyal_gecmis": ["Sigara içmiyor", "Alkol kullanmıyor"]
+      "tibbi_gecmis": [
+        "Hipertansiyon (ACE inhibitörü)"
+      ],
+      "sosyal_gecmis": [
+        "Sigara içmiyor",
+        "Alkol kullanmıyor"
+      ]
     },
     "gizli_bulgular": [
       {
@@ -35,29 +72,85 @@
         "eylem_id": "eylem_003",
         "tanim": "Oral mukozanın muayenesi",
         "puan": 20,
-        "acilacak_bulgular": ["bulgu_001", "bulgu_002"]
+        "acilacak_bulgular": [
+          "bulgu_001",
+          "bulgu_002"
+        ]
       }
     ],
     "dogru_tani": "Oral liken planus",
-    "ayirici_tanilar": ["Oral kandidiyaz", "Lökoplaki", "Pemfigus vulgaris"],
+    "ayirici_tanilar": [
+      "Oral kandidiyaz",
+      "Lökoplaki",
+      "Pemfigus vulgaris"
+    ],
     "dogru_tedavi_plani": [
       "Topikal kortikosteroid tedavisi",
       "Oral hijyen eğitimi"
     ]
   },
-
   {
     "case_id": "perio_001",
+    "schema_version": "2.0",
+    "title": "Kronik Periodontitis (Riskli Hasta)",
+    "category": "periodontology",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 25,
+    "is_active": true,
+    "learning_objectives": [
+      "Periodontal hastalikta sistemik risk faktorlerini sorgulama",
+      "Pacemaker ve antikoagulan varliginda guvenli yaklasim planlama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "systemic_risk_assessment"
+    ],
+    "competency_tags": [
+      "periodontology",
+      "clinical_safety",
+      "treatment_planning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 55,
+      "gender": "Erkek",
+      "chief_complaint": "Diş etlerimde kanama ve dişlerde sallanma var.",
+      "medical_history": [
+        "Tip 2 Diyabet",
+        "Kalp Pili (Pacemaker)"
+      ],
+      "medications": [
+        "Metformin",
+        "Kan Sulandırıcı (Aspirin)"
+      ],
+      "allergies": [
+        "Penisilin"
+      ],
+      "social_history": [
+        "Sigara: Günde 1 paket (20 yıldır)"
+      ]
+    },
     "name": "Kronik Periodontitis (Riskli Hasta)",
-    "difficulty": "Zor",
     "patient": {
       "age": 55,
       "gender": "Erkek",
       "chief_complaint": "Diş etlerimde kanama ve dişlerde sallanma var.",
-      "medical_history": ["Tip 2 Diyabet", "Kalp Pili (Pacemaker)"],
-      "medications": ["Metformin", "Kan Sulandırıcı (Aspirin)"],
-      "allergies": ["Penisilin"],
-      "social_history": ["Sigara: Günde 1 paket (20 yıldır)"]
+      "medical_history": [
+        "Tip 2 Diyabet",
+        "Kalp Pili (Pacemaker)"
+      ],
+      "medications": [
+        "Metformin",
+        "Kan Sulandırıcı (Aspirin)"
+      ],
+      "allergies": [
+        "Penisilin"
+      ],
+      "social_history": [
+        "Sigara: Günde 1 paket (20 yıldır)"
+      ]
     },
     "hidden_findings": [
       {
@@ -76,16 +169,61 @@
   },
   {
     "case_id": "herpes_primary_01",
+    "schema_version": "2.0",
+    "title": "Primer Herpetik Gingivostomatitis",
+    "category": "oral_infectious_disease",
+    "difficulty": "intermediate",
+    "estimated_duration_minutes": 20,
+    "is_active": true,
+    "learning_objectives": [
+      "Viral oral enfeksiyonda klinik bulgu paternlerini tanimlama",
+      "Gereksiz antibiyotik kullanimini onleyerek destek tedavi planlama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "pediatric_history_taking"
+    ],
+    "competency_tags": [
+      "oral_medicine",
+      "clinical_safety",
+      "diagnosis"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 6,
+      "gender": "Erkek",
+      "chief_complaint": "Ağzımda çok sayıda yara var, ateşliyim ve yemek yiyemiyorum.",
+      "medical_history": [
+        "Yok"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Kreşe gidiyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
     "name": "Primer Herpetik Gingivostomatitis",
-    "difficulty": "Orta",
     "patient": {
       "age": 6,
       "gender": "Erkek",
       "chief_complaint": "Ağzımda çok sayıda yara var, ateşliyim ve yemek yiyemiyorum.",
-      "medical_history": ["Yok"],
-      "medications": ["Yok"],
-      "social_history": ["Kreşe gidiyor"],
-      "allergies": ["Yok"]
+      "medical_history": [
+        "Yok"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Kreşe gidiyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
     },
     "hidden_findings": [
       {
@@ -104,17 +242,62 @@
   },
   {
     "case_id": "infectious_child_01",
+    "schema_version": "2.0",
+    "title": "Primer Herpetik Gingivostomatitis (Pediatrik)",
+    "category": "oral_infectious_disease",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 25,
+    "is_active": true,
+    "learning_objectives": [
+      "Pediatrik oral enfeksiyonda dehidratasyon ve sistemik riskleri degerlendirme",
+      "Primer herpetik gingivostomatitis tanisini bulgu-temelli dogrulama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "pediatric_history_taking",
+      "vital_sign_assessment"
+    ],
+    "competency_tags": [
+      "oral_medicine",
+      "pediatric_dentistry",
+      "clinical_safety"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 5,
+      "gender": "Erkek",
+      "chief_complaint": "Ebeveyn: 3 gündür yemek yemiyor, sürekli ağlıyor, ağzı kokuyor.",
+      "medical_history": [
+        "Ateşi 39 derece."
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Yok"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
     "name": "Primer Herpetik Gingivostomatitis (Pediatrik)",
-    "difficulty": "Zor",
-    "category": "INFECTIOUS",
     "patient": {
       "age": 5,
       "gender": "Erkek",
       "chief_complaint": "Ebeveyn: 3 gündür yemek yemiyor, sürekli ağlıyor, ağzı kokuyor.",
-      "medical_history": ["Ateşi 39 derece."],
-      "medications": ["Yok"],
-      "social_history": ["Yok"],
-      "allergies": ["Yok"]
+      "medical_history": [
+        "Ateşi 39 derece."
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Yok"
+      ],
+      "allergies": [
+        "Yok"
+      ]
     },
     "hidden_findings": [
       {
@@ -133,16 +316,61 @@
   },
   {
     "case_id": "behcet_01",
+    "schema_version": "2.0",
+    "title": "Behcet Hastaligi",
+    "category": "oral_systemic_disease",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 30,
+    "is_active": true,
+    "learning_objectives": [
+      "Oral ulserlerin sistemik hastalik baglantisini sorgulama",
+      "Behcet tanisinda paterji testi ve ekstraoral bulgulari yorumlama"
+    ],
+    "prerequisite_competencies": [
+      "anamnez_alma",
+      "systemic_risk_assessment"
+    ],
+    "competency_tags": [
+      "oral_medicine",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 32,
+      "gender": "Erkek",
+      "chief_complaint": "Ağzımda sürekli çıkan ve çok ağrıyan yaralar var.",
+      "medical_history": [
+        "Gözde tekrarlayan kızarıklık (Üveit öyküsü)"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Sigara kullanıyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
     "name": "Behçet Hastalığı",
-    "difficulty": "Zor",
     "patient": {
       "age": 32,
       "gender": "Erkek",
       "chief_complaint": "Ağzımda sürekli çıkan ve çok ağrıyan yaralar var.",
-      "medical_history": ["Gözde tekrarlayan kızarıklık (Üveit öyküsü)"],
-      "medications": ["Yok"],
-      "social_history": ["Sigara kullanıyor"],
-      "allergies": ["Yok"]
+      "medical_history": [
+        "Gözde tekrarlayan kızarıklık (Üveit öyküsü)"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Sigara kullanıyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
     },
     "hidden_findings": [
       {
@@ -161,16 +389,62 @@
   },
   {
     "case_id": "syphilis_02",
+    "schema_version": "2.0",
+    "title": "Sekonder Sifiliz (Mukoz Plak)",
+    "category": "oral_infectious_disease",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 30,
+    "is_active": true,
+    "learning_objectives": [
+      "Oral mukoz plak bulgularini sistemik enfeksiyonla iliskilendirme",
+      "Serolojik test secimi ve tanisal akisi planlama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "infectious_disease_basics"
+    ],
+    "competency_tags": [
+      "oral_medicine",
+      "infectious_disease",
+      "diagnosis"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 28,
+      "gender": "Kadın",
+      "chief_complaint": "Boğazımda ağrı ve ağzımda garip beyaz lekeler var.",
+      "medical_history": [
+        "Halsizlik, hafif ateş"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Şüpheli temas öyküsü"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
     "name": "Sekonder Sifiliz (Müköz Plak)",
-    "difficulty": "Zor",
     "patient": {
       "age": 28,
       "gender": "Kadın",
       "chief_complaint": "Boğazımda ağrı ve ağzımda garip beyaz lekeler var.",
-      "medical_history": ["Halsizlik, hafif ateş"],
-      "medications": ["Yok"],
-      "social_history": ["Şüpheli temas öyküsü"],
-      "allergies": ["Yok"]
+      "medical_history": [
+        "Halsizlik, hafif ateş"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Şüpheli temas öyküsü"
+      ],
+      "allergies": [
+        "Yok"
+      ]
     },
     "hidden_findings": [
       {
@@ -189,16 +463,61 @@
   },
   {
     "case_id": "desquamative_01",
+    "schema_version": "2.0",
+    "title": "Kronik Deskuamatif Gingivitis",
+    "category": "oral_pathology",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 30,
+    "is_active": true,
+    "learning_objectives": [
+      "Deskuamatif gingivit etiyolojisinde vezikulobulloz hastaliklari ayirt etme",
+      "Nikolsky ve DIF bulgularini tanisal karar surecine entegre etme"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "biopsy_indication_knowledge"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_safety",
+      "diagnosis"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 46,
+      "gender": "Kadın",
+      "chief_complaint": "Diş etlerimde sızlama, yanma ve soyulmalar var. Asitli yiyecekleri yiyemiyorum.",
+      "medical_history": [
+        "Hipertansiyon"
+      ],
+      "medications": [
+        "ACE İnhibitörü"
+      ],
+      "social_history": [
+        "Sigara kullanmıyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
     "name": "Kronik Deskuamatif Gingivitis",
-    "difficulty": "Zor",
     "patient": {
       "age": 46,
       "gender": "Kadın",
       "chief_complaint": "Diş etlerimde sızlama, yanma ve soyulmalar var. Asitli yiyecekleri yiyemiyorum.",
-      "medical_history": ["Hipertansiyon"],
-      "medications": ["ACE İnhibitörü"],
-      "social_history": ["Sigara kullanmıyor"],
-      "allergies": ["Yok"]
+      "medical_history": [
+        "Hipertansiyon"
+      ],
+      "medications": [
+        "ACE İnhibitörü"
+      ],
+      "social_history": [
+        "Sigara kullanmıyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
     },
     "hidden_findings": [
       {
