@@ -31,6 +31,8 @@ router = APIRouter()
 SEED_USER_FILES = [
     Path(__file__).resolve().parents[2] / "data" / "users.json",
     Path(__file__).resolve().parents[3] / "data" / "users.json",
+    Path(__file__).resolve().parents[2] / "data" / "student_profiles.json",
+    Path(__file__).resolve().parents[3] / "data" / "student_profiles.json",
 ]
 
 
@@ -81,17 +83,17 @@ def _iter_seed_user_items(payload: object) -> List[dict]:
     return []
 
 
-def _import_seed_users_if_empty(db: Session) -> None:
+def _import_seed_users(db: Session) -> None:
     """
-    Import users from JSON only when DB is empty.
-    JSON is treated as seed source, never as the live user store.
+    Import any missing users from JSON seed files.
+    JSON is treated as a bootstrap source, never as the live user store.
     """
-    existing = db.query(User.id).first()
-    if existing:
-        return
-
     imported_count = 0
-    seen_ids = set()
+    seen_ids = {
+        row[0]
+        for row in db.query(User.user_id).all()
+        if row and row[0]
+    }
 
     for seed_file in SEED_USER_FILES:
         if not seed_file.exists():
@@ -133,9 +135,6 @@ def _import_seed_users_if_empty(db: Session) -> None:
             )
             seen_ids.add(user_id)
             imported_count += 1
-
-        if imported_count > 0:
-            break
 
     if imported_count > 0:
         db.commit()
@@ -280,7 +279,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     - Returns JWT token for immediate login
     - Student ID must be unique
     """
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
 
     # Check if user already exists (archived or active)
     existing_user = db.query(User).filter(User.user_id == user_data.student_id).first()
@@ -332,7 +331,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     - Returns JWT token valid for 24 hours
     - Use this token in Authorization header: `Bearer <token>`
     """
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
 
     user = _get_active_user_by_id(db, credentials.student_id)
     if not user:
@@ -376,7 +375,7 @@ def get_current_user_info(
     
     Returns the authenticated user's profile.
     """
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
     user = _get_active_user_by_id(db, current_user.user_id)
 
     if not user:
@@ -400,7 +399,7 @@ def auth_service_status(db: Session = Depends(get_db)):
     """
     Check authentication service status.
     """
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
     active_count = db.query(User).filter(User.is_archived.is_(False)).count()
     archived_count = db.query(User).filter(User.is_archived.is_(True)).count()
 
@@ -422,7 +421,7 @@ def list_users(
     db: Session = Depends(get_db),
 ):
     """List users for instructor/admin roles."""
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
 
     query = db.query(User)
     if not include_archived:
@@ -451,7 +450,7 @@ def archive_user(
     db: Session = Depends(get_db),
 ):
     """Archive or reactivate a user using soft-delete semantics."""
-    _import_seed_users_if_empty(db)
+    _import_seed_users(db)
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:

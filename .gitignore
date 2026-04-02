@@ -68,3 +68,6 @@ md/
 # Docs klasörü
 docs/
 
+# Claude agent workspace
+.claude/
+
