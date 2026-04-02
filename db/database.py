@@ -18,7 +18,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 # ==================== VERİTABANI KONFIGÜRASYONU ====================
 
 # SQLite veritabanı URL'i (proje kök dizininde oluşturulacak)
-DATABASE_URL = "sqlite:///./dentai_app.db"
+# Sprint 2: allow environment override for Alembic + runtime parity.
+DATABASE_URL = os.getenv("DENTAI_DATABASE_URL", "sqlite:///./dentai_app.db")
 
 # Engine oluştur (Streamlit için check_same_thread=False kritik!)
 engine = create_engine(
@@ -91,6 +92,40 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(id={self.id}, user_id={self.user_id}, role={self.role}, archived={self.is_archived})>"
+
+
+class CaseDefinition(Base):
+    """Canonical case catalog used for DB-backed content imports."""
+
+    __tablename__ = "case_definitions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, unique=True, nullable=False, index=True)
+    schema_version = Column(String, nullable=False, default="2.0")
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    difficulty = Column(String, nullable=False)
+    estimated_duration_minutes = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    learning_objectives = Column(JSON, nullable=False, default=list)
+    prerequisite_competencies = Column(JSON, nullable=False, default=list)
+    competency_tags = Column(JSON, nullable=False, default=list)
+    initial_state = Column(String, nullable=False)
+    states_json = Column(JSON, nullable=False, default=dict)
+    patient_info_json = Column(JSON, nullable=False, default=dict)
+    source_payload = Column(JSON, nullable=False, default=dict)
+    is_archived = Column(Boolean, nullable=False, default=False, index=True)
+    archived_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
+
+    def __repr__(self):
+        return f"<CaseDefinition(id={self.id}, case_id={self.case_id}, schema={self.schema_version})>"
 
 class ChatLog(Base):
     """
