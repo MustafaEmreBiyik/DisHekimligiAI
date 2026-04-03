@@ -80,6 +80,19 @@
               doğrulandı. Admin publish akışı (Sprint 6) bu araç üzerine inşa edilecek.
 [2026-04-02] [DECISION-033] Sprint 2 closure APPROVED. 23 test geçiyor, Alembic upgrade
               başarılı, import dry-run ve apply testleri temiz.
+[2026-04-02] [DECISION-034] Sprint 3 öneri motoru algoritması: competency bazlı hibrit
+              (v1). Sıralama: tamamlanmamış > zayıf competency > zorluk uyumu > cold start.
+              ML/embedding tabanlı yaklaşım Sprint 4+ scope.
+[2026-04-02] [DECISION-035] Recommendation endpoint sadece student rolüne açık.
+              Instructor/admin kendi öğrencileri için ayrı endpoint Sprint 5'te gelecek.
+[2026-04-02] [DECISION-036] DB boşken JSON fallback eklendi. Sprint 6 admin publish
+              akışına kadar import_cases.py çalıştırılmadan da endpoint çalışır.
+[2026-04-02] [DECISION-037] recommendation_snapshots tablosu eklendi. Her öneri
+              üretiminde explainability kaydı atılıyor (algorithm_version, reason_code).
+[2026-04-02] [DECISION-038] Handoff Block'lar sadece sohbet mesajı olarak yaşıyor,
+              dosyaya yazılmıyor. Gelecekte DENTAI_ORCHESTRATOR_LOG.md'ye eklenmeli.
+[2026-04-02] [DECISION-039] Sprint 3 closure APPROVED. 26 test geçiyor.
+              Frontend ESLint temiz, TypeScript tipleri tanımlı.
 ```
 
 ---
@@ -88,14 +101,14 @@
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 2 ✅ DONE → Sprint 3 READY
+DENTAI AGENT STATUS — Sprint: 3 ✅ DONE → Sprint 4 READY
 ═══════════════════════════════════════════
 
-SPRINT 3 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
-- Case/Rule şeması v2.0 canonical — öneri motoru bu temele inşa edilebilir
-- competency_tags her kurala eklendi — yetkinlik bazlı öneri çalışabilir
-- Alembic hazır — yeni tablolar migration ile eklenebilir
-- 23 test geçiyor, profil offline ve deterministik
+SPRINT 4 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
+- Öneri motoru backend API stabil (GET /api/recommendations/me)
+- Frontend dashboard entegrasyonu tamamlandı
+- recommendation_snapshots tablosu hazır (explainability)
+- 26 test geçiyor, profil offline ve deterministik
 
 | Agent   | Task ID           | Status       | Waiting On                              |
 |---------|------------------|--------------|-----------------------------------------|
@@ -103,13 +116,14 @@ SPRINT 3 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
 | AGENT-2 | SPRINT-1-TASK-2  | DONE         | —                                       |
 | AGENT-2 | SPRINT-1-TASK-5  | DONE         | —                                       |
 | AGENT-2 | SPRINT-2-TASK-1  | DONE         | —                                       |
-| AGENT-3 | —                | IDLE         | Sprint 3 (frontend öneri entegrasyonu)  |
-| AGENT-4 | —                | IDLE         | Sprint 4 (MedGemma fallback)            |
+| AGENT-2 | SPRINT-3-TASK-1  | DONE         | —                                       |
+| AGENT-3 | SPRINT-3-TASK-2  | DONE         | —                                       |
+| AGENT-4 | —                | IDLE         | Sprint 4 (MedGemma fallback validator)  |
 | AGENT-5 | SPRINT-1-TASK-1  | DONE         | —                                       |
 | AGENT-6 | —                | IDLE         | Sprint 4 (Prompt injection)             |
 | AGENT-7 | SPRINT-1-TASK-4A | DONE         | —                                       |
 | AGENT-7 | SPRINT-1-TASK-4B | DONE         | —  (APPROVED 2026-04-02)                |
-| AGENT-7 | SPRINT-4-COACH   | PENDING      | Sprint 4 (/api/chat/coach audit)        |
+| AGENT-7 | SPRINT-4-COACH   | PENDING      | Sprint 4 coach endpoint implement edilsin|
 ═══════════════════════════════════════════
 ```
 
@@ -141,6 +155,65 @@ AGENT-7 re-approval tamamlandı. Tüm CRITICAL ve HIGH bulgular kapatıldı.
 ---
 
 ## COMPLETION BLOCKS ARŞİVİ
+
+### AGENT-2 — SPRINT-3-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: GET /api/recommendations/me endpoint, recommendation_snapshots
+             tablosu, Alembic migration, 3 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/recommendations.py: YENİ — öneri motoru, algoritma, endpoint
+- db/database.py: RecommendationSnapshot ORM modeli eklendi
+- alembic/versions/5f8a72c1d9b4_add_recommendation_snapshots.py: YENİ migration
+- app/api/main.py: recommendations router eklendi
+- test_recommendations_sprint3.py: YENİ — cold start, student-only, öneri testi
+
+ALGORITHM NOTES:
+- 7 aktif vaka, max 5 öneri
+- Sıralama: not_attempted > weak_competency > difficulty_match > cold_start
+- DB boşken JSON fallback aktif
+- Student-only: instructor 403 döndürüyor
+
+VALIDATION:
+- alembic upgrade head → OK
+- test_recommendations_sprint3.py → 3 passed
+- Default offline profil → 26 passed, 4 deselected
+
+DEPENDENCIES UNLOCKED:
+- Sprint 3 frontend entegrasyonu başlayabilir (AGENT-3)
+- Sprint 5'te instructor/öğrenci öneri endpointi bu temele eklenecek
+```
+
+### AGENT-3 — SPRINT-3-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Dashboard öneri bölümü, RecommendationSection bileşeni,
+             TypeScript tipleri, fail-silent davranışı.
+
+FILES CHANGED:
+- frontend/lib/api.ts: RecommendationItem, RecommendationMeta,
+                        RecommendationResponse tipleri + getMyRecommendations()
+- frontend/components/RecommendationSection.tsx: YENİ — öneri kartı bileşeni
+- frontend/app/dashboard/page.tsx: öneri state, fetch, entegrasyon
+
+UI DECISIONS:
+- Öneri bölümü hoş geldin alanının hemen altına yerleştirildi
+- cold_start için ayrı bilgi bandı eklendi
+- Mobilde tek sütun, geniş ekranda iki sütun (responsive)
+- Türkçe UI zorunluluğu karşılandı
+
+VALIDATION:
+- ESLint temiz (any tipi düzeltildi)
+- TypeScript hata yok
+- Fail-silent: API hatasında bölüm gizleniyor, sayfa kırılmıyor
+
+NOT: Handoff Block repoda dosya olarak bulunmadı. Backend
+     recommendations.py sözleşmesinden doğrudan implemente edildi.
+     (DECISION-038: gelecekte log'a eklenmeli)
+```
 
 ### AGENT-5 — SPRINT-1-TASK-1 (DONE)
 
