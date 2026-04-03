@@ -148,6 +148,47 @@ class RecommendationSnapshot(Base):
             f"case_id={self.case_id}, reason_code={self.reason_code})>"
         )
 
+
+class CoachHint(Base):
+    """Stored coach hints for per-session usage limits and auditability."""
+
+    __tablename__ = "coach_hints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    hint_level = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<CoachHint(id={self.id}, session_id={self.session_id}, "
+            f"user_id={self.user_id}, hint_level={self.hint_level})>"
+        )
+
+
+class ValidatorAuditLog(Base):
+    """Audit log for every validator invocation in chat flow."""
+
+    __tablename__ = "validator_audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)
+    validator_used = Column(String, nullable=False)
+    safety_violation = Column(Boolean, nullable=False, default=False)
+    clinical_accuracy = Column(String, nullable=True)
+    response_time_ms = Column(Integer, nullable=False, default=0)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<ValidatorAuditLog(id={self.id}, session_id={self.session_id}, "
+            f"validator_used={self.validator_used}, safety_violation={self.safety_violation})>"
+        )
+
 class ChatLog(Base):
     """
     Sohbet Geçmişi Tablosu

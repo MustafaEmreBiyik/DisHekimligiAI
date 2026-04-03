@@ -122,4 +122,7 @@ class AssessmentEngine:
             "rule_outcome": outcome,
             "action_effect": effect,
             "state_updates": state_updates,
+            "is_critical_safety_rule": bool(rule.get("is_critical_safety_rule", False)),
+            "safety_category": rule.get("safety_category"),
+            "competency_tags": rule.get("competency_tags", []) or [],
         }
