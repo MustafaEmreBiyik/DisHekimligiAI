@@ -128,6 +128,26 @@ class CaseDefinition(Base):
         return f"<CaseDefinition(id={self.id}, case_id={self.case_id}, schema={self.schema_version})>"
 
 
+class CasePublishHistory(Base):
+    """Versioned publish history snapshots for case catalog changes."""
+
+    __tablename__ = "case_publish_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    change_notes = Column(Text, nullable=False)
+    published_by = Column(String, nullable=False, index=True)
+    published_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+    snapshot_json = Column(JSON, nullable=False, default=dict)
+
+    def __repr__(self):
+        return (
+            f"<CasePublishHistory(id={self.id}, case_id={self.case_id}, "
+            f"version={self.version}, published_by={self.published_by})>"
+        )
+
+
 class RecommendationSnapshot(Base):
     """Explainable recommendation records persisted for auditability."""
 
@@ -140,6 +160,7 @@ class RecommendationSnapshot(Base):
     reason_text = Column(Text, nullable=False)
     priority_score = Column(Integer, nullable=False)
     algorithm_version = Column(String, nullable=False)
+    is_spotlight = Column(Boolean, nullable=False, default=False, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
 
     def __repr__(self):
