@@ -127,6 +127,27 @@ class CaseDefinition(Base):
     def __repr__(self):
         return f"<CaseDefinition(id={self.id}, case_id={self.case_id}, schema={self.schema_version})>"
 
+
+class RecommendationSnapshot(Base):
+    """Explainable recommendation records persisted for auditability."""
+
+    __tablename__ = "recommendation_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    case_id = Column(String, nullable=False, index=True)
+    reason_code = Column(String, nullable=False)
+    reason_text = Column(Text, nullable=False)
+    priority_score = Column(Integer, nullable=False)
+    algorithm_version = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<RecommendationSnapshot(id={self.id}, user_id={self.user_id}, "
+            f"case_id={self.case_id}, reason_code={self.reason_code})>"
+        )
+
 class ChatLog(Base):
     """
     Sohbet Geçmişi Tablosu
