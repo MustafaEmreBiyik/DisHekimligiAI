@@ -166,40 +166,5 @@ Several things make the project stand out from a standard educational chatbot:
 
 That combination gives the project a stronger educational shape. The system is trying to teach a process, not just generate plausible answers.
 
-## Current product shape
 
-In its current form, DentAI includes:
 
-- authenticated student access
-- a case dashboard
-- chat-based case interaction
-- profile and progress-related views
-- statistics pages for performance review
-- quiz-related views
-- API support for cases, chat, analytics, feedback, and authentication
-
-The repository also still contains a legacy Streamlit entrypoint from an earlier stage of the project, but the main application experience now centers on the FastAPI and Next.js implementation.
-
-## Short technical note
-
-DentAI is implemented with a Python backend and a Next.js frontend. The backend handles case logic, authentication, session persistence, evaluation, and analytics. The frontend provides the student-facing experience for login, case selection, chat interaction, statistics, quizzes, and related pages.
-
-## Related documents
-
-- `PROJECT_ARCHITECTURE.md`
-- `frontend/README.md`
-- `mdfiles/REACT_MIGRATION_AUDIT.md`
-
-## Migration commands (Sprint 2)
-
-Use Alembic for schema evolution instead of relying only on create_all.
-
-- Set DB URL (optional, defaults to sqlite:///./dentai_app.db):
-	- `set DENTAI_DATABASE_URL=sqlite:///./dentai_app.db` (Windows CMD)
-	- `$env:DENTAI_DATABASE_URL = "sqlite:///./dentai_app.db"` (PowerShell)
-- Upgrade to latest schema:
-	- `python -m alembic upgrade head`
-- Downgrade one revision:
-	- `python -m alembic downgrade -1`
-- Create a new revision file:
-	- `python -m alembic revision -m "describe_change"`
