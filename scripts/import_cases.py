@@ -21,7 +21,8 @@ if str(PROJECT_ROOT) not in sys.path:
 from db.database import CaseDefinition
 
 
-DEFAULT_DATABASE_URL = "sqlite:///./dentai_app.db"
+DEFAULT_SQLITE_DB_PATH = PROJECT_ROOT / "db" / "runtime" / "dentai_app.db"
+DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_DB_PATH.as_posix()}"
 REQUIRED_FIELDS = {
     "case_id",
     "schema_version",

@@ -8,6 +8,7 @@ Streamlit uygulaması için SQLite kullanır.
 import datetime
 import os
 import sqlite3
+from pathlib import Path
 from urllib.parse import urlparse
 from typing import Optional
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
@@ -19,7 +20,10 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # SQLite veritabanı URL'i (proje kök dizininde oluşturulacak)
 # Sprint 2: allow environment override for Alembic + runtime parity.
-DATABASE_URL = os.getenv("DENTAI_DATABASE_URL", "sqlite:///./dentai_app.db")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SQLITE_DB_PATH = PROJECT_ROOT / "db" / "runtime" / "dentai_app.db"
+DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_DB_PATH.as_posix()}"
+DATABASE_URL = os.getenv("DENTAI_DATABASE_URL", DEFAULT_DATABASE_URL)
 
 # Engine oluştur (Streamlit için check_same_thread=False kritik!)
 engine = create_engine(
@@ -293,22 +297,20 @@ def init_db():
 
 
 def _sqlite_db_file_path() -> Optional[str]:
-    """Resolve the SQLite file path from DATABASE_URL (sqlite:///./file.db)."""
+    """Resolve the SQLite file path from DATABASE_URL."""
     try:
         parsed = urlparse(DATABASE_URL)
         if parsed.scheme != "sqlite":
             return None
 
-        # sqlite:///./dentai_app.db -> path like /./dentai_app.db
+        # sqlite:///d:/path/to/db/runtime/dentai_app.db -> path like /d:/path/...
         path = parsed.path
         if not path:
             return None
 
-        # Strip leading '/' on Windows paths like '/./dentai_app.db'
+        # Strip leading '/' on Windows paths like '/d:/path/to/file.db'
         while path.startswith("/"):
             path = path[1:]
-
-        # DATABASE_URL is relative to project root in this repo.
         return os.path.normpath(path)
     except Exception:
         return None
