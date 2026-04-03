@@ -10,8 +10,6 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 // API base URL from environment variable
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-console.log("🔌 API_URL Configured as:", API_URL); // Debug log
-
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -168,6 +166,41 @@ export const casesAPI = {
   getSession: async (caseId: string) => {
     const response = await apiClient.get(`/api/cases/${caseId}/session`);
     return response.data;
+  },
+};
+
+export interface RecommendationItem {
+  case_id: string;
+  title: string;
+  difficulty: string;
+  estimated_duration_minutes: number;
+  competency_tags: string[];
+  reason_code: string;
+  reason_text: string;
+  priority_score: number;
+}
+
+export interface RecommendationMeta {
+  algorithm_version: string;
+  generated_at: string;
+  cold_start: boolean;
+}
+
+export interface RecommendationResponse {
+  recommendations: RecommendationItem[];
+  meta: RecommendationMeta;
+}
+
+/**
+ * Recommendation API
+ */
+export const recommendationsAPI = {
+  /**
+   * Get personalized recommendations for authenticated student
+   */
+  getMyRecommendations: async (): Promise<RecommendationResponse> => {
+    const response = await apiClient.get("/api/recommendations/me");
+    return response.data as RecommendationResponse;
   },
 };
 

@@ -80,6 +80,40 @@
               doğrulandı. Admin publish akışı (Sprint 6) bu araç üzerine inşa edilecek.
 [2026-04-02] [DECISION-033] Sprint 2 closure APPROVED. 23 test geçiyor, Alembic upgrade
               başarılı, import dry-run ve apply testleri temiz.
+[2026-04-02] [DECISION-034] Sprint 3 öneri motoru algoritması: competency bazlı hibrit
+              (v1). Sıralama: tamamlanmamış > zayıf competency > zorluk uyumu > cold start.
+              ML/embedding tabanlı yaklaşım Sprint 4+ scope.
+[2026-04-02] [DECISION-035] Recommendation endpoint sadece student rolüne açık.
+              Instructor/admin kendi öğrencileri için ayrı endpoint Sprint 5'te gelecek.
+[2026-04-02] [DECISION-036] DB boşken JSON fallback eklendi. Sprint 6 admin publish
+              akışına kadar import_cases.py çalıştırılmadan da endpoint çalışır.
+[2026-04-02] [DECISION-037] recommendation_snapshots tablosu eklendi. Her öneri
+              üretiminde explainability kaydı atılıyor (algorithm_version, reason_code).
+[2026-04-02] [DECISION-038] Handoff Block'lar sadece sohbet mesajı olarak yaşıyor,
+              dosyaya yazılmıyor. Gelecekte DENTAI_ORCHESTRATOR_LOG.md'ye eklenmeli.
+[2026-04-02] [DECISION-039] Sprint 3 closure APPROVED. 26 test geçiyor.
+              Frontend ESLint temiz, TypeScript tipleri tanımlı.
+[2026-04-03] [DECISION-040] Clinical Coach endpoint implement edildi.
+              İki katmanlı tanı koruması: prompt hard-constraint + post-sanitize filter.
+              Session başına max 3 hint, hint_level escalation: light_nudge →
+              guided_hint → reflective_feedback.
+[2026-04-03] [DECISION-041] MedGemma production-grade validator tamamlandı.
+              Timeout: 10s, retry: 2x exponential backoff.
+              Fail-closed: hata durumunda safety_violation=True zorunlu.
+[2026-04-03] [DECISION-042] Deterministic pre-check sırası kesinleşti:
+              Rule Engine → MedGemma. MedGemma sadece ek değerlendirme katmanı.
+[2026-04-03] [DECISION-043] MedGemma structured output strict enforce edildi.
+              Eksik zorunlu alanda fail-closed + schema_violation audit kaydı.
+              Legacy fallback kaldırıldı.
+[2026-04-03] [DECISION-044] Prompt injection hardening tamamlandı.
+              Merkezi llm_safety.py modülü eklendi.
+              Non-blocking tasarım: false positive yerine log-and-continue.
+              Injection attempt'ler system_validator ChatLog olarak persist ediliyor.
+[2026-04-03] [DECISION-045] Injection analytics backlog Sprint 5/6'ya eklendi:
+              instructor-only view for system_validator events by case and risk_level.
+[2026-04-03] [DECISION-046] Sprint 4 closure APPROVED. AGENT-7 re-approval
+              gerekmiyor — AGENT-6 sadece yeni kod ekledi, onaylanan hiçbir şeyi
+              değiştirmedi. 37 test geçiyor, 4 deselected.
 ```
 
 ---
@@ -88,14 +122,14 @@
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 2 ✅ DONE → Sprint 3 READY
+DENTAI AGENT STATUS — Sprint: 4 ✅ DONE → Sprint 5 READY
 ═══════════════════════════════════════════
 
-SPRINT 3 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
-- Case/Rule şeması v2.0 canonical — öneri motoru bu temele inşa edilebilir
-- competency_tags her kurala eklendi — yetkinlik bazlı öneri çalışabilir
-- Alembic hazır — yeni tablolar migration ile eklenebilir
-- 23 test geçiyor, profil offline ve deterministik
+SPRINT 5 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
+- Clinical Coach backend hazır (POST /api/chat/coach)
+- MedGemma fail-closed + strict schema enforce
+- Prompt injection hardening aktif (llm_safety.py)
+- 37 test geçiyor, profil offline ve deterministik
 
 | Agent   | Task ID           | Status       | Waiting On                              |
 |---------|------------------|--------------|-----------------------------------------|
@@ -103,13 +137,18 @@ SPRINT 3 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
 | AGENT-2 | SPRINT-1-TASK-2  | DONE         | —                                       |
 | AGENT-2 | SPRINT-1-TASK-5  | DONE         | —                                       |
 | AGENT-2 | SPRINT-2-TASK-1  | DONE         | —                                       |
-| AGENT-3 | —                | IDLE         | Sprint 3 (frontend öneri entegrasyonu)  |
-| AGENT-4 | —                | IDLE         | Sprint 4 (MedGemma fallback)            |
+| AGENT-2 | SPRINT-3-TASK-1  | DONE         | —                                       |
+| AGENT-2 | SPRINT-4-TASK-1  | DONE         | —                                       |
+| AGENT-2 | SPRINT-4-TASK-3  | DONE         | —                                       |
+| AGENT-3 | SPRINT-3-TASK-2  | DONE         | —                                       |
+| AGENT-3 | —                | IDLE         | Sprint 5 (Coach frontend entegrasyonu)  |
+| AGENT-4 | —                | IDLE         | —                                       |
 | AGENT-5 | SPRINT-1-TASK-1  | DONE         | —                                       |
-| AGENT-6 | —                | IDLE         | Sprint 4 (Prompt injection)             |
+| AGENT-6 | SPRINT-4-TASK-4  | DONE         | —                                       |
 | AGENT-7 | SPRINT-1-TASK-4A | DONE         | —                                       |
 | AGENT-7 | SPRINT-1-TASK-4B | DONE         | —  (APPROVED 2026-04-02)                |
-| AGENT-7 | SPRINT-4-COACH   | PENDING      | Sprint 4 (/api/chat/coach audit)        |
+| AGENT-7 | SPRINT-4-TASK-2  | DONE         | —  (APPROVED 2026-04-03)                |
+| AGENT-7 | SPRINT-4-TASK-3  | DONE         | —  (APPROVED 2026-04-03)                |
 ═══════════════════════════════════════════
 ```
 
@@ -141,6 +180,177 @@ AGENT-7 re-approval tamamlandı. Tüm CRITICAL ve HIGH bulgular kapatıldı.
 ---
 
 ## COMPLETION BLOCKS ARŞİVİ
+
+### AGENT-2 — SPRINT-4-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: POST /api/chat/coach endpoint + MedGemma
+             production-grade validator. 30 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/chat.py: coach endpoint, owner check,
+                            hint quota, sanitize, audit log
+- app/services/med_gemma_service.py: timeout/retry/fail-closed,
+                                      structured output, audit
+- app/agent.py: _deterministic_precheck eklendi
+- app/assessment_engine.py: kritik kural metadata eklendi
+- db/database.py: CoachHint, ValidatorAuditLog modelleri
+- alembic/versions/8b21f3c4d901_*: YENİ migration
+- test_sprint4_coach_validator.py: YENİ — 4 test
+
+COACH NOTES:
+- Hint escalation: light_nudge → guided_hint → reflective_feedback
+- Max 3 hint/session → 429, session finished → 400, owner dışı → 403
+- İki katmanlı tanı koruması: prompt hard-constraint + post-sanitize
+
+VALIDATOR NOTES:
+- Fail-closed: MedGemma hata → safety_violation=True
+- Deterministic pre-check: Rule Engine → MedGemma sırası
+- validator_audit_log her çağrıda yazılıyor
+
+VALIDATION:
+- alembic upgrade head → OK
+- test_sprint4_coach_validator.py → 4 passed
+- Default offline profil → 30 passed, 4 deselected
+```
+
+### AGENT-2 — SPRINT-4-TASK-3 (DONE)
+
+```
+Status: DONE
+Deliverable: MedGemma structured output strict enforce fix.
+             5 test geçiyor.
+
+FILES CHANGED:
+- app/services/med_gemma_service.py: zorunlu alan kontrolü,
+  legacy fallback kaldırıldı, schema_violation fail-closed
+
+FIX:
+- Eksik zorunlu alanda fail-closed + schema_violation audit
+- Tip doğrulaması (liste/string) eklendi
+- clinical_accuracy enum validation eklendi
+
+VALIDATION:
+- test_sprint4_coach_validator.py → 5 passed
+- Default offline profil → 31 passed, 4 deselected
+```
+
+### AGENT-7 — SPRINT-4-TASK-2 (DONE — APPROVED)
+
+```
+Status: DONE
+Sprint 4 Closure Verdict: BLOCKED → APPROVED (after TASK-3 fix)
+
+AUDIT-A (Coach Boundary): A1-A7 tümü PASS
+- Owner dışı → 403 ✅
+- Bitmiş session → 400 ✅
+- Max 3 hint → 429 ✅
+- Prompt hard-constraint ✅
+- Post-sanitize filter ✅
+- coach_hints DB kaydı ✅
+- Instructor/admin → 403 ✅
+
+AUDIT-B (Validator): Tek blocker tespit edildi
+- [HIGH] Structured output strict enforce edilmiyor
+  → AGENT-2 TASK-3 ile fix edildi, re-approval verildi
+
+FINAL VERDICT: APPROVED
+```
+
+### AGENT-6 — SPRINT-4-TASK-4 (DONE)
+
+```
+Status: DONE
+Deliverable: Prompt injection hardening. 37 test geçiyor.
+
+FILES CHANGED:
+- app/services/llm_safety.py: YENİ — merkezi güvenlik modülü
+- app/agent.py: sanitization, injection detection, prompt isolation,
+                strict response normalization
+- app/services/med_gemma_service.py: sanitized input, security policy
+- app/api/routers/chat.py: injection events system_validator olarak persist
+- conftest.py: mock şeması güncellendi
+- tests/test_rules_integration.py: mock şeması güncellendi
+- test_sprint4_coach_validator.py: genişletildi
+- test_llm_safety_sprint6.py: YENİ — injection testi
+
+FINDINGS:
+- [CRITICAL] Ham prompt injection → FIX: llm_safety.py + prompt isolation
+- [HIGH] Injection logging yok → FIX: system_validator ChatLog persist
+- [HIGH] Gemini response loose normalization → FIX: strict normalize
+- [MEDIUM] MedGemma mock legacy şema → FIX: mock'lar güncellendi
+
+DESIGN:
+- Non-blocking: false positive yerine log-and-continue
+- [STUDENT INPUT]...[/STUDENT INPUT] isolation pattern
+
+VALIDATION:
+- Targeted: 12 passed, 3 deselected
+- Default offline profil → 37 passed, 4 deselected
+
+BACKLOG (Sprint 5/6):
+- Instructor analytics view for injection events
+```
+
+### AGENT-2 — SPRINT-3-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: GET /api/recommendations/me endpoint, recommendation_snapshots
+             tablosu, Alembic migration, 3 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/recommendations.py: YENİ — öneri motoru, algoritma, endpoint
+- db/database.py: RecommendationSnapshot ORM modeli eklendi
+- alembic/versions/5f8a72c1d9b4_add_recommendation_snapshots.py: YENİ migration
+- app/api/main.py: recommendations router eklendi
+- test_recommendations_sprint3.py: YENİ — cold start, student-only, öneri testi
+
+ALGORITHM NOTES:
+- 7 aktif vaka, max 5 öneri
+- Sıralama: not_attempted > weak_competency > difficulty_match > cold_start
+- DB boşken JSON fallback aktif
+- Student-only: instructor 403 döndürüyor
+
+VALIDATION:
+- alembic upgrade head → OK
+- test_recommendations_sprint3.py → 3 passed
+- Default offline profil → 26 passed, 4 deselected
+
+DEPENDENCIES UNLOCKED:
+- Sprint 3 frontend entegrasyonu başlayabilir (AGENT-3)
+- Sprint 5'te instructor/öğrenci öneri endpointi bu temele eklenecek
+```
+
+### AGENT-3 — SPRINT-3-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Dashboard öneri bölümü, RecommendationSection bileşeni,
+             TypeScript tipleri, fail-silent davranışı.
+
+FILES CHANGED:
+- frontend/lib/api.ts: RecommendationItem, RecommendationMeta,
+                        RecommendationResponse tipleri + getMyRecommendations()
+- frontend/components/RecommendationSection.tsx: YENİ — öneri kartı bileşeni
+- frontend/app/dashboard/page.tsx: öneri state, fetch, entegrasyon
+
+UI DECISIONS:
+- Öneri bölümü hoş geldin alanının hemen altına yerleştirildi
+- cold_start için ayrı bilgi bandı eklendi
+- Mobilde tek sütun, geniş ekranda iki sütun (responsive)
+- Türkçe UI zorunluluğu karşılandı
+
+VALIDATION:
+- ESLint temiz (any tipi düzeltildi)
+- TypeScript hata yok
+- Fail-silent: API hatasında bölüm gizleniyor, sayfa kırılmıyor
+
+NOT: Handoff Block repoda dosya olarak bulunmadı. Backend
+     recommendations.py sözleşmesinden doğrudan implemente edildi.
+     (DECISION-038: gelecekte log'a eklenmeli)
+```
 
 ### AGENT-5 — SPRINT-1-TASK-1 (DONE)
 

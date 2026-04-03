@@ -11,7 +11,12 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { casesAPI } from "@/lib/api";
+import {
+  casesAPI,
+  recommendationsAPI,
+  RecommendationResponse,
+} from "@/lib/api";
+import RecommendationSection from "@/components/RecommendationSection";
 
 interface CaseItem {
   case_id: string;
@@ -34,6 +39,13 @@ export default function DashboardPage() {
   const [isLoadingCases, setIsLoadingCases] = useState(true);
   const [error, setError] = useState("");
 
+  // State for recommendation dashboard integration
+  const [recommendationData, setRecommendationData] =
+    useState<RecommendationResponse | null>(null);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(true);
+  const [showRecommendations, setShowRecommendations] = useState(true);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,8 +57,25 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       fetchCases();
+      fetchRecommendations();
     }
   }, [user]);
+
+  const fetchRecommendations = async () => {
+    setIsLoadingRecommendations(true);
+
+    try {
+      const data = await recommendationsAPI.getMyRecommendations();
+      setRecommendationData(data);
+      setShowRecommendations(true);
+    } catch {
+      // Silent failure requirement: hide recommendation section on API error.
+      setRecommendationData(null);
+      setShowRecommendations(false);
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
 
   const fetchCases = async () => {
     setIsLoadingCases(true);
@@ -55,8 +84,7 @@ export default function DashboardPage() {
     try {
       const casesData = await casesAPI.getAllCases();
       setCases(casesData);
-    } catch (err: any) {
-      console.error("Failed to fetch cases:", err);
+    } catch {
       setError("Vakalar yüklenirken bir hata oluştu.");
       // Fallback to static cases if API fails
       setCases([
@@ -201,6 +229,14 @@ export default function DashboardPage() {
             Aşağıdaki vakalardan birini seçerek eğitiminize başlayabilirsiniz.
           </p>
         </div>
+
+        {/* Recommendation Section (silent on API failure) */}
+        {showRecommendations && (
+          <RecommendationSection
+            data={recommendationData}
+            isLoading={isLoadingRecommendations}
+          />
+        )}
 
         {/* Error Banner */}
         {error && (
