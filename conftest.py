@@ -16,10 +16,10 @@ _DEFAULT_GEMINI_PAYLOAD = {
 }
 
 _DEFAULT_MEDGEMMA_PAYLOAD = {
-    "is_clinically_accurate": True,
-    "safety_violation": False,
-    "missing_critical_info": [],
-    "feedback": "Mocked MedGemma response",
+    "safety_flags": [],
+    "missing_critical_steps": [],
+    "clinical_accuracy": "high",
+    "faculty_notes": "Mocked MedGemma response",
 }
 
 
