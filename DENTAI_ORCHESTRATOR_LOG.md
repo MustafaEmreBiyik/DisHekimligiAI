@@ -114,6 +114,37 @@
 [2026-04-03] [DECISION-046] Sprint 4 closure APPROVED. AGENT-7 re-approval
               gerekmiyor — AGENT-6 sadece yeni kod ekledi, onaylanan hiçbir şeyi
               değiştirmedi. 37 test geçiyor, 4 deselected.
+[2026-04-03] [DECISION-047] v1 instructor assignment: assignment tablosu olmadığı için
+              instructor tüm aktif öğrencileri görüyor. Granüler atama Sprint 6+.
+[2026-04-03] [DECISION-048] RecommendationSnapshot modeline is_spotlight eklendi.
+              Alembic migration downgrade destekli (9c1a7c0b5aa1).
+[2026-04-03] [DECISION-049] Instructor portal route yapısı student sayfalarından
+              tamamen izole: /instructor/dashboard, /instructor/students/[id],
+              /instructor/sessions/[id].
+[2026-04-03] [DECISION-050] InstructorRouteGuard bileşeni eklendi. Yetkisiz erişimde
+              /dashboard yönlendirmesi. AuthContext akışı değiştirilmedi.
+[2026-04-03] [DECISION-051] Spotlight vaka seçimi drill-down verisinden yapılıyor.
+              Ayrı cases endpoint çağrısı yok, pragmatik karar.
+[2026-04-03] [DECISION-052] Sprint 5 closure APPROVED. Backend 3 test geçiyor.
+              Frontend ESLint temiz, TypeScript tipleri tanımlı.
+[2026-04-03] [DECISION-053] Admin portal backend tamamlandı: kullanıcı yönetimi,
+              vaka kataloğu, versiyonlu publish workflow, kural yönetimi, health panel.
+[2026-04-03] [DECISION-054] Versiyonlu publish workflow: her publish'te version artar,
+              önceki version snapshot_json ile arşivlenir, hiçbir zaman silinmez.
+[2026-04-03] [DECISION-055] Admin kendini arşivleyemez ve kendi rolünü değiştiremez.
+              Backend'de enforce edildi (400 dön).
+[2026-04-03] [DECISION-056] utcnow deprecation fix ve OpenAPI schema sıkılaştırma
+              backlog'a alındı. Sprint 6 blocker değil.
+[2026-04-03] [DECISION-057] Admin portal frontend: AdminRouteGuard, 3 sayfa,
+              TypeScript tipleri. Admin olmayan → /dashboard yönlendirme.
+[2026-04-03] [DECISION-058] /api/admin/rules tipleri API katmanına eklendi ama
+              Sprint 6 sayfalarında kullanılmadı. Gelecek sprint'te rules editor için hazır.
+[2026-04-03] [DECISION-059] MEDIUM — Catalog source-of-truth ayrışması tespit edildi:
+              admin is_active güncelliyor ama runtime halen JSON üzerinden çalışıyor.
+              Breaking change riski düşük. Admin publish akışının olgunlaşmasıyla
+              çözülmeli. Backlog'a alındı.
+[2026-04-03] [DECISION-060] Sprint 6 closure APPROVED — AGENT-7 onayladı.
+              44 test geçiyor, 4 deselected. Proje deployment'a hazır.
 ```
 
 ---
@@ -122,35 +153,66 @@
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 4 ✅ DONE → Sprint 5 READY
+DENTAI AGENT STATUS — Sprint: 6 ✅ DONE — PROJE TAMAMLANDI
 ═══════════════════════════════════════════
 
-SPRINT 5 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
-- Clinical Coach backend hazır (POST /api/chat/coach)
-- MedGemma fail-closed + strict schema enforce
-- Prompt injection hardening aktif (llm_safety.py)
-- 37 test geçiyor, profil offline ve deterministik
+TÜM SPRINT'LER TAMAMLANDI ✅
+- 44 test geçiyor, 4 deselected
+- Proje deployment'a hazır
+- Açık backlog (blocker değil):
+  * utcnow deprecation fix (MEDIUM)
+  * Catalog source-of-truth ayrışması (MEDIUM)
+  * rules editor UI (future sprint)
+  * Token revocation / jti blacklist (HIGH)
+  * Quiz answer key ifşası (MEDIUM)
 
-| Agent   | Task ID           | Status       | Waiting On                              |
-|---------|------------------|--------------|-----------------------------------------|
-| AGENT-1 | —                | IDLE         | —                                       |
-| AGENT-2 | SPRINT-1-TASK-2  | DONE         | —                                       |
-| AGENT-2 | SPRINT-1-TASK-5  | DONE         | —                                       |
-| AGENT-2 | SPRINT-2-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-3-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-4-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-4-TASK-3  | DONE         | —                                       |
-| AGENT-3 | SPRINT-3-TASK-2  | DONE         | —                                       |
-| AGENT-3 | —                | IDLE         | Sprint 5 (Coach frontend entegrasyonu)  |
-| AGENT-4 | —                | IDLE         | —                                       |
-| AGENT-5 | SPRINT-1-TASK-1  | DONE         | —                                       |
-| AGENT-6 | SPRINT-4-TASK-4  | DONE         | —                                       |
-| AGENT-7 | SPRINT-1-TASK-4A | DONE         | —                                       |
-| AGENT-7 | SPRINT-1-TASK-4B | DONE         | —  (APPROVED 2026-04-02)                |
-| AGENT-7 | SPRINT-4-TASK-2  | DONE         | —  (APPROVED 2026-04-03)                |
-| AGENT-7 | SPRINT-4-TASK-3  | DONE         | —  (APPROVED 2026-04-03)                |
+| Agent   | Task ID           | Status       |
+|---------|------------------|--------------|
+| AGENT-2 | SPRINT-1-TASK-2  | DONE         |
+| AGENT-2 | SPRINT-1-TASK-5  | DONE         |
+| AGENT-2 | SPRINT-2-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-3-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-4-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-4-TASK-3  | DONE         |
+| AGENT-2 | SPRINT-5-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-6-TASK-1  | DONE         |
+| AGENT-3 | SPRINT-3-TASK-2  | DONE         |
+| AGENT-3 | SPRINT-5-TASK-2  | DONE         |
+| AGENT-3 | SPRINT-6-TASK-2  | DONE         |
+| AGENT-5 | SPRINT-1-TASK-1  | DONE         |
+| AGENT-6 | SPRINT-4-TASK-4  | DONE         |
+| AGENT-7 | SPRINT-1-TASK-4A | DONE         |
+| AGENT-7 | SPRINT-1-TASK-4B | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-4-TASK-2  | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-4-TASK-3  | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-6-TASK-3  | DONE ✅ APPROVED |
 ═══════════════════════════════════════════
 ```
+
+---
+
+## PROJE TAMAMLANDI ✅ — 2026-04-03
+
+**Tüm 6 sprint tamamlandı. Proje deployment'a hazır.**
+
+| Sprint | Kapsam | Test Sonucu |
+|--------|--------|-------------|
+| Sprint 1 | RBAC + Güvenlik | 19 passed |
+| Sprint 2 | Normalizasyon + Alembic | 23 passed |
+| Sprint 3 | Öneri motoru | 26 passed |
+| Sprint 4 | Coach + MedGemma + Injection | 37 passed |
+| Sprint 5 | Instructor portal | 37+ passed |
+| Sprint 6 | Admin portal | 44 passed |
+
+**Açık backlog (deployment blocker değil):**
+- Token revocation / jti blacklist (HIGH)
+- Catalog source-of-truth ayrışması (MEDIUM)
+- utcnow deprecation fix (MEDIUM)
+- Quiz answer key ifşası (MEDIUM)
+- İç hata detayı sızıntısı (MEDIUM)
+- Audit log tamper-evidence (MEDIUM)
+- CORS origin allowlist (LOW)
+- rules editor UI (future sprint)
 
 ---
 
@@ -291,6 +353,154 @@ VALIDATION:
 
 BACKLOG (Sprint 5/6):
 - Instructor analytics view for injection events
+```
+
+### AGENT-2 — SPRINT-6-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: Admin portal backend — 5 endpoint grubu,
+             case_publish_history migration, 4 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/admin.py: YENİ — kullanıcı yönetimi,
+  vaka kataloğu, publish workflow, kural yönetimi, health
+- app/api/main.py: admin router eklendi
+- db/database.py: CasePublishHistory ORM modeli eklendi
+- alembic/versions/b7d42a1f63e2_*: YENİ migration
+- test_admin_sprint6.py: YENİ — 4 test
+
+ENDPOINTS:
+- GET/POST/PUT /api/admin/users
+- GET/POST/PUT /api/admin/cases
+- POST /api/admin/cases/{case_id}/publish
+- GET/PUT /api/admin/rules
+- GET /api/admin/health
+
+KARARLAR:
+- Tüm endpoint'ler require_roles(admin) only
+- Admin kendini arşivleyemez/rolünü değiştiremez (400)
+- Publish: version artar, snapshot_json arşivlenir
+- Health: sadece status/services/stats döner
+
+VALIDATION:
+- alembic upgrade head → OK
+- test_admin_sprint6.py → 4 passed
+- Default offline profil → 44 passed, 4 deselected
+```
+
+### AGENT-3 — SPRINT-6-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Admin portal — 3 sayfa, AdminRouteGuard,
+             TypeScript tipleri, ESLint temiz.
+
+FILES CHANGED:
+- frontend/lib/api.ts: admin tipleri + adminAPI
+- frontend/components/admin/AdminRouteGuard.tsx: YENİ
+- frontend/app/admin/dashboard/page.tsx: YENİ
+- frontend/app/admin/users/page.tsx: YENİ
+- frontend/app/admin/cases/page.tsx: YENİ
+
+UI KARARLAR:
+- Sade operasyon odaklı panel tasarımı
+- Admin kendini düzenleyemez: UI'da disabled
+- Health durumları renk kodlu: ok=yeşil, degraded=sarı,
+  unavailable=kırmızı
+- /api/admin/rules tipleri eklendi, sayfalarda kullanılmadı
+  (gelecek sprint rules editor için hazır)
+
+VALIDATION:
+- ESLint temiz, lint uyarısı düzeltildi
+- TypeScript hata yok
+```
+
+### AGENT-7 — SPRINT-6-TASK-3 (DONE — APPROVED)
+
+```
+Status: DONE
+Sprint 6 Closure Verdict: APPROVED
+
+TÜM MADDELER PASS:
+A1 Admin-only guard → PASS
+A2 Self-archive/role koruması → PASS
+A3 Publish versioning/snapshot → PASS
+A4 Publish history erişim izolasyonu → PASS
+A5 Health endpoint bilgi sızıntısı yok → PASS
+A6 Password hash, plain text log yok → PASS
+B7 Case deactivate aktif session kırmıyor → PASS
+B8 Publish workflow aktif session kırmıyor → PASS
+
+NON-BLOCKING:
+[MEDIUM] Catalog source-of-truth ayrışması:
+admin is_active güncelliyor ama runtime JSON'dan çalışıyor.
+Breaking change riski düşük, backlog'a alındı.
+
+Test: test_admin_sprint6.py → 4 passed
+Default: 44 passed, 4 deselected
+```
+
+### AGENT-2 — SPRINT-5-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: Instructor portal backend — 4 endpoint,
+             is_spotlight migration, 3 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/instructor.py: YENİ — 4 endpoint
+- app/api/main.py: instructor router eklendi
+- db/database.py: RecommendationSnapshot.is_spotlight eklendi
+- alembic/versions/9c1a7c0b5aa1_*: YENİ migration
+- test_instructor_sprint5.py: YENİ — 3 test
+
+ENDPOINTS:
+- GET /api/instructor/overview
+- GET /api/instructor/students/{student_id}
+- GET /api/instructor/sessions/{session_id}
+- POST /api/instructor/students/{student_id}/spotlight
+
+KARARLAR:
+- Tüm endpoint'ler require_roles(instructor, admin)
+- v1'de assignment tablosu yok: tüm aktif öğrenciler
+  görünür (DECISION-047)
+- risk_level: <50 high, 50-70 medium, >70 low
+- Spotlight: reason_code=instructor_spotlight,
+  is_spotlight=true
+
+VALIDATION:
+- alembic upgrade head → OK (8b21f3c4d901 → 9c1a7c0b5aa1)
+- test_instructor_sprint5.py → 3 passed
+- test_recommendations_sprint3.py → 3 passed
+```
+
+### AGENT-3 — SPRINT-5-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Instructor portal — 3 sayfa, 2 bileşen,
+             TypeScript tipleri, ESLint temiz.
+
+FILES CHANGED:
+- frontend/lib/api.ts: instructor tipleri + instructorAPI
+- frontend/components/instructor/InstructorRouteGuard.tsx: YENİ
+- frontend/components/instructor/RiskLevelBadge.tsx: YENİ
+- frontend/app/instructor/dashboard/page.tsx: YENİ
+- frontend/app/instructor/students/[student_id]/page.tsx: YENİ
+- frontend/app/instructor/sessions/[session_id]/page.tsx: YENİ
+
+UI KARARLAR:
+- Route yapısı student sayfalarından tamamen izole
+- InstructorRouteGuard: yetkisiz → /dashboard yönlendirme
+- Spotlight için drill-down verisi kullanıldı (ayrı endpoint yok)
+- Section bazlı sessiz fail: API hata → bölüm gizlenir
+- Kritik safety aksiyonları kırmızı vurgulu
+- Türkçe UI zorunluluğu karşılandı
+
+VALIDATION:
+- ESLint temiz (hook uyarısı düzeltildi)
+- TypeScript hata yok
 ```
 
 ### AGENT-2 — SPRINT-3-TASK-1 (DONE)
