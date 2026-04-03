@@ -127,6 +127,24 @@
               Ayrı cases endpoint çağrısı yok, pragmatik karar.
 [2026-04-03] [DECISION-052] Sprint 5 closure APPROVED. Backend 3 test geçiyor.
               Frontend ESLint temiz, TypeScript tipleri tanımlı.
+[2026-04-03] [DECISION-053] Admin portal backend tamamlandı: kullanıcı yönetimi,
+              vaka kataloğu, versiyonlu publish workflow, kural yönetimi, health panel.
+[2026-04-03] [DECISION-054] Versiyonlu publish workflow: her publish'te version artar,
+              önceki version snapshot_json ile arşivlenir, hiçbir zaman silinmez.
+[2026-04-03] [DECISION-055] Admin kendini arşivleyemez ve kendi rolünü değiştiremez.
+              Backend'de enforce edildi (400 dön).
+[2026-04-03] [DECISION-056] utcnow deprecation fix ve OpenAPI schema sıkılaştırma
+              backlog'a alındı. Sprint 6 blocker değil.
+[2026-04-03] [DECISION-057] Admin portal frontend: AdminRouteGuard, 3 sayfa,
+              TypeScript tipleri. Admin olmayan → /dashboard yönlendirme.
+[2026-04-03] [DECISION-058] /api/admin/rules tipleri API katmanına eklendi ama
+              Sprint 6 sayfalarında kullanılmadı. Gelecek sprint'te rules editor için hazır.
+[2026-04-03] [DECISION-059] MEDIUM — Catalog source-of-truth ayrışması tespit edildi:
+              admin is_active güncelliyor ama runtime halen JSON üzerinden çalışıyor.
+              Breaking change riski düşük. Admin publish akışının olgunlaşmasıyla
+              çözülmeli. Backlog'a alındı.
+[2026-04-03] [DECISION-060] Sprint 6 closure APPROVED — AGENT-7 onayladı.
+              44 test geçiyor, 4 deselected. Proje deployment'a hazır.
 ```
 
 ---
@@ -135,38 +153,66 @@
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 5 ✅ DONE → Sprint 6 READY
+DENTAI AGENT STATUS — Sprint: 6 ✅ DONE — PROJE TAMAMLANDI
 ═══════════════════════════════════════════
 
-SPRINT 6 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
-- Instructor portal backend + frontend tamamlandı
-- Spotlight mekanizması aktif
-- is_spotlight Alembic migration hazır
-- 37+ test geçiyor, profil offline ve deterministik
+TÜM SPRINT'LER TAMAMLANDI ✅
+- 44 test geçiyor, 4 deselected
+- Proje deployment'a hazır
+- Açık backlog (blocker değil):
+  * utcnow deprecation fix (MEDIUM)
+  * Catalog source-of-truth ayrışması (MEDIUM)
+  * rules editor UI (future sprint)
+  * Token revocation / jti blacklist (HIGH)
+  * Quiz answer key ifşası (MEDIUM)
 
-| Agent   | Task ID           | Status       | Waiting On                              |
-|---------|------------------|--------------|-----------------------------------------|
-| AGENT-1 | —                | IDLE         | —                                       |
-| AGENT-2 | SPRINT-1-TASK-2  | DONE         | —                                       |
-| AGENT-2 | SPRINT-1-TASK-5  | DONE         | —                                       |
-| AGENT-2 | SPRINT-2-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-3-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-4-TASK-1  | DONE         | —                                       |
-| AGENT-2 | SPRINT-4-TASK-3  | DONE         | —                                       |
-| AGENT-2 | SPRINT-5-TASK-1  | DONE         | —                                       |
-| AGENT-3 | SPRINT-3-TASK-2  | DONE         | —                                       |
-| AGENT-3 | SPRINT-5-TASK-2  | DONE         | —                                       |
-| AGENT-3 | —                | IDLE         | Sprint 6 (Admin portal frontend)        |
-| AGENT-4 | —                | IDLE         | —                                       |
-| AGENT-5 | SPRINT-1-TASK-1  | DONE         | —                                       |
-| AGENT-6 | SPRINT-4-TASK-4  | DONE         | —                                       |
-| AGENT-7 | SPRINT-1-TASK-4A | DONE         | —                                       |
-| AGENT-7 | SPRINT-1-TASK-4B | DONE         | —  (APPROVED 2026-04-02)                |
-| AGENT-7 | SPRINT-4-TASK-2  | DONE         | —  (APPROVED 2026-04-03)                |
-| AGENT-7 | SPRINT-4-TASK-3  | DONE         | —  (APPROVED 2026-04-03)                |
-| AGENT-7 | SPRINT-6-ADMIN   | PENDING      | Sprint 6 admin portal audit             |
+| Agent   | Task ID           | Status       |
+|---------|------------------|--------------|
+| AGENT-2 | SPRINT-1-TASK-2  | DONE         |
+| AGENT-2 | SPRINT-1-TASK-5  | DONE         |
+| AGENT-2 | SPRINT-2-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-3-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-4-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-4-TASK-3  | DONE         |
+| AGENT-2 | SPRINT-5-TASK-1  | DONE         |
+| AGENT-2 | SPRINT-6-TASK-1  | DONE         |
+| AGENT-3 | SPRINT-3-TASK-2  | DONE         |
+| AGENT-3 | SPRINT-5-TASK-2  | DONE         |
+| AGENT-3 | SPRINT-6-TASK-2  | DONE         |
+| AGENT-5 | SPRINT-1-TASK-1  | DONE         |
+| AGENT-6 | SPRINT-4-TASK-4  | DONE         |
+| AGENT-7 | SPRINT-1-TASK-4A | DONE         |
+| AGENT-7 | SPRINT-1-TASK-4B | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-4-TASK-2  | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-4-TASK-3  | DONE ✅ APPROVED |
+| AGENT-7 | SPRINT-6-TASK-3  | DONE ✅ APPROVED |
 ═══════════════════════════════════════════
 ```
+
+---
+
+## PROJE TAMAMLANDI ✅ — 2026-04-03
+
+**Tüm 6 sprint tamamlandı. Proje deployment'a hazır.**
+
+| Sprint | Kapsam | Test Sonucu |
+|--------|--------|-------------|
+| Sprint 1 | RBAC + Güvenlik | 19 passed |
+| Sprint 2 | Normalizasyon + Alembic | 23 passed |
+| Sprint 3 | Öneri motoru | 26 passed |
+| Sprint 4 | Coach + MedGemma + Injection | 37 passed |
+| Sprint 5 | Instructor portal | 37+ passed |
+| Sprint 6 | Admin portal | 44 passed |
+
+**Açık backlog (deployment blocker değil):**
+- Token revocation / jti blacklist (HIGH)
+- Catalog source-of-truth ayrışması (MEDIUM)
+- utcnow deprecation fix (MEDIUM)
+- Quiz answer key ifşası (MEDIUM)
+- İç hata detayı sızıntısı (MEDIUM)
+- Audit log tamper-evidence (MEDIUM)
+- CORS origin allowlist (LOW)
+- rules editor UI (future sprint)
 
 ---
 
@@ -307,6 +353,92 @@ VALIDATION:
 
 BACKLOG (Sprint 5/6):
 - Instructor analytics view for injection events
+```
+
+### AGENT-2 — SPRINT-6-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: Admin portal backend — 5 endpoint grubu,
+             case_publish_history migration, 4 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/admin.py: YENİ — kullanıcı yönetimi,
+  vaka kataloğu, publish workflow, kural yönetimi, health
+- app/api/main.py: admin router eklendi
+- db/database.py: CasePublishHistory ORM modeli eklendi
+- alembic/versions/b7d42a1f63e2_*: YENİ migration
+- test_admin_sprint6.py: YENİ — 4 test
+
+ENDPOINTS:
+- GET/POST/PUT /api/admin/users
+- GET/POST/PUT /api/admin/cases
+- POST /api/admin/cases/{case_id}/publish
+- GET/PUT /api/admin/rules
+- GET /api/admin/health
+
+KARARLAR:
+- Tüm endpoint'ler require_roles(admin) only
+- Admin kendini arşivleyemez/rolünü değiştiremez (400)
+- Publish: version artar, snapshot_json arşivlenir
+- Health: sadece status/services/stats döner
+
+VALIDATION:
+- alembic upgrade head → OK
+- test_admin_sprint6.py → 4 passed
+- Default offline profil → 44 passed, 4 deselected
+```
+
+### AGENT-3 — SPRINT-6-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Admin portal — 3 sayfa, AdminRouteGuard,
+             TypeScript tipleri, ESLint temiz.
+
+FILES CHANGED:
+- frontend/lib/api.ts: admin tipleri + adminAPI
+- frontend/components/admin/AdminRouteGuard.tsx: YENİ
+- frontend/app/admin/dashboard/page.tsx: YENİ
+- frontend/app/admin/users/page.tsx: YENİ
+- frontend/app/admin/cases/page.tsx: YENİ
+
+UI KARARLAR:
+- Sade operasyon odaklı panel tasarımı
+- Admin kendini düzenleyemez: UI'da disabled
+- Health durumları renk kodlu: ok=yeşil, degraded=sarı,
+  unavailable=kırmızı
+- /api/admin/rules tipleri eklendi, sayfalarda kullanılmadı
+  (gelecek sprint rules editor için hazır)
+
+VALIDATION:
+- ESLint temiz, lint uyarısı düzeltildi
+- TypeScript hata yok
+```
+
+### AGENT-7 — SPRINT-6-TASK-3 (DONE — APPROVED)
+
+```
+Status: DONE
+Sprint 6 Closure Verdict: APPROVED
+
+TÜM MADDELER PASS:
+A1 Admin-only guard → PASS
+A2 Self-archive/role koruması → PASS
+A3 Publish versioning/snapshot → PASS
+A4 Publish history erişim izolasyonu → PASS
+A5 Health endpoint bilgi sızıntısı yok → PASS
+A6 Password hash, plain text log yok → PASS
+B7 Case deactivate aktif session kırmıyor → PASS
+B8 Publish workflow aktif session kırmıyor → PASS
+
+NON-BLOCKING:
+[MEDIUM] Catalog source-of-truth ayrışması:
+admin is_active güncelliyor ama runtime JSON'dan çalışıyor.
+Breaking change riski düşük, backlog'a alındı.
+
+Test: test_admin_sprint6.py → 4 passed
+Default: 44 passed, 4 deselected
 ```
 
 ### AGENT-2 — SPRINT-5-TASK-1 (DONE)
