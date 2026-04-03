@@ -114,6 +114,19 @@
 [2026-04-03] [DECISION-046] Sprint 4 closure APPROVED. AGENT-7 re-approval
               gerekmiyor — AGENT-6 sadece yeni kod ekledi, onaylanan hiçbir şeyi
               değiştirmedi. 37 test geçiyor, 4 deselected.
+[2026-04-03] [DECISION-047] v1 instructor assignment: assignment tablosu olmadığı için
+              instructor tüm aktif öğrencileri görüyor. Granüler atama Sprint 6+.
+[2026-04-03] [DECISION-048] RecommendationSnapshot modeline is_spotlight eklendi.
+              Alembic migration downgrade destekli (9c1a7c0b5aa1).
+[2026-04-03] [DECISION-049] Instructor portal route yapısı student sayfalarından
+              tamamen izole: /instructor/dashboard, /instructor/students/[id],
+              /instructor/sessions/[id].
+[2026-04-03] [DECISION-050] InstructorRouteGuard bileşeni eklendi. Yetkisiz erişimde
+              /dashboard yönlendirmesi. AuthContext akışı değiştirilmedi.
+[2026-04-03] [DECISION-051] Spotlight vaka seçimi drill-down verisinden yapılıyor.
+              Ayrı cases endpoint çağrısı yok, pragmatik karar.
+[2026-04-03] [DECISION-052] Sprint 5 closure APPROVED. Backend 3 test geçiyor.
+              Frontend ESLint temiz, TypeScript tipleri tanımlı.
 ```
 
 ---
@@ -122,14 +135,14 @@
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 4 ✅ DONE → Sprint 5 READY
+DENTAI AGENT STATUS — Sprint: 5 ✅ DONE → Sprint 6 READY
 ═══════════════════════════════════════════
 
-SPRINT 5 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
-- Clinical Coach backend hazır (POST /api/chat/coach)
-- MedGemma fail-closed + strict schema enforce
-- Prompt injection hardening aktif (llm_safety.py)
-- 37 test geçiyor, profil offline ve deterministik
+SPRINT 6 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
+- Instructor portal backend + frontend tamamlandı
+- Spotlight mekanizması aktif
+- is_spotlight Alembic migration hazır
+- 37+ test geçiyor, profil offline ve deterministik
 
 | Agent   | Task ID           | Status       | Waiting On                              |
 |---------|------------------|--------------|-----------------------------------------|
@@ -140,8 +153,10 @@ SPRINT 5 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
 | AGENT-2 | SPRINT-3-TASK-1  | DONE         | —                                       |
 | AGENT-2 | SPRINT-4-TASK-1  | DONE         | —                                       |
 | AGENT-2 | SPRINT-4-TASK-3  | DONE         | —                                       |
+| AGENT-2 | SPRINT-5-TASK-1  | DONE         | —                                       |
 | AGENT-3 | SPRINT-3-TASK-2  | DONE         | —                                       |
-| AGENT-3 | —                | IDLE         | Sprint 5 (Coach frontend entegrasyonu)  |
+| AGENT-3 | SPRINT-5-TASK-2  | DONE         | —                                       |
+| AGENT-3 | —                | IDLE         | Sprint 6 (Admin portal frontend)        |
 | AGENT-4 | —                | IDLE         | —                                       |
 | AGENT-5 | SPRINT-1-TASK-1  | DONE         | —                                       |
 | AGENT-6 | SPRINT-4-TASK-4  | DONE         | —                                       |
@@ -149,6 +164,7 @@ SPRINT 5 GİRİŞ KOŞULLARI: ✅ Tüm bağımlılıklar hazır
 | AGENT-7 | SPRINT-1-TASK-4B | DONE         | —  (APPROVED 2026-04-02)                |
 | AGENT-7 | SPRINT-4-TASK-2  | DONE         | —  (APPROVED 2026-04-03)                |
 | AGENT-7 | SPRINT-4-TASK-3  | DONE         | —  (APPROVED 2026-04-03)                |
+| AGENT-7 | SPRINT-6-ADMIN   | PENDING      | Sprint 6 admin portal audit             |
 ═══════════════════════════════════════════
 ```
 
@@ -291,6 +307,68 @@ VALIDATION:
 
 BACKLOG (Sprint 5/6):
 - Instructor analytics view for injection events
+```
+
+### AGENT-2 — SPRINT-5-TASK-1 (DONE)
+
+```
+Status: DONE
+Deliverable: Instructor portal backend — 4 endpoint,
+             is_spotlight migration, 3 test geçiyor.
+
+FILES CHANGED:
+- app/api/routers/instructor.py: YENİ — 4 endpoint
+- app/api/main.py: instructor router eklendi
+- db/database.py: RecommendationSnapshot.is_spotlight eklendi
+- alembic/versions/9c1a7c0b5aa1_*: YENİ migration
+- test_instructor_sprint5.py: YENİ — 3 test
+
+ENDPOINTS:
+- GET /api/instructor/overview
+- GET /api/instructor/students/{student_id}
+- GET /api/instructor/sessions/{session_id}
+- POST /api/instructor/students/{student_id}/spotlight
+
+KARARLAR:
+- Tüm endpoint'ler require_roles(instructor, admin)
+- v1'de assignment tablosu yok: tüm aktif öğrenciler
+  görünür (DECISION-047)
+- risk_level: <50 high, 50-70 medium, >70 low
+- Spotlight: reason_code=instructor_spotlight,
+  is_spotlight=true
+
+VALIDATION:
+- alembic upgrade head → OK (8b21f3c4d901 → 9c1a7c0b5aa1)
+- test_instructor_sprint5.py → 3 passed
+- test_recommendations_sprint3.py → 3 passed
+```
+
+### AGENT-3 — SPRINT-5-TASK-2 (DONE)
+
+```
+Status: DONE
+Deliverable: Instructor portal — 3 sayfa, 2 bileşen,
+             TypeScript tipleri, ESLint temiz.
+
+FILES CHANGED:
+- frontend/lib/api.ts: instructor tipleri + instructorAPI
+- frontend/components/instructor/InstructorRouteGuard.tsx: YENİ
+- frontend/components/instructor/RiskLevelBadge.tsx: YENİ
+- frontend/app/instructor/dashboard/page.tsx: YENİ
+- frontend/app/instructor/students/[student_id]/page.tsx: YENİ
+- frontend/app/instructor/sessions/[session_id]/page.tsx: YENİ
+
+UI KARARLAR:
+- Route yapısı student sayfalarından tamamen izole
+- InstructorRouteGuard: yetkisiz → /dashboard yönlendirme
+- Spotlight için drill-down verisi kullanıldı (ayrı endpoint yok)
+- Section bazlı sessiz fail: API hata → bölüm gizlenir
+- Kritik safety aksiyonları kırmızı vurgulu
+- Türkçe UI zorunluluğu karşılandı
+
+VALIDATION:
+- ESLint temiz (hook uyarısı düzeltildi)
+- TypeScript hata yok
 ```
 
 ### AGENT-2 — SPRINT-3-TASK-1 (DONE)
