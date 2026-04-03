@@ -40,10 +40,10 @@ def test_medgemma_flags_penicillin_allergy_violation(infectious_rules, monkeypat
         monkeypatch,
         service,
         {
-            "is_clinically_accurate": False,
-            "safety_violation": True,
-            "missing_critical_info": [],
-            "feedback": "Penicillin allergy contraindication detected.",
+            "safety_flags": ["contraindication_violation"],
+            "missing_critical_steps": ["verify_penicillin_allergy"],
+            "clinical_accuracy": "low",
+            "faculty_notes": "Penicillin allergy contraindication detected.",
         },
     )
 
@@ -65,10 +65,10 @@ def test_medgemma_accepts_allergy_safe_alternative(infectious_rules, monkeypatch
         monkeypatch,
         service,
         {
-            "is_clinically_accurate": True,
-            "safety_violation": False,
-            "missing_critical_info": [],
-            "feedback": "Clindamycin is appropriate for Penicillin allergy.",
+            "safety_flags": [],
+            "missing_critical_steps": [],
+            "clinical_accuracy": "high",
+            "faculty_notes": "Clindamycin is appropriate for Penicillin allergy.",
         },
     )
 

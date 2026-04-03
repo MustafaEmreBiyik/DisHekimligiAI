@@ -1,17 +1,32 @@
 [
   {
     "case_id": "olp_001",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "gather_personal_info",
         "score": 5,
         "rule_outcome": "Kimlik bilgileri alındı.",
-        "state_updates": { "score_change": 5 }
+        "state_updates": {
+          "score_change": 5
+        },
+        "competency_tags": [
+          "anamnesis",
+          "communication"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_allergies_meds",
         "score": 15,
-        "rule_outcome": "Anamnez tamamlandı."
+        "rule_outcome": "Anamnez tamamlandı.",
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "perform_oral_exam",
@@ -19,20 +34,36 @@
         "rule_outcome": "Oral mukoza muayenesi yapıldı. Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae) görüldü.",
         "state_updates": {
           "score_change": 20,
-          "revealed_findings": ["bulgu_001"]
-        }
+          "revealed_findings": [
+            "bulgu_001"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
-
   {
     "case_id": "perio_001",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "gather_personal_info",
         "score": 5,
         "rule_outcome": "Kimlik bilgileri alındı.",
-        "state_updates": { "score_change": 5 }
+        "state_updates": {
+          "score_change": 5
+        },
+        "competency_tags": [
+          "anamnesis",
+          "communication"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_pacemaker",
@@ -40,8 +71,16 @@
         "rule_outcome": "KRİTİK: Kalp pili sorgulandı (Cihaz güvenliği için şart).",
         "state_updates": {
           "score_change": 25,
-          "revealed_findings": ["pacemaker_warning"]
-        }
+          "revealed_findings": [
+            "pacemaker_warning"
+          ]
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "check_bleeding_disorder",
@@ -49,32 +88,72 @@
         "rule_outcome": "Kanama/Pıhtılaşma durumu sorgulandı.",
         "state_updates": {
           "score_change": 15,
-          "revealed_findings": ["bleeding_risk"]
-        }
+          "revealed_findings": [
+            "bleeding_risk"
+          ]
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_diabetes",
         "score": 15,
         "rule_outcome": "Diyabet durumu ve kontrolü sorgulandı.",
-        "state_updates": { "score_change": 15 }
+        "state_updates": {
+          "score_change": 15
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_smoking_history",
         "score": 10,
         "rule_outcome": "Sigara kullanımı (Risk faktörü) sorgulandı.",
-        "state_updates": { "score_change": 10 }
+        "state_updates": {
+          "score_change": 10
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_oral_hygiene_habits",
         "score": 10,
         "rule_outcome": "Fırçalama ve arayüz bakımı sorgulandı.",
-        "state_updates": { "score_change": 10 }
+        "state_updates": {
+          "score_change": 10
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_allergies_meds",
         "score": 10,
         "rule_outcome": "İlaç ve Alerji (Penisilin) sorgulandı.",
-        "state_updates": { "score_change": 10 }
+        "state_updates": {
+          "score_change": 10
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "perform_oral_exam",
@@ -82,13 +161,22 @@
         "rule_outcome": "Oral muayene yapıldı. Dişetlerinde kanama ve kızarıklık tespit edildi.",
         "state_updates": {
           "score_change": 15,
-          "revealed_findings": ["bleeding_risk"]
-        }
+          "revealed_findings": [
+            "bleeding_risk"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
   {
     "case_id": "herpes_primary_01",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "perform_oral_exam",
@@ -96,8 +184,16 @@
         "rule_outcome": "Yaygın veziküller ve dişeti iltihabı görüldü.",
         "state_updates": {
           "score_change": 20,
-          "revealed_findings": ["diffuse_vesicles"]
-        }
+          "revealed_findings": [
+            "diffuse_vesicles"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_vital_signs",
@@ -105,31 +201,64 @@
         "rule_outcome": "Yüksek ateş (39°C) tespit edildi.",
         "state_updates": {
           "score_change": 10,
-          "revealed_findings": ["halitosis_fever"]
-        }
+          "revealed_findings": [
+            "halitosis_fever"
+          ]
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "prescribe_antibiotics",
         "score": -20,
         "rule_outcome": "HATA: Viral enfeksiyonda antibiyotik etkisizdir!",
-        "state_updates": { "score_change": -20 }
+        "state_updates": {
+          "score_change": -20
+        },
+        "competency_tags": [
+          "treatment_planning",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "wrong_medication"
       },
       {
         "target_action": "prescribe_palliative_care",
         "score": 25,
         "rule_outcome": "Doğru Tedavi: Yatak istirahati, bol sıvı, analjezik.",
-        "state_updates": { "score_change": 25 }
+        "state_updates": {
+          "score_change": 25
+        },
+        "competency_tags": [
+          "treatment_planning",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "diagnose_herpetic_gingivostomatitis",
         "score": 30,
         "rule_outcome": "Doğru Tanı Konuldu.",
-        "state_updates": { "score_change": 30 }
+        "state_updates": {
+          "score_change": 30
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
   {
     "case_id": "infectious_child_01",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "perform_oral_exam",
@@ -137,49 +266,106 @@
         "rule_outcome": "Oral muayene yapıldı. Dişetlerinde yaygın eritem/ödem ve rüptüre vezikül izleri görüldü.",
         "state_updates": {
           "score_change": 10,
-          "revealed_findings": ["clinical_appearance"]
-        }
+          "revealed_findings": [
+            "clinical_appearance"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "check_fever",
         "score": 20,
         "rule_outcome": "KRİTİK: Ateş ve sistemik belirti kontrolü yapıldı (pediatrik viral enfeksiyonda risk değerlendirmesi).",
-        "state_updates": { "score_change": 20 }
+        "state_updates": {
+          "score_change": 20
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "check_vital_signs",
         "score": 20,
         "rule_outcome": "KRİTİK: Ateş ve sistemik belirti kontrolü yapıldı (pediatrik viral enfeksiyonda risk değerlendirmesi).",
-        "state_updates": { "score_change": 20 }
+        "state_updates": {
+          "score_change": 20
+        },
+        "competency_tags": [
+          "anamnesis",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "ask_hydration_nutrition",
         "score": 20,
         "rule_outcome": "Uzman İçgörü: Beslenme/yutkunma ve sıvı alımı sorgulandı (dehidratasyon riski).",
-        "state_updates": { "score_change": 20 }
+        "state_updates": {
+          "score_change": 20
+        },
+        "competency_tags": [
+          "anamnesis",
+          "communication"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "prescribe_antibiotics",
         "score": -20,
         "rule_outcome": "CEZA: Viral enfeksiyonda antibiyotik verilmemelidir!",
-        "state_updates": { "score_change": -20 }
+        "state_updates": {
+          "score_change": -20
+        },
+        "competency_tags": [
+          "treatment_planning",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "wrong_medication"
       },
       {
         "target_action": "diagnose_primary_herpes",
         "score": 40,
         "rule_outcome": "Doğru Tanı: Primer Herpetik Gingivostomatitis.",
-        "state_updates": { "score_change": 40 }
+        "state_updates": {
+          "score_change": 40
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "diagnose_herpetic_gingivostomatitis",
         "score": 40,
         "rule_outcome": "Doğru Tanı: Primer Herpetik Gingivostomatitis.",
-        "state_updates": { "score_change": 40 }
+        "state_updates": {
+          "score_change": 40
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
   {
     "case_id": "behcet_01",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "perform_oral_exam",
@@ -187,8 +373,16 @@
         "rule_outcome": "Oral muayene yapıldı. Ağızda tekrarlayan aftöz ülserler görüldü.",
         "state_updates": {
           "score_change": 15,
-          "revealed_findings": ["genital_ulcer"]
-        }
+          "revealed_findings": [
+            "genital_ulcer"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "ask_systemic_symptoms",
@@ -196,8 +390,16 @@
         "rule_outcome": "Genital ülser ve göz şikayeti sorgulandı.",
         "state_updates": {
           "score_change": 20,
-          "revealed_findings": ["genital_ulcer"]
-        }
+          "revealed_findings": [
+            "genital_ulcer"
+          ]
+        },
+        "competency_tags": [
+          "anamnesis",
+          "communication"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "perform_pathergy_test",
@@ -205,19 +407,36 @@
         "rule_outcome": "KRİTİK TEST: Paterji testi pozitif çıktı.",
         "state_updates": {
           "score_change": 30,
-          "revealed_findings": ["pathergy_positive"]
-        }
+          "revealed_findings": [
+            "pathergy_positive"
+          ]
+        },
+        "competency_tags": [
+          "special_tests",
+          "diagnosis"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "diagnose_behcet_disease",
         "score": 30,
         "rule_outcome": "Doğru Tanı: Behçet Hastalığı (Oral+Genital+Paterji).",
-        "state_updates": { "score_change": 30 }
+        "state_updates": {
+          "score_change": 30
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
   {
     "case_id": "syphilis_02",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "perform_oral_exam",
@@ -225,25 +444,50 @@
         "rule_outcome": "Müköz plaklar (enfeysiyöz) tespit edildi.",
         "state_updates": {
           "score_change": 15,
-          "revealed_findings": ["mucous_patch"]
-        }
+          "revealed_findings": [
+            "mucous_patch"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "request_serology_tests",
         "score": 25,
         "rule_outcome": "VDRL ve TPHA testleri istendi (Pozitif).",
-        "state_updates": { "score_change": 25 }
+        "state_updates": {
+          "score_change": 25
+        },
+        "competency_tags": [
+          "diagnostic_testing",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "diagnose_secondary_syphilis",
         "score": 30,
         "rule_outcome": "Doğru Tanı: Sekonder Sifiliz.",
-        "state_updates": { "score_change": 30 }
+        "state_updates": {
+          "score_change": 30
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   },
   {
     "case_id": "desquamative_01",
+    "schema_version": "2.0",
     "rules": [
       {
         "target_action": "perform_oral_exam",
@@ -251,8 +495,16 @@
         "rule_outcome": "Yapışık dişetinde yaygın eritem ve soyulmalar görüldü.",
         "state_updates": {
           "score_change": 10,
-          "revealed_findings": ["clinical_erythema"]
-        }
+          "revealed_findings": [
+            "clinical_erythema"
+          ]
+        },
+        "competency_tags": [
+          "oral_exam",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "perform_nikolsky_test",
@@ -260,8 +512,16 @@
         "rule_outcome": "KRİTİK BULGU: Nikolsky (+) - Epitel sıyrılması pozitif.",
         "state_updates": {
           "score_change": 25,
-          "revealed_findings": ["nikolsky_positive"]
-        }
+          "revealed_findings": [
+            "nikolsky_positive"
+          ]
+        },
+        "competency_tags": [
+          "special_tests",
+          "clinical_safety"
+        ],
+        "is_critical_safety_rule": true,
+        "safety_category": "missed_critical_step"
       },
       {
         "target_action": "request_dif_biopsy",
@@ -269,14 +529,30 @@
         "rule_outcome": "ALTIN STANDART: DIF İncelemesi - Bazal membran zonunda lineer IgG ve C3.",
         "state_updates": {
           "score_change": 30,
-          "revealed_findings": ["biopsy_dif_result"]
-        }
+          "revealed_findings": [
+            "biopsy_dif_result"
+          ]
+        },
+        "competency_tags": [
+          "diagnostic_testing",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       },
       {
         "target_action": "diagnose_mucous_membrane_pemphigoid",
         "score": 40,
         "rule_outcome": "Doğru Tanı: Müköz Membran Pemfigoidi.",
-        "state_updates": { "score_change": 40 }
+        "state_updates": {
+          "score_change": 40
+        },
+        "competency_tags": [
+          "diagnosis",
+          "clinical_reasoning"
+        ],
+        "is_critical_safety_rule": false,
+        "safety_category": null
       }
     ]
   }

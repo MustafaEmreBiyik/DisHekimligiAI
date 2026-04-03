@@ -189,3 +189,17 @@ DentAI is implemented with a Python backend and a Next.js frontend. The backend 
 - `PROJECT_ARCHITECTURE.md`
 - `frontend/README.md`
 - `mdfiles/REACT_MIGRATION_AUDIT.md`
+
+## Migration commands (Sprint 2)
+
+Use Alembic for schema evolution instead of relying only on create_all.
+
+- Set DB URL (optional, defaults to sqlite:///./dentai_app.db):
+	- `set DENTAI_DATABASE_URL=sqlite:///./dentai_app.db` (Windows CMD)
+	- `$env:DENTAI_DATABASE_URL = "sqlite:///./dentai_app.db"` (PowerShell)
+- Upgrade to latest schema:
+	- `python -m alembic upgrade head`
+- Downgrade one revision:
+	- `python -m alembic downgrade -1`
+- Create a new revision file:
+	- `python -m alembic revision -m "describe_change"`
