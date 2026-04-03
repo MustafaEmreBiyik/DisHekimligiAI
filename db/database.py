@@ -18,7 +18,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 # ==================== VERİTABANI KONFIGÜRASYONU ====================
 
 # SQLite veritabanı URL'i (proje kök dizininde oluşturulacak)
-DATABASE_URL = "sqlite:///./dentai_app.db"
+# Sprint 2: allow environment override for Alembic + runtime parity.
+DATABASE_URL = os.getenv("DENTAI_DATABASE_URL", "sqlite:///./dentai_app.db")
 
 # Engine oluştur (Streamlit için check_same_thread=False kritik!)
 engine = create_engine(
@@ -91,6 +92,123 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(id={self.id}, user_id={self.user_id}, role={self.role}, archived={self.is_archived})>"
+
+
+class CaseDefinition(Base):
+    """Canonical case catalog used for DB-backed content imports."""
+
+    __tablename__ = "case_definitions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, unique=True, nullable=False, index=True)
+    schema_version = Column(String, nullable=False, default="2.0")
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    difficulty = Column(String, nullable=False)
+    estimated_duration_minutes = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    learning_objectives = Column(JSON, nullable=False, default=list)
+    prerequisite_competencies = Column(JSON, nullable=False, default=list)
+    competency_tags = Column(JSON, nullable=False, default=list)
+    initial_state = Column(String, nullable=False)
+    states_json = Column(JSON, nullable=False, default=dict)
+    patient_info_json = Column(JSON, nullable=False, default=dict)
+    source_payload = Column(JSON, nullable=False, default=dict)
+    is_archived = Column(Boolean, nullable=False, default=False, index=True)
+    archived_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
+
+    def __repr__(self):
+        return f"<CaseDefinition(id={self.id}, case_id={self.case_id}, schema={self.schema_version})>"
+
+
+class CasePublishHistory(Base):
+    """Versioned publish history snapshots for case catalog changes."""
+
+    __tablename__ = "case_publish_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    change_notes = Column(Text, nullable=False)
+    published_by = Column(String, nullable=False, index=True)
+    published_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+    snapshot_json = Column(JSON, nullable=False, default=dict)
+
+    def __repr__(self):
+        return (
+            f"<CasePublishHistory(id={self.id}, case_id={self.case_id}, "
+            f"version={self.version}, published_by={self.published_by})>"
+        )
+
+
+class RecommendationSnapshot(Base):
+    """Explainable recommendation records persisted for auditability."""
+
+    __tablename__ = "recommendation_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    case_id = Column(String, nullable=False, index=True)
+    reason_code = Column(String, nullable=False)
+    reason_text = Column(Text, nullable=False)
+    priority_score = Column(Integer, nullable=False)
+    algorithm_version = Column(String, nullable=False)
+    is_spotlight = Column(Boolean, nullable=False, default=False, index=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<RecommendationSnapshot(id={self.id}, user_id={self.user_id}, "
+            f"case_id={self.case_id}, reason_code={self.reason_code})>"
+        )
+
+
+class CoachHint(Base):
+    """Stored coach hints for per-session usage limits and auditability."""
+
+    __tablename__ = "coach_hints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    hint_level = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<CoachHint(id={self.id}, session_id={self.session_id}, "
+            f"user_id={self.user_id}, hint_level={self.hint_level})>"
+        )
+
+
+class ValidatorAuditLog(Base):
+    """Audit log for every validator invocation in chat flow."""
+
+    __tablename__ = "validator_audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)
+    validator_used = Column(String, nullable=False)
+    safety_violation = Column(Boolean, nullable=False, default=False)
+    clinical_accuracy = Column(String, nullable=True)
+    response_time_ms = Column(Integer, nullable=False, default=0)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<ValidatorAuditLog(id={self.id}, session_id={self.session_id}, "
+            f"validator_used={self.validator_used}, safety_violation={self.safety_violation})>"
+        )
 
 class ChatLog(Base):
     """

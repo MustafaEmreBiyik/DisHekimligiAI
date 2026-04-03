@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 import os
+import json
 import logging
 import datetime
 
@@ -21,13 +22,22 @@ from app.api.deps import (
     require_roles,
 )
 from app.services.reasoning_classifier import ReasoningPatternClassifier
-from db.database import SessionLocal, StudentSession, ChatLog, UserRole
+from db.database import (
+    SessionLocal,
+    StudentSession,
+    ChatLog,
+    UserRole,
+    CoachHint,
+    ValidatorAuditLog,
+    CaseDefinition,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 sessions_router = APIRouter()
 reasoning_classifier = ReasoningPatternClassifier()
+scenario_manager = ScenarioManager()
 
 # Initialize the agent (same as Streamlit version)
 try:
@@ -89,6 +99,22 @@ class ChatResponse(BaseModel):
                 "revealed_findings": ["reticular white striae"]
             }
         }
+
+
+class CoachRequest(BaseModel):
+    """Clinical coach prompt request bound to an existing session."""
+
+    session_id: int = Field(..., description="Existing session ID", examples=[12])
+    message: str = Field(..., description="Student question for clinical guidance")
+
+
+class CoachResponse(BaseModel):
+    """Coach hint response without diagnosis or scoring leakage."""
+
+    hint_level: str
+    content: str
+    hint_used: bool
+    session_hints_remaining: int
 
 
 class SessionEvaluationItem(BaseModel):
@@ -204,6 +230,158 @@ def build_student_state_updates(
     }
 
 
+def _safe_load_state(state_json: Optional[str]) -> Dict[str, Any]:
+    if not state_json:
+        return {}
+    try:
+        payload = json.loads(state_json)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _resolve_case_metadata(db, case_id: str) -> Dict[str, Any]:
+    case_meta = {
+        "title": case_id,
+        "category": "unknown",
+        "difficulty": "intermediate",
+        "final_diagnosis": None,
+    }
+
+    db_case = db.query(CaseDefinition).filter(CaseDefinition.case_id == case_id).first()
+    if db_case:
+        case_meta.update(
+            {
+                "title": db_case.title,
+                "category": db_case.category,
+                "difficulty": str(db_case.difficulty).lower(),
+            }
+        )
+        return case_meta
+
+    for case in scenario_manager.case_data:
+        if not isinstance(case, dict) or case.get("case_id") != case_id:
+            continue
+
+        difficulty_raw = str(case.get("difficulty") or case.get("zorluk_seviyesi") or "").strip().lower()
+        difficulty_map = {
+            "kolay": "beginner",
+            "orta": "intermediate",
+            "zor": "advanced",
+        }
+        case_meta.update(
+            {
+                "title": str(case.get("title") or case.get("name") or case_id),
+                "category": str(case.get("category") or case.get("Category") or "unknown"),
+                "difficulty": difficulty_map.get(difficulty_raw, difficulty_raw or "intermediate"),
+                "final_diagnosis": case.get("dogru_tani") or case.get("correct_diagnosis"),
+            }
+        )
+        break
+
+    return case_meta
+
+
+def _session_has_diagnosis_checkpoint(db, session: StudentSession) -> bool:
+    state = _safe_load_state(session.state_json)
+    if bool(state.get("is_finished") or state.get("is_case_finished")):
+        return True
+
+    assistant_logs = db.query(ChatLog).filter_by(session_id=session.id, role="assistant").all()
+    for log in assistant_logs:
+        metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+        interpreted_action = str(metadata.get("interpreted_action", "")).strip()
+        if interpreted_action.startswith("diagnose_"):
+            return True
+
+    return False
+
+
+def _build_action_history_for_coach(db, session_id: int) -> List[str]:
+    assistant_logs = (
+        db.query(ChatLog)
+        .filter_by(session_id=session_id, role="assistant")
+        .order_by(ChatLog.timestamp.asc(), ChatLog.id.asc())
+        .all()
+    )
+    history: List[str] = []
+    for log in assistant_logs:
+        metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+        action = str(metadata.get("interpreted_action", "")).strip()
+        if not action or action in {"general_chat", "error", "unknown"}:
+            continue
+        history.append(action)
+    return history[-12:]
+
+
+def _hint_level_for_usage(used_count: int) -> str:
+    levels = ["light_nudge", "guided_hint", "reflective_feedback"]
+    return levels[max(0, min(used_count, len(levels) - 1))]
+
+
+def _default_coach_content(hint_level: str, revealed_findings: List[str]) -> str:
+    if hint_level == "light_nudge":
+        return "Hastanin sistemik gecmisi, ilaclari ve alerjileri tam sorguladigindan emin misin?"
+    if hint_level == "guided_hint":
+        return "Anamnez ve muayene bulgularini birlikte degerlendir; kritik risk faktorlerini eksiksiz dogrula."
+
+    findings_note = ""
+    if revealed_findings:
+        findings_note = f"Acilan bulgular: {', '.join(revealed_findings[:3])}. "
+    return findings_note + "Simdiye kadar yaptiklarini kisaca ozetleyip eksik kalan guvenlik adimlarini tamamla."
+
+
+def _extract_coach_text(raw_text: str) -> str:
+    text = (raw_text or "").strip()
+    if not text:
+        return ""
+
+    if text.startswith("```"):
+        text = text.strip("`").strip()
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+
+    try:
+        payload = json.loads(text)
+        if isinstance(payload, dict):
+            candidate = payload.get("content") or payload.get("hint") or payload.get("explanatory_feedback")
+            if isinstance(candidate, str):
+                return candidate.strip()
+    except Exception:
+        pass
+
+    return text
+
+
+def _sanitize_coach_content(content: str, hint_level: str, case_meta: Dict[str, Any], revealed_findings: List[str]) -> str:
+    cleaned = " ".join((content or "").split()).strip()
+    if not cleaned:
+        return _default_coach_content(hint_level, revealed_findings)
+
+    lowered = cleaned.lower()
+    blocked_tokens = [
+        "diagnosis",
+        "diagnose",
+        "tani",
+        "tanı",
+        "score",
+        "puan",
+        "rule engine",
+        "kural motoru",
+        "is_critical_safety_rule",
+    ]
+    final_dx = str(case_meta.get("final_diagnosis") or "").strip().lower()
+    if final_dx:
+        blocked_tokens.append(final_dx)
+
+    if any(token in lowered for token in blocked_tokens):
+        return _default_coach_content(hint_level, revealed_findings)
+
+    if len(cleaned) > 420:
+        cleaned = cleaned[:420].rstrip() + "..."
+    return cleaned
+
+
 # ==================== ENDPOINTS ====================
 
 @router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
@@ -261,6 +439,8 @@ def send_chat_message(
         llm_interpretation = result.get("llm_interpretation", {})
         assessment = result.get("assessment", {})
         silent_eval = result.get("silent_evaluation", {})
+        llm_safety = result.get("llm_safety", {}) if isinstance(result.get("llm_safety"), dict) else {}
+        safety_events = result.get("safety_events", []) if isinstance(result.get("safety_events"), list) else []
         updated_state = result.get("updated_state", {})
         score = assessment.get("score", 0.0)
         
@@ -291,6 +471,31 @@ def send_chat_message(
                 action_history=[*past_history, current_history_item],
             )
 
+        for event in safety_events:
+            if not isinstance(event, dict):
+                continue
+
+            event_type = str(event.get("event_type") or "llm_safety_event")
+            logger.warning(
+                "LLM safety event logged for student=%s case=%s type=%s risk=%s",
+                current_user.user_id,
+                request.case_id,
+                event_type,
+                event.get("risk_level", "low"),
+            )
+            db.add(
+                ChatLog(
+                    session_id=session.id,
+                    role="system_validator",
+                    content=f"LLM safety event: {event_type}",
+                    metadata_json={
+                        "source": "llm_safety",
+                        "event": event,
+                    },
+                    timestamp=datetime.datetime.utcnow(),
+                )
+            )
+
         # STEP 5: Log AI's response to database with metadata
         assistant_log = ChatLog(
             session_id=session.id,
@@ -303,11 +508,38 @@ def send_chat_message(
                 "priority": llm_interpretation.get("priority", ""),
                 "assessment": assessment,
                 "silent_evaluation": silent_eval,
+                "llm_safety": llm_safety,
                 "reasoning_pattern": reasoning_pattern,
             },
             timestamp=datetime.datetime.utcnow()
         )
         db.add(assistant_log)
+
+        audit_meta = silent_eval.get("audit", {}) if isinstance(silent_eval, dict) else {}
+        if not isinstance(audit_meta, dict):
+            audit_meta = {}
+
+        clinical_accuracy = silent_eval.get("clinical_accuracy") if isinstance(silent_eval, dict) else None
+        if clinical_accuracy is not None:
+            clinical_accuracy = str(clinical_accuracy).strip().lower()
+            if clinical_accuracy not in {"high", "medium", "low"}:
+                clinical_accuracy = None
+
+        validator_audit = ValidatorAuditLog(
+            session_id=session.id,
+            action=str(interpreted_action or "unknown"),
+            validator_used=str(audit_meta.get("validator_used") or "medgemma"),
+            safety_violation=bool(silent_eval.get("safety_violation", False)),
+            clinical_accuracy=clinical_accuracy,
+            response_time_ms=int(audit_meta.get("response_time_ms") or 0),
+            error_message=(
+                str(audit_meta.get("error_message"))
+                if audit_meta.get("error_message") is not None
+                else None
+            ),
+            created_at=datetime.datetime.utcnow(),
+        )
+        db.add(validator_audit)
         
         # STEP 6: Update session score
         session.current_score = current_score
@@ -336,6 +568,110 @@ def send_chat_message(
             final_feedback=final_feedback,
             state_updates=safe_state_updates,
             revealed_findings=revealed_findings,
+        )
+    finally:
+        db.close()
+
+
+@router.post("/coach", response_model=CoachResponse, status_code=status.HTTP_200_OK)
+def coach_student(
+    request: CoachRequest,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+):
+    """Provide bounded coaching hints without diagnosis or scoring leakage."""
+    db = SessionLocal()
+    try:
+        session = db.query(StudentSession).filter_by(id=request.session_id).first()
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session {request.session_id} not found",
+            )
+
+        if session.student_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden",
+            )
+
+        if _session_has_diagnosis_checkpoint(db, session):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Session is already finished; coach is unavailable.",
+            )
+
+        used_hints = db.query(CoachHint).filter_by(
+            session_id=session.id,
+            user_id=current_user.user_id,
+        ).count()
+        if used_hints >= 3:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Hint limit exceeded for this session.",
+            )
+
+        hint_level = _hint_level_for_usage(used_hints)
+        state = _safe_load_state(session.state_json)
+        revealed_findings = state.get("revealed_findings", [])
+        if not isinstance(revealed_findings, list):
+            revealed_findings = []
+
+        action_history = _build_action_history_for_coach(db, session.id)
+        case_meta = _resolve_case_metadata(db, session.case_id)
+
+        coach_prompt = f"""
+You are DentAI Clinical Coach. Provide one short Turkish coaching hint.
+HARD CONSTRAINTS:
+- NEVER reveal final diagnosis.
+- NEVER reveal or explain scoring logic.
+- Keep hint focused on next safe step.
+
+HINT LEVEL: {hint_level}
+STUDENT MESSAGE: {request.message}
+CASE CATEGORY: {case_meta.get('category')}
+CASE DIFFICULTY: {case_meta.get('difficulty')}
+REVEALED FINDINGS: {json.dumps(revealed_findings, ensure_ascii=False)}
+ACTION HISTORY: {json.dumps(action_history, ensure_ascii=False)}
+SESSION STATE: {json.dumps(state, ensure_ascii=False)}
+
+Return plain Turkish text only.
+""".strip()
+
+        generated_content = ""
+        if agent and getattr(agent, "model", None):
+            try:
+                response = agent.model.generate_content(coach_prompt)
+                generated_content = _extract_coach_text(getattr(response, "text", ""))
+            except Exception as exc:
+                logger.warning("Coach generation failed, fallback will be used: %s", exc)
+
+        if not generated_content:
+            generated_content = _default_coach_content(hint_level, revealed_findings)
+
+        safe_content = _sanitize_coach_content(
+            generated_content,
+            hint_level,
+            case_meta,
+            revealed_findings,
+        )
+
+        db.add(
+            CoachHint(
+                session_id=session.id,
+                user_id=current_user.user_id,
+                hint_level=hint_level,
+                content=safe_content,
+                created_at=datetime.datetime.utcnow(),
+            )
+        )
+        db.commit()
+
+        hints_remaining = max(0, 3 - (used_hints + 1))
+        return CoachResponse(
+            hint_level=hint_level,
+            content=safe_content,
+            hint_used=True,
+            session_hints_remaining=hints_remaining,
         )
     finally:
         db.close()
