@@ -1,5 +1,6 @@
 from logging.config import fileConfig
 import os
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -20,11 +21,14 @@ if config.config_file_name is not None:
 
 # Load .env values for migration commands.
 load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SQLITE_DB_PATH = PROJECT_ROOT / "db" / "runtime" / "dentai_app.db"
+DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_DB_PATH.as_posix()}"
 
 
 def get_database_url() -> str:
     """Resolve DB URL from environment with a SQLite fallback."""
-    return os.getenv("DENTAI_DATABASE_URL", "sqlite:///./dentai_app.db")
+    return os.getenv("DENTAI_DATABASE_URL", DEFAULT_DATABASE_URL)
 
 
 # Keep Alembic URL in sync with runtime DB URL.

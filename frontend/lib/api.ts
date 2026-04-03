@@ -59,10 +59,10 @@ apiClient.interceptors.response.use(
       const status = error.response.status;
 
       if (status === 401) {
-        // Unauthorized - clear token and redirect to login
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("student_id");
-        localStorage.removeItem("name");
+        // Unauthorized - clear all auth data and redirect to login
+        ["access_token", "user_id", "student_id", "name", "display_name", "role"].forEach(
+          (key) => localStorage.removeItem(key)
+        );
 
         // Only redirect if not already on login page
         if (

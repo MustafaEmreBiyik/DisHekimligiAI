@@ -13,7 +13,7 @@ from db.database import Base, CaseDefinition
 from scripts.import_cases import CaseImportValidationError, import_cases, load_cases
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = PROJECT_ROOT / "data" / "case_scenarios.json"
 RULES_PATH = PROJECT_ROOT / "data" / "scoring_rules.json"
 

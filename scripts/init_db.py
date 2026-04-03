@@ -31,10 +31,11 @@ def setup_database():
     try:
         recreate = "--recreate" in sys.argv or os.getenv("DENTAI_RECREATE_DB") == "1"
 
-        # SQLite file lives at project root: ./dentai_app.db
-        db_path = project_root / "dentai_app.db"
+        # SQLite file lives under db/runtime.
+        db_path = project_root / "db" / "runtime" / "dentai_app.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
         if recreate and db_path.exists():
-            print("\n🧹 Recreate requested: deleting existing dentai_app.db...")
+            print("\n🧹 Recreate requested: deleting existing db/runtime/dentai_app.db...")
             db_path.unlink()
 
         # Create all tables
@@ -75,7 +76,7 @@ def setup_database():
                     print("   SQLite cannot auto-migrate columns via create_all().")
                     print("   Options:")
                     print("   - Recreate DB: python scripts/init_db.py --recreate")
-                    print("   - Or delete dentai_app.db and rerun init_db")
+                    print("   - Or delete db/runtime/dentai_app.db and rerun init_db")
                 else:
                     print("✅ Schema OK: state_json column present")
             except Exception as e:
@@ -84,8 +85,8 @@ def setup_database():
         print("\n" + "=" * 60)
         print("✅ DATABASE SETUP COMPLETE!")
         print("=" * 60)
-        print("\nYou can now run the Streamlit app:")
-        print("  streamlit run main.py")
+        print("\nYou can now start the backend:")
+        print("  uvicorn app.api.main:app --reload --port 8000")
         
     except Exception as e:
         print(f"\n❌ Error during database setup: {e}")

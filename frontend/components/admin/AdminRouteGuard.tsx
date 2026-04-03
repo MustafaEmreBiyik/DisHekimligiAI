@@ -26,6 +26,17 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
       return;
     }
 
+    // Use stored role when available to avoid an extra round-trip
+    if (user.role) {
+      setHasAccess(user.role === "admin");
+      if (user.role !== "admin") {
+        router.replace("/dashboard");
+      }
+      setIsCheckingRole(false);
+      return;
+    }
+
+    // Fallback: verify role with backend (handles stale localStorage edge cases)
     const checkRole = async () => {
       try {
         const me = await authAPI.getCurrentUser();

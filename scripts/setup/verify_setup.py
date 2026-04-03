@@ -3,16 +3,20 @@ FastAPI Setup Verification
 ===========================
 Run this script to verify the FastAPI backend is set up correctly.
 
-Usage: python verify_setup.py
+Usage: python scripts/setup/verify_setup.py
 """
 
 import os
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 def check_file_exists(filepath: str) -> bool:
     """Check if a file exists."""
-    exists = Path(filepath).exists()
+    exists = (PROJECT_ROOT / filepath).exists()
     status = "✅" if exists else "❌"
     print(f"{status} {filepath}")
     return exists
@@ -42,7 +46,7 @@ def main():
         "app/api/routers/__init__.py",
         "app/api/routers/chat.py",
         "app/api/routers/auth.py",
-        "requirements-api.txt"
+        "requirements/requirements-api.txt"
     ]
     
     all_files_exist = all(check_file_exists(f) for f in files_to_check)
@@ -56,7 +60,7 @@ def main():
     print("\n🔑 Checking Environment Variables...")
     print("-" * 60)
     
-    env_file = Path(".env")
+    env_file = PROJECT_ROOT / ".env"
     if env_file.exists():
         print("✅ .env file exists")
         # Don't print the actual key for security
@@ -89,7 +93,7 @@ def main():
         
         if not all_modules_installed:
             print("\n📦 Install missing dependencies:")
-            print("   pip install -r requirements-api.txt")
+            print("   pip install -r requirements/requirements-api.txt")
 
 if __name__ == "__main__":
     main()
