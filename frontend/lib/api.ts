@@ -359,6 +359,178 @@ export const instructorAPI = {
   },
 };
 
+export type ServiceHealthStatus = "ok" | "degraded" | "unavailable";
+
+export interface AdminUserItem {
+  user_id: string;
+  display_name: string;
+  email: string | null;
+  role: AppUserRole;
+  is_archived: boolean;
+  created_at: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserItem[];
+}
+
+export interface AdminUserCreatePayload {
+  display_name: string;
+  email: string;
+  password: string;
+  role: AppUserRole;
+}
+
+export interface AdminUserUpdatePayload {
+  role?: AppUserRole;
+  is_archived?: boolean;
+}
+
+export interface AdminCaseItem {
+  case_id: string;
+  title: string;
+  category: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  is_active: boolean;
+  schema_version: string;
+  published_version: number;
+  last_published_at: string | null;
+}
+
+export interface AdminCasesResponse {
+  cases: AdminCaseItem[];
+}
+
+export interface AdminCaseCreatePayload {
+  case_id: string;
+  title: string;
+  category: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  estimated_duration_minutes: number;
+  is_active?: boolean;
+  schema_version?: string;
+  learning_objectives?: string[];
+  prerequisite_competencies?: string[];
+  competency_tags?: string[];
+  initial_state?: string;
+  states?: Record<string, unknown>;
+  patient_info?: Record<string, unknown>;
+}
+
+export interface AdminCaseUpdatePayload {
+  title?: string;
+  category?: string;
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
+export interface AdminPublishPayload {
+  change_notes: string;
+}
+
+export interface AdminPublishResponse {
+  case_id: string;
+  published_version: number;
+  published_at: string | null;
+  change_notes: string;
+}
+
+export interface AdminRulesItem {
+  case_id: string;
+  schema_version?: string;
+  rules: Array<Record<string, unknown>>;
+}
+
+export interface AdminRulesUpdatePayload {
+  rules: Array<Record<string, unknown>>;
+}
+
+export interface AdminHealthResponse {
+  status: "ok" | "degraded";
+  services: {
+    database: ServiceHealthStatus;
+    gemini_api: ServiceHealthStatus;
+    medgemma_api: ServiceHealthStatus;
+  };
+  stats: {
+    total_users: number;
+    active_sessions_today: number;
+    safety_flags_today: number;
+    injection_attempts_today: number;
+  };
+}
+
+/**
+ * Admin API
+ */
+export const adminAPI = {
+  getUsers: async (): Promise<AdminUsersResponse> => {
+    const response = await apiClient.get("/api/admin/users");
+    return response.data as AdminUsersResponse;
+  },
+
+  createUser: async (payload: AdminUserCreatePayload): Promise<AdminUserItem> => {
+    const response = await apiClient.post("/api/admin/users", payload);
+    return response.data as AdminUserItem;
+  },
+
+  updateUser: async (
+    userId: string,
+    payload: AdminUserUpdatePayload,
+  ): Promise<AdminUserItem> => {
+    const response = await apiClient.put(`/api/admin/users/${userId}`, payload);
+    return response.data as AdminUserItem;
+  },
+
+  getCases: async (): Promise<AdminCasesResponse> => {
+    const response = await apiClient.get("/api/admin/cases");
+    return response.data as AdminCasesResponse;
+  },
+
+  createCase: async (payload: AdminCaseCreatePayload): Promise<AdminCaseItem> => {
+    const response = await apiClient.post("/api/admin/cases", payload);
+    return response.data as AdminCaseItem;
+  },
+
+  updateCase: async (
+    caseId: string,
+    payload: AdminCaseUpdatePayload,
+  ): Promise<AdminCaseItem> => {
+    const response = await apiClient.put(`/api/admin/cases/${caseId}`, payload);
+    return response.data as AdminCaseItem;
+  },
+
+  publishCase: async (
+    caseId: string,
+    payload: AdminPublishPayload,
+  ): Promise<AdminPublishResponse> => {
+    const response = await apiClient.post(
+      `/api/admin/cases/${caseId}/publish`,
+      payload,
+    );
+    return response.data as AdminPublishResponse;
+  },
+
+  getRules: async (): Promise<AdminRulesItem[]> => {
+    const response = await apiClient.get("/api/admin/rules");
+    return response.data as AdminRulesItem[];
+  },
+
+  updateRules: async (
+    caseId: string,
+    payload: AdminRulesUpdatePayload,
+  ): Promise<AdminRulesItem> => {
+    const response = await apiClient.put(`/api/admin/rules/${caseId}`, payload);
+    return response.data as AdminRulesItem;
+  },
+
+  getHealth: async (): Promise<AdminHealthResponse> => {
+    const response = await apiClient.get("/api/admin/health");
+    return response.data as AdminHealthResponse;
+  },
+};
+
 /**
  * Feedback API
  */
