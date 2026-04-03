@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.api.routers import chat, auth, cases, feedback, analytics, quiz, recommendations
+from app.api.routers import chat, auth, cases, feedback, analytics, quiz, recommendations, instructor
 from app.api.deps import validate_auth_configuration
 from db.database import init_db
 # Configure logging
@@ -63,6 +63,7 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"]
 app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
 app.include_router(quiz.router, prefix="/api/quiz", tags=["quiz"])
 app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
+app.include_router(instructor.router, prefix="/api/instructor", tags=["instructor"])
 
 # Root endpoint
 @app.get("/")

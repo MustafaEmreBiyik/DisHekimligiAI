@@ -140,6 +140,7 @@ class RecommendationSnapshot(Base):
     reason_text = Column(Text, nullable=False)
     priority_score = Column(Integer, nullable=False)
     algorithm_version = Column(String, nullable=False)
+    is_spotlight = Column(Boolean, nullable=False, default=False, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
 
     def __repr__(self):
