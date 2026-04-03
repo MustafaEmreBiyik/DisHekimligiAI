@@ -30,6 +30,17 @@ export default function InstructorRouteGuard({
       return;
     }
 
+    // Use stored role when available to avoid an extra round-trip
+    if (user.role) {
+      setHasAccess(ALLOWED_ROLES.has(user.role));
+      if (!ALLOWED_ROLES.has(user.role)) {
+        router.replace("/dashboard");
+      }
+      setIsCheckingRole(false);
+      return;
+    }
+
+    // Fallback: verify role with backend (handles stale localStorage edge cases)
     const checkRoleAccess = async () => {
       try {
         const me = await authAPI.getCurrentUser();

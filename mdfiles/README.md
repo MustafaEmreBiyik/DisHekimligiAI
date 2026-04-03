@@ -1,5 +1,13 @@
 # DentAI
 
+DentAI is an AI-supported dental education platform designed to help students practice clinical reasoning through interactive patient cases. Instead of studying pathology only as static notes or slide decks, learners work through simulated oral medicine and oral pathology encounters, ask questions, perform examinations, gather findings, form differentials, and move toward diagnosis and management decisions inside a guided digital environment.
+
+The project focuses on turning clinical knowledge into repeatable practice. It is built around the idea that students improve faster when they can actively test their decision-making, receive immediate feedback, and revisit their own performance patterns over time.
+
+## Project purpose
+
+DentAI was created to support dental students during the difficult transition from theoretical learning to clinical reasoning. In many traditional learning settings, students memorize lesion descriptions, disease names, and treatment principles, but have fewer chances to practice the flow of an actual encounter: what to ask first, what to inspect, which hidden clues matter, what is risky to miss, and how to distinguish similar-looking conditions.
+
 DentAI addresses that gap by presenting cases as interactive simulations rather than passive content. The learner is not just shown the answer. They are expected to investigate, interpret, and act.
 
 ## What the app is
@@ -158,5 +166,40 @@ Several things make the project stand out from a standard educational chatbot:
 
 That combination gives the project a stronger educational shape. The system is trying to teach a process, not just generate plausible answers.
 
+## Current product shape
 
+In its current form, DentAI includes:
 
+- authenticated student access
+- a case dashboard
+- chat-based case interaction
+- profile and progress-related views
+- statistics pages for performance review
+- quiz-related views
+- API support for cases, chat, analytics, feedback, and authentication
+
+The repository also still contains a legacy Streamlit entrypoint from an earlier stage of the project, but the main application experience now centers on the FastAPI and Next.js implementation.
+
+## Short technical note
+
+DentAI is implemented with a Python backend and a Next.js frontend. The backend handles case logic, authentication, session persistence, evaluation, and analytics. The frontend provides the student-facing experience for login, case selection, chat interaction, statistics, quizzes, and related pages.
+
+## Related documents
+
+- `PROJECT_ARCHITECTURE.md`
+- `frontend/README.md`
+- `mdfiles/REACT_MIGRATION_AUDIT.md`
+
+## Migration commands (Sprint 2)
+
+Use Alembic for schema evolution instead of relying only on create_all.
+
+- Set DB URL (optional, defaults to sqlite:///./db/runtime/dentai_app.db):
+	- `set DENTAI_DATABASE_URL=sqlite:///./db/runtime/dentai_app.db` (Windows CMD)
+	- `$env:DENTAI_DATABASE_URL = "sqlite:///./db/runtime/dentai_app.db"` (PowerShell)
+- Upgrade to latest schema:
+	- `python -m alembic upgrade head`
+- Downgrade one revision:
+	- `python -m alembic downgrade -1`
+- Create a new revision file:
+	- `python -m alembic revision -m "describe_change"`

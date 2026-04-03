@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+norecursedirs = [".git", ".venv", "venv", "frontend/node_modules"]
+addopts = "-ra --strict-markers -m \"not integration and not e2e\""
+markers = [
+  "integration: Tests that validate cross-module integration behavior and are opt-in.",
+  "e2e: End-to-end tests that hit a running API/server and are opt-in.",
+]

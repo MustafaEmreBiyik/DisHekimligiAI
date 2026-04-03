@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                🦷 DentAI
+                DentAI
               </h1>
             </div>
             <div className="flex items-center gap-4">

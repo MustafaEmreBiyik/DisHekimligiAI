@@ -1,4 +1,4 @@
-# 🦷 DentAI - Project Architecture
+# DentAI - Project Architecture
 
 > **Dental Education AI Simulator**
 > An intelligent, AI-powered dental education platform that simulates clinical patient encounters for dental students.
