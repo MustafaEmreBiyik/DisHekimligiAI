@@ -10,6 +10,17 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 // API base URL from environment variable
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export type AppUserRole = "student" | "instructor" | "admin";
+
+export interface AuthMeResponse {
+  user_id: string;
+  role: AppUserRole;
+  display_name: string;
+  student_id: string;
+  name: string;
+  email?: string | null;
+}
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -100,9 +111,9 @@ export const authAPI = {
   /**
    * Get current user information
    */
-  getCurrentUser: async () => {
+  getCurrentUser: async (): Promise<AuthMeResponse> => {
     const response = await apiClient.get("/api/auth/me");
-    return response.data;
+    return response.data as AuthMeResponse;
   },
 };
 
@@ -201,6 +212,150 @@ export const recommendationsAPI = {
   getMyRecommendations: async (): Promise<RecommendationResponse> => {
     const response = await apiClient.get("/api/recommendations/me");
     return response.data as RecommendationResponse;
+  },
+};
+
+export interface InstructorAssignedStudent {
+  user_id: string;
+  display_name: string;
+  total_sessions: number;
+  avg_score: number;
+  last_active: string | null;
+  risk_level: "high" | "medium" | "low";
+  weak_competencies: string[];
+}
+
+export interface InstructorSafetyFlag {
+  user_id: string;
+  display_name: string;
+  session_id: string;
+  case_id: string;
+  flag_type: string;
+  created_at: string | null;
+}
+
+export interface InstructorCompetencySummaryItem {
+  avg_score: number;
+  student_count: number;
+}
+
+export interface InstructorOverviewResponse {
+  assigned_students: InstructorAssignedStudent[];
+  safety_flags: InstructorSafetyFlag[];
+  competency_summary: Record<string, InstructorCompetencySummaryItem>;
+}
+
+export interface InstructorStudent {
+  user_id: string;
+  display_name: string;
+  avg_score: number;
+  weak_competencies: string[];
+  risk_level: "high" | "medium" | "low";
+}
+
+export interface InstructorStudentSession {
+  session_id: string;
+  case_id: string;
+  case_title: string;
+  score: number;
+  is_finished: boolean;
+  created_at: string | null;
+  safety_flags: string[];
+  hint_count: number;
+}
+
+export interface InstructorRecommendationHistoryItem {
+  case_id: string;
+  reason_code: string;
+  reason_text: string;
+  created_at: string | null;
+  is_spotlight: boolean;
+}
+
+export interface InstructorStudentDrilldownResponse {
+  student: InstructorStudent;
+  sessions: InstructorStudentSession[];
+  recommendation_history: InstructorRecommendationHistoryItem[];
+}
+
+export interface InstructorSessionAction {
+  message_id: string;
+  student_message: string;
+  interpreted_action: string;
+  score_delta: number;
+  is_critical_safety_rule: boolean;
+  safety_category: string | null;
+  timestamp: string | null;
+}
+
+export interface InstructorValidatorNote {
+  safety_violation: boolean;
+  missing_critical_steps: string[];
+  clinical_accuracy: boolean | null;
+  faculty_notes: string | null;
+  created_at: string | null;
+}
+
+export interface InstructorCoachHint {
+  hint_level: string;
+  content: string;
+  created_at: string | null;
+}
+
+export interface InstructorSessionDetailResponse {
+  session_id: string;
+  student_id: string;
+  case_id: string;
+  score: number;
+  is_finished: boolean;
+  actions: InstructorSessionAction[];
+  validator_notes: InstructorValidatorNote[];
+  coach_hints: InstructorCoachHint[];
+}
+
+export interface InstructorSpotlightPayload {
+  case_id: string;
+  reason: string;
+}
+
+export interface InstructorSpotlightResponse {
+  success: boolean;
+  spotlight_id: string;
+  message: string;
+}
+
+/**
+ * Instructor API
+ */
+export const instructorAPI = {
+  getOverview: async (): Promise<InstructorOverviewResponse> => {
+    const response = await apiClient.get("/api/instructor/overview");
+    return response.data as InstructorOverviewResponse;
+  },
+
+  getStudentDrilldown: async (
+    studentId: string,
+  ): Promise<InstructorStudentDrilldownResponse> => {
+    const response = await apiClient.get(`/api/instructor/students/${studentId}`);
+    return response.data as InstructorStudentDrilldownResponse;
+  },
+
+  getSessionDetail: async (
+    sessionId: string,
+  ): Promise<InstructorSessionDetailResponse> => {
+    const response = await apiClient.get(`/api/instructor/sessions/${sessionId}`);
+    return response.data as InstructorSessionDetailResponse;
+  },
+
+  createSpotlight: async (
+    studentId: string,
+    payload: InstructorSpotlightPayload,
+  ): Promise<InstructorSpotlightResponse> => {
+    const response = await apiClient.post(
+      `/api/instructor/students/${studentId}/spotlight`,
+      payload,
+    );
+    return response.data as InstructorSpotlightResponse;
   },
 };
 
