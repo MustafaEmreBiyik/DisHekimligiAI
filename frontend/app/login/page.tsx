@@ -43,14 +43,13 @@ export default function LoginPage() {
     try {
       const role = await login(userId, password);
       router.push(getPostLoginPath(role));
-    } catch (err: any) {
-      setError(
-        err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      } catch (err: unknown) {
+  setError(
+    err instanceof Error
+      ? err.message
+      : "Giriş başarısız. Lütfen bilgilerinizi kontrol edin."
+  );
+  }
 
   // Don't render form content until auth state is resolved
   if (isLoading) {
@@ -64,7 +63,7 @@ export default function LoginPage() {
       </div>
     );
   }
-
+  }
   return (
     <div className="min-h-screen flex">
       {/* ── Left panel: brand (desktop only) ── */}

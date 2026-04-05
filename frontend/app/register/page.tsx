@@ -51,12 +51,14 @@ export default function RegisterPage() {
       );
       // Auto-redirect to dashboard on success
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // debugged here
+
       setError(
-        err.message || "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.",
+        err instanceof Error
+          ? err.message
+          : "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.",
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -73,7 +75,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
-          DentAI
+            DentAI
           </h1>
           <p className="text-gray-600">Yeni Hesap Oluştur</p>
         </div>
