@@ -47,7 +47,6 @@ app.add_middleware(
         "http://192.168.1.5:3001",
         "http://192.168.1.72:3000",
         "http://localhost:5173",
-        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
