@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   FileQuestion,
   CheckCircle2,
@@ -14,13 +14,31 @@ import { quizAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
+// Student-safe: no answer keys
 interface Question {
+  id: string;
+  topic: string;
+  question: string;
+  options: string[];
+}
+
+// Returned by POST /api/quiz/submit — answer keys revealed server-side only
+interface QuestionResult {
   id: string;
   topic: string;
   question: string;
   options: string[];
   correct_option: string;
   explanation: string;
+  selected_option: string | null;
+  is_correct: boolean;
+}
+
+interface SubmitResponse {
+  score: number;
+  total: number;
+  percentage: number;
+  results: QuestionResult[];
 }
 
 export default function QuizPage() {
@@ -32,7 +50,11 @@ export default function QuizPage() {
   const [selectedTopic, setSelectedTopic] = useState<string>("Tümü");
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+  // Populated after server-side grading
+  const [gradeResults, setGradeResults] = useState<Record<string, QuestionResult>>({});
+  const [serverScore, setServerScore] = useState<SubmitResponse | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,7 +79,6 @@ export default function QuizPage() {
       if (topicsData && Array.isArray(topicsData)) {
         setTopics(topicsData);
       } else {
-        // Derive topics from questions
         const uniqueTopics = Array.from(new Set(questionsData.map((q: Question) => q.topic))) as string[];
         setTopics(["Tümü", ...uniqueTopics]);
       }
@@ -68,7 +89,6 @@ export default function QuizPage() {
     }
   };
 
-  // Filter questions by selected topic
   const filteredQuestions = useMemo(() => {
     if (selectedTopic === "Tümü") return questions;
     return questions.filter((q) => q.topic === selectedTopic);
@@ -86,6 +106,8 @@ export default function QuizPage() {
   const handleReset = () => {
     setUserAnswers({});
     setIsSubmitted(false);
+    setGradeResults({});
+    setServerScore(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -94,17 +116,25 @@ export default function QuizPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic]);
 
-  let correctCount = 0;
-  if (isSubmitted) {
-    filteredQuestions.forEach((q) => {
-      if (userAnswers[q.id] === q.correct_option) {
-        correctCount++;
-      }
-    });
-  }
-  const totalCount = filteredQuestions.length;
-  const scorePercentage =
-    totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const response: SubmitResponse = await quizAPI.submitAnswers(userAnswers);
+      const resultsMap: Record<string, QuestionResult> = {};
+      response.results.forEach((r) => { resultsMap[r.id] = r; });
+      setGradeResults(resultsMap);
+      setServerScore(response);
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error("Failed to submit quiz:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const correctCount = serverScore?.score ?? 0;
+  const totalCount = serverScore?.total ?? filteredQuestions.length;
+  const scorePercentage = serverScore?.percentage ?? 0;
 
   let feedbackLabel = "";
   let feedbackIcon = "📚";
@@ -183,7 +213,7 @@ export default function QuizPage() {
           <div className={styles.questionsList}>
             {filteredQuestions.map((q, idx) => {
               const selectedAnswer = userAnswers[q.id];
-              const isCorrectAnswer = selectedAnswer === q.correct_option;
+              const result = gradeResults[q.id];
 
               return (
                 <div key={q.id} className={styles.questionCard}>
@@ -197,9 +227,9 @@ export default function QuizPage() {
                       let isCorrectOption = false;
                       let isWrongOption = false;
 
-                      if (isSubmitted) {
-                        isCorrectOption = option === q.correct_option;
-                        isWrongOption = isSelected && !isCorrectAnswer;
+                      if (isSubmitted && result) {
+                        isCorrectOption = option === result.correct_option;
+                        isWrongOption = option === result.selected_option && !result.is_correct;
                       }
 
                       return (
@@ -224,13 +254,13 @@ export default function QuizPage() {
                     })}
                   </div>
 
-                  {/* EXPLANATION */}
-                  {isSubmitted && (
+                  {/* EXPLANATION — only after server grading */}
+                  {isSubmitted && result && (
                     <div className={styles.explanation}>
                       <Info size={24} style={{ flexShrink: 0, marginTop: "2px" }} />
                       <div>
                         <strong>Açıklama:</strong>
-                        <p style={{ margin: "0.25rem 0 0 0" }}>{q.explanation}</p>
+                        <p style={{ margin: "0.25rem 0 0 0" }}>{result.explanation}</p>
                       </div>
                     </div>
                   )}
@@ -244,11 +274,11 @@ export default function QuizPage() {
             <div className={styles.actionContainer}>
               <button
                 className={styles.btnPrimary}
-                onClick={() => setIsSubmitted(true)}
-                disabled={!allAnswered}
+                onClick={handleSubmit}
+                disabled={!allAnswered || isSubmitting}
               >
                 <CheckCircle2 size={20} />
-                Cevapları Kontrol Et
+                {isSubmitting ? "Kontrol ediliyor..." : "Cevapları Kontrol Et"}
               </button>
             </div>
           )}
