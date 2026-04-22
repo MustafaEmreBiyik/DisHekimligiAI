@@ -1,7 +1,74 @@
 # DENTAI ORCHESTRATOR LOG
 > Bu dosya her Orchestrator oturumuna başlarken yapıştırılmalıdır.
 > Her Completion Block sonrası güncel halini buraya kaydet.
-> Son güncelleme: 2026-04-02
+> Son güncelleme: 2026-04-22
+
+---
+
+## VERIFICATION BASELINE — 2026-04-22
+
+### Environment
+
+| Item | Value |
+|------|-------|
+| Python | 3.11.5 (venv: `d:/Projects/dentai/dentai/venv/`) — sourced from Anaconda 3.11.5 |
+| Interpreter | `D:\Projects\dentai\dentai\venv\Scripts\python.exe` |
+| pytest | 9.0.2 |
+| Config | `pyproject.toml` (canonical); `config/pytest.ini` (legacy, not loaded by pytest) |
+
+### Install Commands
+
+```
+d:/Projects/dentai/dentai/venv/Scripts/pip install \
+  -r requirements/requirements.txt \
+  -r requirements/requirements-api.txt
+```
+
+Only `alembic==1.18.4` and `Mako==1.3.11` were newly installed; all other declared deps were already satisfied.
+
+### Test Run Results
+
+#### Default profile (offline, no integration/e2e)
+```
+Command: venv/Scripts/python.exe -m pytest -v
+Result : 52 passed, 4 deselected, 11 warnings in 16.74s
+Failures: NONE
+```
+
+Deselected (marker-excluded): `test_rules_integration.py` (3 × integration), `test_e2e_flow.py` (1 × e2e)
+
+#### Integration profile
+```
+Command: venv/Scripts/python.exe -m pytest -v -o "addopts=" -m integration
+Result : 3 passed, 53 deselected, 7 warnings in 1.73s
+Failures: NONE
+Tests  : test_infectious_rules_are_available
+         test_medgemma_flags_penicillin_allergy_violation
+         test_medgemma_accepts_allergy_safe_alternative
+Note   : Uses mocked MedGemma — fully offline despite "integration" label
+```
+
+#### E2E profile
+```
+Command: venv/Scripts/python.exe -m pytest -v -o "addopts=" -m e2e
+Result : 1 skipped, 55 deselected, 7 warnings in 5.77s
+Skipped: test_student_journey_e2e — server not running (expected, DECISION-008)
+Failures: NONE
+```
+
+### Warnings (non-blocking)
+- 11 Pydantic V2 deprecation warnings in `auth.py` and `chat.py`
+  (`Field(..., example=...)` and class-based `Config`) — existing backlog item, not blockers.
+
+### Comparison vs Prior Claims
+
+| Sprint claim | Fresh baseline |
+|---|---|
+| Sprint 6: 44 passed, 4 deselected | **52 passed, 4 deselected** ✅ (count grew: quiz hardening tests added after Sprint 6 closure) |
+| Integration: 3 passed | **3 passed** ✅ exact match |
+| E2E: 1 skipped (no server) | **1 skipped** ✅ exact match |
+
+**Conclusion:** All claimed verification results are reproducible. Test count is higher (52 vs 44) because `tests/security/test_quiz_hardening_b7.py` (7 tests) and `tests/security/test_llm_safety_sprint6.py` were committed after the Sprint 6 log entry was written. No regressions detected. Baseline confirmed clean before any feature work.
 
 ---
 
