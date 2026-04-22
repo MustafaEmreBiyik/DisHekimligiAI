@@ -592,20 +592,19 @@ export const userAPI = {
  * Quiz API
  */
 export const quizAPI = {
-    /**
-     * Get all questions (optionally filtered by topic)
-     */
     getQuestions: async (topic?: string) => {
         const params = topic && topic !== 'Tümü' ? `?topic=${encodeURIComponent(topic)}` : '';
         const response = await apiClient.get(`/api/quiz/questions${params}`);
         return response.data;
     },
 
-    /**
-     * Get available topics
-     */
     getTopics: async () => {
         const response = await apiClient.get('/api/quiz/topics');
+        return response.data;
+    },
+
+    submitAnswers: async (answers: Record<string, string>) => {
+        const response = await apiClient.post('/api/quiz/submit', { answers });
         return response.data;
     },
 };
