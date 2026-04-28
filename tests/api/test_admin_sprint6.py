@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import datetime
-import json
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.api import deps
 from app.api.routers import admin as admin_router
@@ -26,11 +25,11 @@ from db.database import (
 
 
 @pytest.fixture
-def admin_client(tmp_path):
-    db_file = tmp_path / "admin_test.db"
+def admin_client():
     engine = create_engine(
-        f"sqlite:///{db_file}",
+        "sqlite://",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -80,7 +79,13 @@ def _create_user(
         db.close()
 
 
-def _create_case(db_factory, *, case_id: str, title: str = "Case") -> None:
+def _create_case(
+    db_factory,
+    *,
+    case_id: str,
+    title: str = "Case",
+    rules_json: list[dict] | None = None,
+) -> None:
     db = db_factory()
     try:
         db.add(
@@ -98,6 +103,7 @@ def _create_case(db_factory, *, case_id: str, title: str = "Case") -> None:
                 initial_state="consultation",
                 states_json={},
                 patient_info_json={},
+                rules_json=rules_json or [],
                 source_payload={
                     "case_id": case_id,
                     "title": title,
@@ -237,20 +243,10 @@ def test_admin_cases_catalog_and_publish_history(admin_client):
         db.close()
 
 
-def test_admin_rules_management_with_json_fallback(admin_client, tmp_path, monkeypatch):
+def test_admin_rules_management_is_db_backed_and_publish_aligned(admin_client):
     client, db_factory = admin_client
     _create_user(db_factory, user_id="admin_3", role=UserRole.ADMIN, email="admin3@example.com")
-
-    rules_file = tmp_path / "rules.json"
-    initial_payload = [
-        {
-            "case_id": "olp_001",
-            "schema_version": "2.0",
-            "rules": [],
-        }
-    ]
-    rules_file.write_text(json.dumps(initial_payload, ensure_ascii=False), encoding="utf-8")
-    monkeypatch.setattr(admin_router, "SCORING_RULES_PATH", rules_file)
+    _create_case(db_factory, case_id="olp_001", title="OLP Case")
 
     get_rules = client.get(
         "/api/admin/rules",
@@ -258,6 +254,8 @@ def test_admin_rules_management_with_json_fallback(admin_client, tmp_path, monke
     )
     assert get_rules.status_code == 200
     assert isinstance(get_rules.json(), list)
+    assert get_rules.json()[0]["case_id"] == "olp_001"
+    assert get_rules.json()[0]["rules"] == []
 
     update_rules = client.put(
         "/api/admin/rules/olp_001",
@@ -277,10 +275,40 @@ def test_admin_rules_management_with_json_fallback(admin_client, tmp_path, monke
     )
     assert update_rules.status_code == 200
     assert update_rules.json()["case_id"] == "olp_001"
+    assert len(update_rules.json()["rules"]) == 1
 
-    payload_after = json.loads(rules_file.read_text(encoding="utf-8"))
-    assert payload_after[0]["schema_version"] == "2.0"
-    assert len(payload_after[0]["rules"]) == 1
+    rules_after = client.get(
+        "/api/admin/rules",
+        headers=_auth_header(_token("admin_3", UserRole.ADMIN)),
+    )
+    assert rules_after.status_code == 200
+    assert rules_after.json()[0]["schema_version"] == "2.0"
+    assert len(rules_after.json()[0]["rules"]) == 1
+
+    publish = client.post(
+        "/api/admin/cases/olp_001/publish",
+        json={"change_notes": "Rules updated"},
+        headers=_auth_header(_token("admin_3", UserRole.ADMIN)),
+    )
+    assert publish.status_code == 200
+
+    db = db_factory()
+    try:
+        case = db.query(CaseDefinition).filter(CaseDefinition.case_id == "olp_001").first()
+        assert case is not None
+        assert isinstance(case.rules_json, list)
+        assert case.rules_json[0]["target_action"] == "perform_oral_exam"
+
+        history = (
+            db.query(CasePublishHistory)
+            .filter(CasePublishHistory.case_id == "olp_001")
+            .order_by(CasePublishHistory.version.desc())
+            .first()
+        )
+        assert history is not None
+        assert history.snapshot_json["rules"][0]["target_action"] == "perform_oral_exam"
+    finally:
+        db.close()
 
 
 def test_admin_health_panel_stats(admin_client):

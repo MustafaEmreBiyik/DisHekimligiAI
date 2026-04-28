@@ -7,10 +7,12 @@ Streamlit uygulaması için SQLite kullanır.
 
 import datetime
 import os
-import sqlite3
 from pathlib import Path
 from urllib.parse import urlparse
 from typing import Optional
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
 from sqlalchemy import Boolean, Enum
 import enum
@@ -117,6 +119,7 @@ class CaseDefinition(Base):
     initial_state = Column(String, nullable=False)
     states_json = Column(JSON, nullable=False, default=dict)
     patient_info_json = Column(JSON, nullable=False, default=dict)
+    rules_json = Column(JSON, nullable=False, default=list)
     source_payload = Column(JSON, nullable=False, default=dict)
     is_archived = Column(Boolean, nullable=False, default=False, index=True)
     archived_at = Column(DateTime, nullable=True)
@@ -282,18 +285,11 @@ class FeedbackLog(Base):
 
 def init_db():
     """
-    Veritabanını başlat (tüm tabloları oluştur).
-    Uygulama ilk çalıştırıldığında çağrılmalı.
+    Prepare the database path and verify schema readiness.
+    Live schema creation and mutation are Alembic-only.
     """
-    Base.metadata.create_all(bind=engine)
-
-    # Lightweight SQLite "migration": ensure new columns exist on existing DBs.
-    # (SQLite's create_all does not alter existing tables.)
-    try:
-        _ensure_student_sessions_state_json_column()
-    except Exception as e:
-        # Don't hard-fail app startup; log for visibility.
-        print(f"⚠️ Failed to ensure state_json column exists: {e}")
+    _ensure_sqlite_parent_dir()
+    _ensure_schema_is_current()
 
 
 def _sqlite_db_file_path() -> Optional[str]:
@@ -316,24 +312,43 @@ def _sqlite_db_file_path() -> Optional[str]:
         return None
 
 
-def _ensure_student_sessions_state_json_column() -> None:
-    """Add student_sessions.state_json if missing (SQLite ALTER TABLE ADD COLUMN)."""
+def _ensure_sqlite_parent_dir() -> None:
+    """Create the SQLite parent directory before the first connection attempt."""
     db_file = _sqlite_db_file_path()
     if not db_file:
         return
 
-    con = sqlite3.connect(db_file)
-    try:
-        cur = con.cursor()
-        cur.execute("PRAGMA table_info(student_sessions)")
-        cols = [r[1] for r in cur.fetchall()]
-        if "state_json" in cols:
-            return
+    Path(db_file).parent.mkdir(parents=True, exist_ok=True)
 
-        cur.execute("ALTER TABLE student_sessions ADD COLUMN state_json TEXT DEFAULT '{}' ")
-        con.commit()
-    finally:
-        con.close()
+
+def _get_alembic_config() -> Config:
+    """Build an Alembic config that matches the runtime database URL."""
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
+    return config
+
+
+def _ensure_schema_is_current() -> None:
+    """Fail fast when the runtime schema is not at Alembic head."""
+    config = _get_alembic_config()
+    script = ScriptDirectory.from_config(config)
+    expected_heads = tuple(script.get_heads())
+
+    with engine.connect() as connection:
+        migration_context = MigrationContext.configure(connection)
+        current_heads = tuple(migration_context.get_current_heads())
+
+    if set(current_heads) == set(expected_heads):
+        return
+
+    current_display = ", ".join(current_heads) if current_heads else "uninitialized"
+    expected_display = ", ".join(expected_heads) if expected_heads else "none"
+    raise RuntimeError(
+        "Database schema is not at the required Alembic revision. "
+        f"Current revision(s): {current_display}. "
+        f"Expected revision(s): {expected_display}. "
+        "Run `..\\.venv\\Scripts\\python.exe -m alembic upgrade head` before starting the API."
+    )
 
 
 def get_db():
@@ -361,46 +376,13 @@ def get_db():
 
 if __name__ == "__main__":
     """
-    Bu dosyayı doğrudan çalıştırarak veritabanını oluşturabilirsiniz:
+    Bu dosyayı doğrudan çalıştırarak veritabanı hazırlığını doğrulayabilirsiniz:
     python app/db/database.py
     """
-    print("🚀 Veritabanı oluşturuluyor...")
+    print("Checking database schema readiness...")
     init_db()
-    print("✅ Database created successfully!")
-    print(f"📁 Dosya konumu: {DATABASE_URL}")
-    
-    # Test: Örnek bir session oluştur
-    db = SessionLocal()
-    try:
-        test_session = StudentSession(
-            student_id="test_student_001",
-            case_id="olp_001",
-            current_score=0.0
-        )
-        db.add(test_session)
-        db.commit()
-        db.refresh(test_session)
-        
-        print(f"✅ Test session oluşturuldu: {test_session}")
-        
-        # Test: Örnek bir chat log ekle
-        test_chat = ChatLog(
-            session_id=test_session.id,
-            role="user",
-            content="Hastanın tıbbi geçmişini öğrenmek istiyorum.",
-            metadata_json=None
-        )
-        db.add(test_chat)
-        db.commit()
-        
-        print(f"✅ Test chat log oluşturuldu: {test_chat}")
-        print("\n🎉 Veritabanı testi başarılı!")
-        
-    except Exception as e:
-        print(f"❌ Test sırasında hata: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    print("Database schema is at Alembic head.")
+    print(f"Database URL: {DATABASE_URL}")
 
 
 # ==================== HELPER FUNCTIONS ====================

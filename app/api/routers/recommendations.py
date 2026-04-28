@@ -87,13 +87,14 @@ def _load_scoring_rules_index() -> dict[str, dict[str, Any]]:
 
 
 def _build_case_candidates(db: Session) -> list[CandidateCase]:
-    db_cases = (
-        db.query(CaseDefinition)
-        .filter(CaseDefinition.is_active.is_(True), CaseDefinition.is_archived.is_(False))
-        .all()
-    )
+    has_any_cases = db.query(CaseDefinition.id).filter(CaseDefinition.is_archived.is_(False)).first() is not None
 
-    if db_cases:
+    if has_any_cases:
+        db_cases = (
+            db.query(CaseDefinition)
+            .filter(CaseDefinition.is_active.is_(True), CaseDefinition.is_archived.is_(False))
+            .all()
+        )
         return [
             CandidateCase(
                 case_id=case.case_id,

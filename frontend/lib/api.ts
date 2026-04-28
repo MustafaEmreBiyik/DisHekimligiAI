@@ -588,24 +588,53 @@ export const userAPI = {
     },
 };
 
+// ==================== QUIZ TYPES (student-safe) ====================
+
+/** Student-safe question — no answer keys, no explanation. */
+export interface QuizQuestion {
+    id: string;
+    topic: string;
+    question: string;
+    options: string[];
+}
+
+/** Per-question result after server-side grading — student-safe feedback only. */
+export interface QuizQuestionResult {
+    id: string;
+    topic: string;
+    question: string;
+    selected_option: string | null;
+    is_correct: boolean;
+    feedback: string;
+}
+
+/** POST /api/quiz/submit response — student-safe. */
+export interface QuizSubmitResponse {
+    attempt_id: number;
+    score: number;
+    total: number;
+    percentage: number;
+    results: QuizQuestionResult[];
+}
+
 /**
  * Quiz API
  */
 export const quizAPI = {
-    getQuestions: async (topic?: string) => {
+    getQuestions: async (topic?: string): Promise<QuizQuestion[]> => {
         const params = topic && topic !== 'Tümü' ? `?topic=${encodeURIComponent(topic)}` : '';
         const response = await apiClient.get(`/api/quiz/questions${params}`);
-        return response.data;
+        return response.data as QuizQuestion[];
     },
 
-    getTopics: async () => {
+    getTopics: async (): Promise<string[]> => {
         const response = await apiClient.get('/api/quiz/topics');
-        return response.data;
+        return response.data as string[];
     },
 
-    submitAnswers: async (answers: Record<string, string>) => {
+    submitAnswers: async (answers: Record<string, string>): Promise<QuizSubmitResponse> => {
         const response = await apiClient.post('/api/quiz/submit', { answers });
-        return response.data;
+        return response.data as QuizSubmitResponse;
     },
 };
 
