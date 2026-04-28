@@ -129,6 +129,10 @@ def sprint4_client(tmp_path, monkeypatch):
     monkeypatch.setattr(chat_router, "SessionLocal", testing_session_local)
     monkeypatch.setattr(database_module, "SessionLocal", testing_session_local)
     monkeypatch.setattr(chat_router, "agent", _DummyAgent())
+    
+    from app.scenario_manager import ScenarioManager
+    dummy_sm = ScenarioManager(session_factory=testing_session_local, allow_json_fallback=True)
+    monkeypatch.setattr(chat_router, "scenario_manager", dummy_sm)
 
     def override_get_db():
         db = testing_session_local()

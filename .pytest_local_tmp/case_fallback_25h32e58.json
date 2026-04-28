@@ -1,0 +1,1 @@
+[{"case_id": "json_case_01", "title": "JSON Fallback Case", "category": "oral_pathology", "difficulty": "advanced", "initial_state": "consultation", "patient_info": {"age": 99, "chief_complaint": "Fallback"}, "is_active": true}]
