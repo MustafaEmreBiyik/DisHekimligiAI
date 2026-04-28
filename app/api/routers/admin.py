@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import datetime
-import json
 import os
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -29,8 +27,6 @@ from db.database import (
 
 
 router = APIRouter()
-
-SCORING_RULES_PATH = Path(__file__).resolve().parents[3] / "data" / "scoring_rules.json"
 INJECTION_PATTERNS = (
     "ignore previous",
     "system prompt",
@@ -173,24 +169,13 @@ def _case_summary(db: Session, case: CaseDefinition) -> dict[str, Any]:
     }
 
 
-def _load_rules_payload() -> list[dict[str, Any]]:
-    if not SCORING_RULES_PATH.exists():
-        return []
-
-    with open(SCORING_RULES_PATH, "r", encoding="utf-8") as file:
-        payload = json.load(file)
-
-    if not isinstance(payload, list):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Invalid rules payload format",
-        )
-    return payload
-
-
-def _write_rules_payload(payload: list[dict[str, Any]]) -> None:
-    with open(SCORING_RULES_PATH, "w", encoding="utf-8") as file:
-        json.dump(payload, file, ensure_ascii=False, indent=2)
+def _case_rules_payload(case: CaseDefinition) -> dict[str, Any]:
+    rules = case.rules_json if isinstance(case.rules_json, list) else []
+    return {
+        "case_id": case.case_id,
+        "schema_version": case.schema_version,
+        "rules": [rule for rule in rules if isinstance(rule, dict)],
+    }
 
 
 def _validate_rule_items(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -361,6 +346,7 @@ def create_admin_case(
         initial_state=payload.initial_state,
         states_json=payload.states,
         patient_info_json=payload.patient_info,
+        rules_json=[],
         source_payload={
             "case_id": case_id,
             "schema_version": str(payload.schema_version).strip() or "2.0",
@@ -436,6 +422,7 @@ def publish_admin_case(
         "initial_state": case.initial_state,
         "states": case.states_json,
         "patient_info": case.patient_info_json,
+        "rules": case.rules_json if isinstance(case.rules_json, list) else [],
         "source_payload": case.source_payload,
     }
 
@@ -462,9 +449,16 @@ def publish_admin_case(
 @router.get("/rules")
 def list_admin_rules(
     current_user: AuthenticatedUser = Depends(require_roles(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
 ):
     _ = current_user
-    return _load_rules_payload()
+    rows = (
+        db.query(CaseDefinition)
+        .filter(CaseDefinition.is_archived.is_(False))
+        .order_by(CaseDefinition.case_id.asc())
+        .all()
+    )
+    return [_case_rules_payload(row) for row in rows]
 
 
 @router.put("/rules/{case_id}")
@@ -472,38 +466,16 @@ def update_admin_rules(
     case_id: str,
     payload: RulesUpdateRequest,
     current_user: AuthenticatedUser = Depends(require_roles(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
 ):
     _ = current_user
     normalized_rules = _validate_rule_items(payload.rules)
-    rules_payload = _load_rules_payload()
-
-    replaced = False
     normalized_case_id = case_id.strip()
-    for index, item in enumerate(rules_payload):
-        if isinstance(item, dict) and str(item.get("case_id", "")).strip() == normalized_case_id:
-            rules_payload[index] = {
-                "case_id": normalized_case_id,
-                "schema_version": "2.0",
-                "rules": normalized_rules,
-            }
-            replaced = True
-            break
-
-    if not replaced:
-        rules_payload.append(
-            {
-                "case_id": normalized_case_id,
-                "schema_version": "2.0",
-                "rules": normalized_rules,
-            }
-        )
-
-    _write_rules_payload(rules_payload)
-    return {
-        "case_id": normalized_case_id,
-        "schema_version": "2.0",
-        "rules": normalized_rules,
-    }
+    case = _get_case_or_404(db, normalized_case_id)
+    case.rules_json = normalized_rules
+    db.commit()
+    db.refresh(case)
+    return _case_rules_payload(case)
 
 
 @router.get("/health")

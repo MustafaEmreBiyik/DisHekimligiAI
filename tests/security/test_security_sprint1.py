@@ -66,6 +66,9 @@ def security_client(tmp_path, monkeypatch, mock_external_ai_sdks):
     monkeypatch.setattr(database_module, "SessionLocal", testing_session_local)
     monkeypatch.setattr(chat_router, "agent", _DummyAgent())
     monkeypatch.setattr(chat_router, "reasoning_classifier", _DummyReasoningClassifier())
+    from app.scenario_manager import ScenarioManager
+    dummy_sm = ScenarioManager(session_factory=testing_session_local, allow_json_fallback=True)
+    monkeypatch.setattr(chat_router, "scenario_manager", dummy_sm)
 
     def override_get_db():
         db = testing_session_local()

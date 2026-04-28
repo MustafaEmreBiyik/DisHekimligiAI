@@ -6,14 +6,16 @@ Answer keys are never included in student-facing GET responses; grading is
 performed server-side via POST /submit.
 """
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import json
 import logging
 from pathlib import Path
+from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user_context, AuthenticatedUser
+from app.api.deps import get_current_user_context, AuthenticatedUser, get_db, require_roles
+from db.database import ExamResult, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -42,22 +44,31 @@ class SubmitRequest(BaseModel):
     answers: Dict[str, str]   # {question_id: selected_option}
 
 
-class QuestionResult(BaseModel):
+class QuestionFeedback(BaseModel):
     id: str
     topic: str
     question: str
-    options: List[str]
-    correct_option: str
-    explanation: str
     selected_option: Optional[str]
     is_correct: bool
+    feedback: str
 
 
 class SubmitResponse(BaseModel):
+    attempt_id: int
     score: int
     total: int
     percentage: int
-    results: List[QuestionResult]
+    results: List[QuestionFeedback]
+
+
+def _forbidden() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+def _safe_feedback(*, is_correct: bool) -> str:
+    if is_correct:
+        return "Dogru cevap. Benzer vakalarda ayni klinik yaklasimi surdurun."
+    return "Bu yanit dogru degil. Konuyu yeniden gozden gecirip tekrar deneyin."
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -101,7 +112,7 @@ def _load_full_questions() -> List[dict]:
 )
 def get_questions(
     topic: Optional[str] = None,
-    current_user: AuthenticatedUser = Depends(get_current_user_context),
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
 ):
     """
     Return quiz questions in student-safe format.
@@ -134,7 +145,8 @@ def get_questions(
 )
 def submit_answers(
     body: SubmitRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user_context),
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
 ):
     """
     Grade submitted quiz answers server-side.
@@ -142,37 +154,52 @@ def submit_answers(
     **Authentication Required:** Yes (Bearer token)
 
     Accepts a map of {question_id: selected_option}, scores them against the
-    answer key, and returns per-question results (including correct_option and
-    explanation) only after submission.
+    server-side answer key, and returns student-safe feedback only.
     """
     question_map = {q["id"]: q for q in _load_full_questions()}
-    graded_ids = set(body.answers.keys()) & question_map.keys()
-
-    results: List[QuestionResult] = []
+    results: List[QuestionFeedback] = []
     correct_count = 0
 
-    for qid in graded_ids:
+    for qid, selected in body.answers.items():
+        if qid not in question_map:
+            continue
+
         q = question_map[qid]
-        selected = body.answers[qid]
         is_correct = selected == q["correct_option"]
         if is_correct:
             correct_count += 1
 
-        results.append(QuestionResult(
+        results.append(QuestionFeedback(
             id=q["id"],
             topic=q["topic"],
             question=q["question"],
-            options=q["options"],
-            correct_option=q["correct_option"],
-            explanation=q["explanation"],
             selected_option=selected,
             is_correct=is_correct,
+            feedback=_safe_feedback(is_correct=is_correct),
         ))
 
     total = len(results)
     percentage = round((correct_count / total) * 100) if total > 0 else 0
 
+    attempt = ExamResult(
+        user_id=current_user.user_id,
+        case_id="quiz_global",
+        score=correct_count,
+        max_score=total,
+        details_json=json.dumps(
+            {
+                "results": [result.model_dump() for result in results],
+                "percentage": percentage,
+            },
+            ensure_ascii=False,
+        ),
+    )
+    db.add(attempt)
+    db.commit()
+    db.refresh(attempt)
+
     return SubmitResponse(
+        attempt_id=attempt.id,
         score=correct_count,
         total=total,
         percentage=percentage,
@@ -180,8 +207,70 @@ def submit_answers(
     )
 
 
+@router.get(
+    "/attempts/{attempt_id}",
+    response_model=SubmitResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_attempt(
+    attempt_id: int,
+    current_user: AuthenticatedUser = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    """Return a previously graded quiz attempt with ownership-aware RBAC."""
+    attempt = db.query(ExamResult).filter(ExamResult.id == attempt_id).first()
+    if not attempt or attempt.case_id != "quiz_global":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz attempt not found")
+
+    if current_user.role == UserRole.STUDENT and attempt.user_id != current_user.user_id:
+        raise _forbidden()
+    if current_user.role not in {UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN}:
+        raise _forbidden()
+
+    payload = {}
+    if attempt.details_json:
+        try:
+            payload = json.loads(attempt.details_json)
+        except json.JSONDecodeError:
+            payload = {}
+
+    raw_results = payload.get("results", []) if isinstance(payload, dict) else []
+    safe_results: List[QuestionFeedback] = []
+    if isinstance(raw_results, list):
+        for item in raw_results:
+            if isinstance(item, dict):
+                try:
+                    safe_results.append(
+                        QuestionFeedback(
+                            id=str(item.get("id", "")),
+                            topic=str(item.get("topic", "")),
+                            question=str(item.get("question", "")),
+                            selected_option=(
+                                str(item.get("selected_option"))
+                                if item.get("selected_option") is not None
+                                else None
+                            ),
+                            is_correct=bool(item.get("is_correct", False)),
+                            feedback=str(item.get("feedback", "")),
+                        )
+                    )
+                except Exception:
+                    continue
+
+    total = int(attempt.max_score or 0)
+    percentage = int(payload.get("percentage", round((attempt.score / total) * 100) if total > 0 else 0))
+
+    return SubmitResponse(
+        attempt_id=attempt.id,
+        score=int(attempt.score or 0),
+        total=total,
+        percentage=percentage,
+        results=safe_results,
+    )
+
+
 @router.get("/topics", status_code=status.HTTP_200_OK)
-def get_topics(current_user: AuthenticatedUser = Depends(get_current_user_context)):
+def get_topics(current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT))):
     """
     Return all available quiz topics.
 

@@ -156,6 +156,13 @@ def get_or_create_session(db, student_id: str, case_id: str) -> StudentSession:
         logger.info(f"Found existing session {session.id} for student {student_id} on case {case_id}")
         return session
     
+    case = scenario_manager.get_case(case_id, include_inactive=False)
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot start session. Case '{case_id}' is not active or does not exist."
+        )
+
     # Create new session
     new_session = StudentSession(
         student_id=student_id,
@@ -259,10 +266,8 @@ def _resolve_case_metadata(db, case_id: str) -> Dict[str, Any]:
         )
         return case_meta
 
-    for case in scenario_manager.case_data:
-        if not isinstance(case, dict) or case.get("case_id") != case_id:
-            continue
-
+    case = scenario_manager.get_case(case_id, include_inactive=True)
+    if case:
         difficulty_raw = str(case.get("difficulty") or case.get("zorluk_seviyesi") or "").strip().lower()
         difficulty_map = {
             "kolay": "beginner",
@@ -277,7 +282,6 @@ def _resolve_case_metadata(db, case_id: str) -> Dict[str, Any]:
                 "final_diagnosis": case.get("dogru_tani") or case.get("correct_diagnosis"),
             }
         )
-        break
 
     return case_meta
 

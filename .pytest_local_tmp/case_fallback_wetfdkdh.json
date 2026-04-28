@@ -1,0 +1,1 @@
+[{"case_id": "json_case_02", "title": "Seed Fallback Case", "category": "oral_pathology", "difficulty": "intermediate", "initial_state": "consultation", "patient_info": {"age": 27, "chief_complaint": "Seed import source"}, "is_active": true}]

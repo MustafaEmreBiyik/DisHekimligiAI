@@ -10,42 +10,15 @@ import {
   Search,
 } from "lucide-react";
 import styles from "./Quiz.module.css";
-import { quizAPI } from "@/lib/api";
+import { quizAPI, QuizQuestion, QuizQuestionResult, QuizSubmitResponse } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-
-// Student-safe: no answer keys
-interface Question {
-  id: string;
-  topic: string;
-  question: string;
-  options: string[];
-}
-
-// Returned by POST /api/quiz/submit — answer keys revealed server-side only
-interface QuestionResult {
-  id: string;
-  topic: string;
-  question: string;
-  options: string[];
-  correct_option: string;
-  explanation: string;
-  selected_option: string | null;
-  is_correct: boolean;
-}
-
-interface SubmitResponse {
-  score: number;
-  total: number;
-  percentage: number;
-  results: QuestionResult[];
-}
 
 export default function QuizPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [topics, setTopics] = useState<string[]>(["Tümü"]);
   const [selectedTopic, setSelectedTopic] = useState<string>("Tümü");
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
@@ -53,8 +26,8 @@ export default function QuizPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   // Populated after server-side grading
-  const [gradeResults, setGradeResults] = useState<Record<string, QuestionResult>>({});
-  const [serverScore, setServerScore] = useState<SubmitResponse | null>(null);
+  const [gradeResults, setGradeResults] = useState<Record<string, QuizQuestionResult>>({});
+  const [serverScore, setServerScore] = useState<QuizSubmitResponse | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -79,7 +52,7 @@ export default function QuizPage() {
       if (topicsData && Array.isArray(topicsData)) {
         setTopics(topicsData);
       } else {
-        const uniqueTopics = Array.from(new Set(questionsData.map((q: Question) => q.topic))) as string[];
+        const uniqueTopics = Array.from(new Set(questionsData.map((q: QuizQuestion) => q.topic))) as string[];
         setTopics(["Tümü", ...uniqueTopics]);
       }
     } catch (err) {
@@ -113,14 +86,13 @@ export default function QuizPage() {
 
   useEffect(() => {
     handleReset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const response: SubmitResponse = await quizAPI.submitAnswers(userAnswers);
-      const resultsMap: Record<string, QuestionResult> = {};
+      const response: QuizSubmitResponse = await quizAPI.submitAnswers(userAnswers);
+      const resultsMap: Record<string, QuizQuestionResult> = {};
       response.results.forEach((r) => { resultsMap[r.id] = r; });
       setGradeResults(resultsMap);
       setServerScore(response);
@@ -228,7 +200,7 @@ export default function QuizPage() {
                       let isWrongOption = false;
 
                       if (isSubmitted && result) {
-                        isCorrectOption = option === result.correct_option;
+                        isCorrectOption = option === result.selected_option && result.is_correct;
                         isWrongOption = option === result.selected_option && !result.is_correct;
                       }
 
@@ -254,13 +226,13 @@ export default function QuizPage() {
                     })}
                   </div>
 
-                  {/* EXPLANATION — only after server grading */}
+                  {/* FEEDBACK — only after server grading */}
                   {isSubmitted && result && (
                     <div className={styles.explanation}>
                       <Info size={24} style={{ flexShrink: 0, marginTop: "2px" }} />
                       <div>
-                        <strong>Açıklama:</strong>
-                        <p style={{ margin: "0.25rem 0 0 0" }}>{result.explanation}</p>
+                        <strong>Geri Bildirim:</strong>
+                        <p style={{ margin: "0.25rem 0 0 0" }}>{result.feedback}</p>
                       </div>
                     </div>
                   )}

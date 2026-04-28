@@ -1,7 +1,7 @@
 # DENTAI ORCHESTRATOR LOG
 > Bu dosya her Orchestrator oturumuna başlarken yapıştırılmalıdır.
 > Her Completion Block sonrası güncel halini buraya kaydet.
-> Son güncelleme: 2026-04-22
+> Son güncelleme: 2026-04-28
 
 ---
 
@@ -212,6 +212,32 @@ Failures: NONE
               çözülmeli. Backlog'a alındı.
 [2026-04-03] [DECISION-060] Sprint 6 closure APPROVED — AGENT-7 onayladı.
               44 test geçiyor, 4 deselected. Proje deployment'a hazır.
+[2026-04-27] [DECISION-061] Sprint 7 TASK-1 (Secure Quiz API Rebuild) AGENT-2 tarafından tamamlandı.
+              Quiz fetch student-safe; correct_option/explanation/answer_key ve scoring
+              internalleri öğrenci payload'ından kaldırıldı.
+[2026-04-27] [DECISION-062] API contract update: POST /api/quiz/submit artık
+              correct_option veya explanation döndürmez.
+              Student-safe submit response: attempt_id, score, total, percentage, results[].
+[2026-04-27] [DECISION-063] Attempt retrieval access policy sıkılaştırıldı:
+              öğrenci sadece kendi denemesine erişir; instructor/admin erişimi yalnız
+              explicit role-check ile mümkündür.
+[2026-04-27] [DECISION-064] /api/chat/coach ve clinical assistant panel boundary
+              korunmuştur; Sprint 7 TASK-1 kapsamında değiştirilmemiştir.
+[2026-04-27] [DECISION-065] Sprint 7 gate: AGENT-7 bağımsız audit (S7-T2) tamamlanmadan
+              S7 hattında sonraki teslimatlar DONE sayılmayacak.
+[2026-04-27] [DECISION-066] Downstream frontend/API consumer'lar quiz sonuçlarını
+              feedback-only render etmelidir; doğru cevap/explanation istemci sözleşmesinden çıkarıldı.
+[2026-04-28] [DECISION-067] S7-T2-REAUDIT assigned to AGENT-7.
+              Re-audit of S7-T1-FIX-A (semantic leakage remediation).
+              _safe_feedback() now returns static generic strings.
+              S7-T3 remains blocked until APPROVED.
+[2026-04-28] [DECISION-068] S7-T2-REAUDIT APPROVED by AGENT-7.
+              Semantic leakage risk is fully mitigated.
+              S7-T3 Runtime DB Unification is now UNBLOCKED.
+[2026-04-28] [DECISION-069] S7-T3 Runtime DB Unification completed by AGENT-2.
+              Pending strict audit due to test count anomaly (65 vs 66)
+              and potential DB-fallback security risks.
+              S7-T4-VERIFY assigned to AGENT-7.
 ```
 
 ---
@@ -220,18 +246,16 @@ Failures: NONE
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 6 ✅ DONE — PROJE TAMAMLANDI
+DENTAI AGENT STATUS — Sprint: 7 🔄 IN PROGRESS
 ═══════════════════════════════════════════
 
-TÜM SPRINT'LER TAMAMLANDI ✅
-- 44 test geçiyor, 4 deselected
-- Proje deployment'a hazır
-- Açık backlog (blocker değil):
-  * utcnow deprecation fix (MEDIUM)
-  * Catalog source-of-truth ayrışması (MEDIUM)
-  * rules editor UI (future sprint)
-  * Token revocation / jti blacklist (HIGH)
-  * Quiz answer key ifşası (MEDIUM)
+Current priority sprint: Secure Assessment + DB Runtime Unification
+- S7-T1 tamamlandı: secure server-evaluated quiz flow
+- S7-T1-FIX-A tamamlandı: semantic leakage remediation (_safe_feedback static)
+- S7-T2-REAUDIT tamamlandı: AGENT-7 APPROVED
+- S7-T3 tamamlandı: Runtime DB Unification (AGENT-2)
+- Aktif gate: S7-T4-VERIFY AGENT-7 audit (zorunlu)
+- Son doğrulama: quiz hardening 13 passed, default 65 passed / 4 deselected (WARNING: Test count anomaly)
 
 | Agent   | Task ID           | Status       |
 |---------|------------------|--------------|
@@ -243,6 +267,7 @@ TÜM SPRINT'LER TAMAMLANDI ✅
 | AGENT-2 | SPRINT-4-TASK-3  | DONE         |
 | AGENT-2 | SPRINT-5-TASK-1  | DONE         |
 | AGENT-2 | SPRINT-6-TASK-1  | DONE         |
+| AGENT-2 | S7-T1            | DONE         |
 | AGENT-3 | SPRINT-3-TASK-2  | DONE         |
 | AGENT-3 | SPRINT-5-TASK-2  | DONE         |
 | AGENT-3 | SPRINT-6-TASK-2  | DONE         |
@@ -253,6 +278,10 @@ TÜM SPRINT'LER TAMAMLANDI ✅
 | AGENT-7 | SPRINT-4-TASK-2  | DONE ✅ APPROVED |
 | AGENT-7 | SPRINT-4-TASK-3  | DONE ✅ APPROVED |
 | AGENT-7 | SPRINT-6-TASK-3  | DONE ✅ APPROVED |
+| AGENT-7 | S7-T2            | PARTIAL (semantic leakage risk) |
+| AGENT-7 | S7-T2-REAUDIT    | DONE ✅ APPROVED |
+| AGENT-2 | S7-T3            | DONE (PENDING AUDIT) |
+| AGENT-7 | S7-T4-VERIFY     | ASSIGNED (AUDIT GATE) |
 ═══════════════════════════════════════════
 ```
 
@@ -309,6 +338,159 @@ AGENT-7 re-approval tamamlandı. Tüm CRITICAL ve HIGH bulgular kapatıldı.
 ---
 
 ## COMPLETION BLOCKS ARŞİVİ
+
+### AGENT-2 — S7-T1 SECURE QUIZ API REBUILD (DONE)
+
+```
+Status: DONE
+Deliverable: Secure server-evaluated quiz flow tamamlandı.
+             Quiz fetch/submit ve attempt retrieval student-safe boundary ile güncellendi.
+
+FILES CHANGED:
+- app/api/routers/quiz.py
+- tests/security/test_quiz_hardening_b7.py
+- frontend/app/quiz/page.tsx
+
+API CONTRACT CHANGE:
+- POST /api/quiz/submit response artık correct_option veya explanation döndürmez.
+- Student-safe submit response:
+  attempt_id, score, total, percentage,
+  results[]: {id, topic, question, selected_option, is_correct, feedback}
+
+SECURITY ASSERTIONS:
+- Quiz fetch student payload'ından şu alanlar çıkarıldı:
+  correct_option, explanation, answer_key, scoring internalleri,
+  evaluator metadata, raw validator output
+- Submit server-side evaluate edilir; istemci answer key göremez
+- Attempt retrieval owner-check enforce edildi; instructor/admin yalnız explicit role-check ile
+- /api/chat/coach değiştirilmedi
+- Clinical assistant panel değiştirilmedi
+
+VALIDATION:
+- Quiz hardening suite → 11 passed
+- Default pytest profile → 64 passed, 4 deselected
+- Yeni network bağımlılığı yok
+
+DEPENDENCY NOTICE:
+- Frontend/API consumer'lar quiz result rendering'i feedback-only modele göre güncellemelidir.
+  correct_option / explanation alanlarına güvenilmemelidir.
+```
+
+### AGENT-7 — S7-T2 QUIZ SECURITY AUDIT (ASSIGNED)
+
+```
+Status: ASSIGNED
+Objective: S7-T1 secure quiz rebuild için bağımsız güvenlik ve boundary doğrulaması.
+
+AUDIT SCOPE:
+- Quiz fetch pre-submit payload'ında answer leakage kontrolü
+- POST /api/quiz/submit student-safe schema doğrulaması
+- Attempt retrieval ownership ve role-check doğrulaması
+- Student payload'ta evaluator/validator internal veri sızıntısı kontrolü
+- /api/chat/coach sınırı ve assistant panel ayrımının korunması
+
+EXIT GATES:
+- Audit checklist PASS/BLOCKED verdict
+- En az bir negatif test: leakage attempt engelleniyor
+- Default offline profile üzerinde doğrulama (network bağımsız)
+- Completion Block + karar güncellemesi log'a işlenecek
+```
+
+### AGENT-7 — S7-T2-REAUDIT (DONE — APPROVED)
+
+```
+Status: DONE
+Verdict: APPROVED
+Deliverable: Independent security and boundary verification for S7-T1-FIX-A semantic leakage remediation.
+
+AUDIT ITEMS VERIFIED (PASS):
+- A1: _safe_feedback() returns static, generic strings with zero answer-revealing content.
+- A2: QuestionFeedback schema contains no answer key or explanation fields.
+- A3: SubmitResponse schema contains no evaluator/validator metadata.
+- A4: Attempt retrieval sanitizes tampered details_json (strips injected correct_option, explanation, answer_key, raw_validator_output, evaluator_metadata).
+- A5: test_b7_wrong_answer_feedback_does_not_leak_explanation_semantics confirms no semantic leakage in feedback text.
+- A6: Frontend quiz page does NOT perform client-side grading and only renders server-provided feedback.
+- A7: /api/chat/coach boundary is preserved (no changes).
+- A8: Clinical assistant panel boundary is preserved (no changes).
+
+TEST RESULTS:
+- quiz hardening suite: 13 passed
+- default offline profile: 64 passed, 4 deselected
+
+FINDINGS:
+- NONE. Semantic leakage risk is fully mitigated. S7-T3 is UNBLOCKED.
+```
+
+### AGENT-2 — S7-T3 RUNTIME DB UNIFICATION (DONE - PENDING AUDIT)
+
+```
+Status: DONE
+Deliverable: Runtime cases use DB as source-of-truth. JSON is fallback only.
+
+FILES CHANGED:
+- app/api/routers/recommendations.py
+- app/api/routers/chat.py
+- tests/security/test_sprint4_coach_validator.py
+- tests/security/test_security_sprint1.py
+
+DESIGN DECISIONS:
+- recommendations.py checks if DB has non-archived cases. If so, only returns active DB cases.
+- chat.py validates case activity before creating a new StudentSession.
+- New sessions for inactive cases are rejected with HTTP 400.
+- Existing sessions for deactivated cases are preserved.
+- _resolve_case_metadata uses scenario_manager.get_case(case_id, include_inactive=True).
+
+VALIDATION:
+- test_cases_sprint7_db_runtime.py: 3 passed
+- test_recommendations_sprint3.py: 3 passed
+- test_sprint4_coach_validator.py: 7 passed
+- default pytest: 65 passed, 4 deselected
+
+DEPENDENCY NOTICE / WARNINGS:
+- [WARNING] Default baseline test count decreased from 66 to 65.
+- [WARNING] Security fixtures modified to inject allow_json_fallback=True.
+- Verification required to ensure production DB-first behavior is not weakened.
+```
+
+### AGENT-6 — S7-SAFETY-REVIEW (DONE)
+
+```
+Status: DONE
+Deliverable: LLM Safety, prompt security, and boundary verification completed for S7.
+
+FILES REVIEWED:
+- app/api/routers/chat.py
+- app/agent.py
+- app/services/llm_safety.py
+- app/services/med_gemma_service.py
+
+SAFETY BOUNDARY CHANGES:
+- Verification only. Boundaries already robust from previous sprints.
+- Prompt injection handling leverages non-blocking isolation.
+- MedGemma strictly fails-closed upon validation errors/schema violations.
+
+STUDENT-SAFE ASSERTIONS:
+- Raw MedGemma exposure: None. Shielded by ChatResponse schema and _sanitize_coach_content.
+- Hidden evaluator metadata: Kept internal (ChatLog.metadata_json) and filtered out in ChatResponse.
+- Prompt injection handling: Non-blocking, isolated, and logged to DB via ValidatorAuditLog and ChatLog.
+- Fail-closed behavior: Explicitly enforced in MedGemmaService and deterministic pre-check fallback.
+
+TESTS RUN:
+- `tests/security/test_llm_safety_sprint6.py` (3 passed)
+- `tests/security/test_sprint4_coach_validator.py` (5 passed)
+
+TEST RESULT:
+- PASS. All student safety, prompt isolation, fail-closed mechanics, and internal payload leak tests succeed.
+
+DECISIONS MADE:
+- No new architecture required for S7 regarding LLM safety. Current boundaries satisfy rules.
+
+RESIDUAL RISKS / FOLLOW-UP:
+- Continued monitoring of injection variants in production.
+
+ORCHESTRATOR UPDATE NEEDED:
+- None.
+```
 
 ### AGENT-2 — SPRINT-4-TASK-1 (DONE)
 

@@ -8,13 +8,12 @@ Provides student-safe views (filters out hidden findings).
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-import os
-import json
 import logging
+from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.scenario_manager import ScenarioManager
-from db.database import SessionLocal, StudentSession
+from db.database import StudentSession
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +63,14 @@ class SessionInfo(BaseModel):
 
 def _extract_patient_info(case: Dict[str, Any]) -> Optional[PatientInfo]:
     """Extract patient info from case data (handles both Turkish and English keys)."""
+    patient_info = case.get("patient_info")
+    if isinstance(patient_info, dict):
+        return PatientInfo(
+            age=patient_info.get("age"),
+            gender=patient_info.get("gender"),
+            chief_complaint=patient_info.get("chief_complaint"),
+        )
+
     # Try Turkish keys first (hasta_profili)
     hp = case.get("hasta_profili")
     if isinstance(hp, dict):
@@ -86,12 +93,21 @@ def _extract_patient_info(case: Dict[str, Any]) -> Optional[PatientInfo]:
 
 def _get_case_name(case: Dict[str, Any]) -> Optional[str]:
     """Extract case name from case data."""
-    return case.get("name") or case.get("dogru_tani")
+    return case.get("title") or case.get("name")
 
 
 def _get_difficulty(case: Dict[str, Any]) -> Optional[str]:
     """Extract difficulty from case data."""
     return case.get("difficulty") or case.get("zorluk_seviyesi")
+
+
+def _latest_session(db: Session, *, student_id: str, case_id: str) -> Optional[StudentSession]:
+    return (
+        db.query(StudentSession)
+        .filter_by(student_id=student_id, case_id=case_id)
+        .order_by(StudentSession.start_time.desc())
+        .first()
+    )
 
 
 # ==================== ENDPOINTS ====================
@@ -106,9 +122,9 @@ def list_cases(current_user: str = Depends(get_current_user)):
     Returns a list of cases with basic information.
     Hidden findings are NOT included.
     """
-    cases = []
-    
-    for case in scenario_manager.case_data:
+    cases: List[CaseSummary] = []
+
+    for case in scenario_manager.list_cases():
         if not isinstance(case, dict):
             continue
             
@@ -137,13 +153,7 @@ def get_case(case_id: str, current_user: str = Depends(get_current_user)):
     Returns case information suitable for display to students.
     Hidden findings and correct diagnosis are NOT included until case completion.
     """
-    # Find the case
-    case = None
-    for c in scenario_manager.case_data:
-        if isinstance(c, dict) and c.get("case_id") == case_id:
-            case = c
-            break
-    
+    case = scenario_manager.get_case(case_id, include_inactive=False)
     if not case:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -161,7 +171,11 @@ def get_case(case_id: str, current_user: str = Depends(get_current_user)):
 
 
 @router.post("/{case_id}/start", response_model=SessionInfo, status_code=status.HTTP_201_CREATED)
-def start_session(case_id: str, current_user: str = Depends(get_current_user)):
+def start_session(
+    case_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Start a new session for a case or return existing active session.
     
@@ -170,50 +184,49 @@ def start_session(case_id: str, current_user: str = Depends(get_current_user)):
     Creates a new StudentSession if none exists for this student+case combination.
     Returns the session information including current score.
     """
-    # Verify case exists
-    case_exists = False
-    for c in scenario_manager.case_data:
-        if isinstance(c, dict) and c.get("case_id") == case_id:
-            case_exists = True
-            break
-    
-    if not case_exists:
+    existing_session = _latest_session(db, student_id=current_user, case_id=case_id)
+    if existing_session:
+        logger.info("✅ Existing session resumed: student=%s, case=%s", current_user, case_id)
+        return SessionInfo(
+            session_id=existing_session.id,
+            case_id=case_id,
+            current_score=existing_session.current_score or 0.0,
+            is_active=True,
+        )
+
+    case = scenario_manager.get_case(case_id, include_inactive=False)
+    if not case:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Case '{case_id}' not found"
         )
     
     # Get or create session (ScenarioManager handles this)
-    state = scenario_manager.get_state(current_user, case_id=case_id)
-    
-    # Fetch the session from database
-    db = SessionLocal()
-    try:
-        session = db.query(StudentSession).filter_by(
-            student_id=current_user,
-            case_id=case_id
-        ).order_by(StudentSession.start_time.desc()).first()
-        
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create session"
-            )
-        
-        logger.info(f"✅ Session started/resumed: student={current_user}, case={case_id}")
-        
-        return SessionInfo(
-            session_id=session.id,
-            case_id=case_id,
-            current_score=session.current_score or 0.0,
-            is_active=True,
+    scenario_manager.get_state(current_user, case_id=case_id)
+
+    session = _latest_session(db, student_id=current_user, case_id=case_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create session"
         )
-    finally:
-        db.close()
+
+    logger.info("✅ Session started: student=%s, case=%s", current_user, case_id)
+
+    return SessionInfo(
+        session_id=session.id,
+        case_id=case_id,
+        current_score=session.current_score or 0.0,
+        is_active=True,
+    )
 
 
 @router.get("/{case_id}/session", response_model=SessionInfo, status_code=status.HTTP_200_OK)
-def get_session(case_id: str, current_user: str = Depends(get_current_user)):
+def get_session(
+    case_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Get current session info for a case.
     
@@ -221,27 +234,20 @@ def get_session(case_id: str, current_user: str = Depends(get_current_user)):
     
     Returns 404 if no session exists.
     """
-    db = SessionLocal()
-    try:
-        session = db.query(StudentSession).filter_by(
-            student_id=current_user,
-            case_id=case_id
-        ).order_by(StudentSession.start_time.desc()).first()
-        
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No session found for case '{case_id}'"
-            )
-        
-        return SessionInfo(
-            session_id=session.id,
-            case_id=case_id,
-            current_score=session.current_score or 0.0,
-            is_active=True,
+    session = _latest_session(db, student_id=current_user, case_id=case_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No session found for case '{case_id}'"
         )
-    finally:
-        db.close()
+
+    return SessionInfo(
+        session_id=session.id,
+        case_id=case_id,
+        current_score=session.current_score or 0.0,
+        is_active=True,
+    )
 
 
 @router.get("/status", status_code=status.HTTP_200_OK)
@@ -252,5 +258,5 @@ def cases_service_status():
     return {
         "service": "cases",
         "status": "operational",
-        "total_cases": len(scenario_manager.case_data),
+        "total_cases": len(scenario_manager.list_cases()),
     }
