@@ -1,6 +1,8 @@
 import json
 import sys
+import tempfile
 import types
+from pathlib import Path
 
 import pytest
 
@@ -21,6 +23,17 @@ _DEFAULT_MEDGEMMA_PAYLOAD = {
     "clinical_accuracy": "high",
     "faculty_notes": "Mocked MedGemma response",
 }
+
+
+def pytest_configure(config):
+    """Keep pytest temp files inside the writable workspace on this desktop setup."""
+    if config.option.basetemp:
+        return
+
+    repo_root = Path(__file__).resolve().parents[1]
+    base_temp_root = repo_root / ".pytest_runtime"
+    base_temp_root.mkdir(parents=True, exist_ok=True)
+    config.option.basetemp = tempfile.mkdtemp(prefix="run_", dir=base_temp_root)
 
 
 @pytest.fixture(autouse=True)

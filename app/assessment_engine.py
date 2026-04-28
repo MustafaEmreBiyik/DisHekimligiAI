@@ -5,43 +5,103 @@ import os
 import logging
 from typing import Any, Dict, List, Optional
 
+from db.database import CaseDefinition, SessionLocal
+
 logger = logging.getLogger(__name__)
 
 
 class AssessmentEngine:
     """
-    Loads scoring rules and evaluates interpreted actions against case-specific rules.
-    Rules file: ../data/scoring_rules.json (relative to this file).
+    Loads scoring rules from the DB-backed case catalog and evaluates
+    interpreted actions against case-specific rules.
+
+    Legacy JSON rules are treated as an opt-in fallback source only when
+    DENTAI_ALLOW_RULE_JSON_FALLBACK is enabled.
     """
 
     def __init__(self, rules_path: Optional[str] = None) -> None:
         self._rules_path = rules_path or os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "data", "scoring_rules.json")
         )
-        self._rules: List[Dict[str, Any]] = []
-        self._load_rules()
+        self._allow_json_fallback = (
+            os.getenv("DENTAI_ALLOW_RULE_JSON_FALLBACK", "").strip().lower()
+            in {"1", "true", "yes"}
+        )
+        self._json_rules_by_case: Optional[Dict[str, List[Dict[str, Any]]]] = None
 
-    def _load_rules(self) -> None:
-        """
-        Load rules from JSON.
-        On error (file not found or JSON error), log and keep an empty rules list.
-        Expected top-level structure: List[case_rule_object].
-        """
+    def _coerce_rules_list(self, payload: Any) -> List[Dict[str, Any]]:
+        if not isinstance(payload, list):
+            return []
+        return [rule for rule in payload if isinstance(rule, dict)]
+
+    def _load_rules_from_db(self, case_id: str) -> Optional[List[Dict[str, Any]]]:
+        db = SessionLocal()
         try:
-            with open(self._rules_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            case = (
+                db.query(CaseDefinition)
+                .filter(
+                    CaseDefinition.case_id == case_id,
+                    CaseDefinition.is_archived.is_(False),
+                )
+                .first()
+            )
+            if not case:
+                return None
+            return self._coerce_rules_list(case.rules_json)
+        except Exception as exc:
+            logger.warning("Failed to load DB rules for case_id '%s': %s", case_id, exc)
+            return None
+        finally:
+            db.close()
 
-            if isinstance(data, list):
-                self._rules = data
-            else:
-                logger.error("Invalid rules format (expected list): %s", type(data).__name__)
-                self._rules = []
+    def _load_json_rules(self) -> Dict[str, List[Dict[str, Any]]]:
+        if self._json_rules_by_case is not None:
+            return self._json_rules_by_case
+
+        try:
+            with open(self._rules_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
         except FileNotFoundError:
-            logger.error("Scoring rules file not found: %s", self._rules_path)
-            self._rules = []
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse scoring rules JSON: %s", e)
-            self._rules = []
+            logger.warning("Legacy scoring rules file not found: %s", self._rules_path)
+            self._json_rules_by_case = {}
+            return self._json_rules_by_case
+        except json.JSONDecodeError as exc:
+            logger.error("Failed to parse legacy scoring rules JSON: %s", exc)
+            self._json_rules_by_case = {}
+            return self._json_rules_by_case
+
+        if not isinstance(data, list):
+            logger.error("Invalid legacy rules format (expected list): %s", type(data).__name__)
+            self._json_rules_by_case = {}
+            return self._json_rules_by_case
+
+        rules_by_case: Dict[str, List[Dict[str, Any]]] = {}
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+
+            case_id = str(entry.get("case_id") or "").strip()
+            if not case_id:
+                continue
+
+            rules_list = entry.get("rules")
+            if rules_list is None:
+                rules_list = entry.get("actions", [])
+
+            rules_by_case[case_id] = self._coerce_rules_list(rules_list)
+
+        self._json_rules_by_case = rules_by_case
+        return self._json_rules_by_case
+
+    def _load_rules_for_case(self, case_id: str) -> List[Dict[str, Any]]:
+        db_rules = self._load_rules_from_db(case_id)
+        if db_rules is not None:
+            return db_rules
+
+        if not self._allow_json_fallback:
+            return []
+
+        return self._load_json_rules().get(case_id, [])
 
     def _find_rule(self, case_id: str, interpreted_action: str) -> Optional[Dict[str, Any]]:
         """
@@ -52,24 +112,9 @@ class AssessmentEngine:
         if not case_id or not interpreted_action:
             return None
 
-        for entry in self._rules:
-            if not isinstance(entry, dict):
-                continue
-            if entry.get("case_id") != case_id:
-                continue
-
-            rules_list = entry.get("rules")
-            if rules_list is None:
-                rules_list = entry.get("actions", [])
-            if not isinstance(rules_list, list):
-                logger.warning("Rules list for case_id '%s' is not a list.", case_id)
-                return None
-
-            for rule in rules_list:
-                if isinstance(rule, dict) and rule.get("target_action") == interpreted_action:
-                    return rule
-            # If case_id matched but no rule matched, stop searching further case entries
-            return None
+        for rule in self._load_rules_for_case(case_id):
+            if rule.get("target_action") == interpreted_action:
+                return rule
 
         return None
 

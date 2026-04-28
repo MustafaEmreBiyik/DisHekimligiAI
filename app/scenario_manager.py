@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 import os
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-from db.database import SessionLocal, StudentSession
+from db.database import CaseDefinition, SessionLocal, StudentSession
 
 
 class ScenarioManager:
@@ -15,17 +15,33 @@ class ScenarioManager:
     Loads case scenarios and manages per-student scenario state.
     """
 
-    def __init__(self, cases_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        cases_path: Optional[str] = None,
+        session_factory: Optional[Callable[[], Any]] = None,
+        allow_json_fallback: Optional[bool] = None,
+    ) -> None:
         self._cases_path = cases_path or os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "data", "case_scenarios.json")
         )
-        self.case_data: List[Dict[str, Any]] = []
-        self._default_case_id: str = "olp_001"
-        self._load_cases()
+        self._session_factory = session_factory or SessionLocal
+        self._allow_json_fallback = (
+            allow_json_fallback
+            if allow_json_fallback is not None
+            else os.getenv("DENTAI_ALLOW_CASE_JSON_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
+        )
+        self._json_case_data: List[Dict[str, Any]] = []
+        self._json_default_case_id: Optional[str] = None
+        self._load_json_cases()
 
-    def _load_cases(self) -> None:
+    @property
+    def case_data(self) -> List[Dict[str, Any]]:
+        """Student-visible active cases sourced from DB first."""
+        return self.list_cases()
+
+    def _load_json_cases(self) -> None:
         """
-        Load all cases from JSON.
+        Load JSON fallback cases.
         - On error, log and keep an empty list.
         - Accepts top-level list, or dict with "cases" list.
         """
@@ -34,34 +50,163 @@ class ScenarioManager:
                 data = json.load(f)
 
             if isinstance(data, list):
-                self.case_data = data
+                self._json_case_data = data
             elif isinstance(data, dict) and isinstance(data.get("cases"), list):
-                self.case_data = data.get("cases", [])
+                self._json_case_data = data.get("cases", [])
             else:
                 logger.error("Unexpected structure in case_scenarios.json; expected a list or a dict with 'cases'.")
-                self.case_data = []
+                self._json_case_data = []
 
-            # Determine default case_id from the first case, if available
-            if self.case_data:
-                first_case = self.case_data[0]
+            if self._json_case_data:
+                first_case = self._json_case_data[0]
                 cid = first_case.get("case_id")
                 if isinstance(cid, str) and cid:
-                    self._default_case_id = cid
+                    self._json_default_case_id = cid
 
         except FileNotFoundError:
             logger.error("Case scenarios file not found: %s", self._cases_path)
-            self.case_data = []
+            self._json_case_data = []
         except json.JSONDecodeError as e:
             logger.error("Failed to parse case scenarios JSON: %s", e)
-            self.case_data = []
+            self._json_case_data = []
+
+    def _serialize_case_definition(self, case: CaseDefinition) -> Dict[str, Any]:
+        payload = dict(case.source_payload) if isinstance(case.source_payload, dict) else {}
+        patient_info = case.patient_info_json if isinstance(case.patient_info_json, dict) else {}
+        states = case.states_json if isinstance(case.states_json, dict) else {}
+
+        payload.update(
+            {
+                "case_id": case.case_id,
+                "schema_version": case.schema_version,
+                "title": case.title,
+                "category": case.category,
+                "difficulty": case.difficulty,
+                "estimated_duration_minutes": case.estimated_duration_minutes,
+                "is_active": bool(case.is_active),
+                "learning_objectives": list(case.learning_objectives or []),
+                "prerequisite_competencies": list(case.prerequisite_competencies or []),
+                "competency_tags": list(case.competency_tags or []),
+                "initial_state": case.initial_state,
+                "states": states,
+                "patient_info": patient_info,
+            }
+        )
+
+        if not isinstance(payload.get("name"), str) or not payload.get("name"):
+            payload["name"] = case.title
+
+        if not isinstance(payload.get("patient"), dict) or not payload.get("patient"):
+            payload["patient"] = patient_info
+
+        return payload
+
+    def _fetch_db_cases(self, *, include_inactive: bool) -> List[Dict[str, Any]]:
+        db = self._session_factory()
+        try:
+            query = db.query(CaseDefinition).filter(CaseDefinition.is_archived.is_(False))
+            if not include_inactive:
+                query = query.filter(CaseDefinition.is_active.is_(True))
+
+            rows = (
+                query.order_by(CaseDefinition.created_at.asc(), CaseDefinition.case_id.asc()).all()
+            )
+            return [self._serialize_case_definition(row) for row in rows]
+        finally:
+            db.close()
+
+    def _fetch_db_case(self, case_id: str, *, include_inactive: bool) -> Dict[str, Any]:
+        if not case_id:
+            return {}
+
+        db = self._session_factory()
+        try:
+            query = db.query(CaseDefinition).filter(
+                CaseDefinition.case_id == case_id,
+                CaseDefinition.is_archived.is_(False),
+            )
+            if not include_inactive:
+                query = query.filter(CaseDefinition.is_active.is_(True))
+
+            row = query.first()
+            return self._serialize_case_definition(row) if row else {}
+        finally:
+            db.close()
+
+    def _db_catalog_has_cases(self) -> bool:
+        db = self._session_factory()
+        try:
+            row = (
+                db.query(CaseDefinition.id)
+                .filter(CaseDefinition.is_archived.is_(False))
+                .first()
+            )
+            return row is not None
+        finally:
+            db.close()
+
+    def _should_use_json_fallback(self) -> bool:
+        if not self._allow_json_fallback:
+            return False
+
+        if self._db_catalog_has_cases():
+            return False
+
+        logger.warning(
+            "Using opt-in JSON case fallback because no DB case_definitions rows are available."
+        )
+        return True
+
+    def _json_cases(self, *, include_inactive: bool) -> List[Dict[str, Any]]:
+        if include_inactive:
+            return list(self._json_case_data)
+
+        cases: List[Dict[str, Any]] = []
+        for case in self._json_case_data:
+            if not isinstance(case, dict):
+                continue
+            if case.get("is_active", True):
+                cases.append(case)
+        return cases
+
+    def list_cases(self) -> List[Dict[str, Any]]:
+        db_cases = self._fetch_db_cases(include_inactive=False)
+        if db_cases:
+            return db_cases
+
+        if self._should_use_json_fallback():
+            return self._json_cases(include_inactive=False)
+
+        return []
+
+    def get_case(self, case_id: str, *, include_inactive: bool = False) -> Dict[str, Any]:
+        case = self._fetch_db_case(case_id, include_inactive=include_inactive)
+        if case:
+            return case
+
+        if self._should_use_json_fallback():
+            for fallback_case in self._json_cases(include_inactive=include_inactive):
+                if isinstance(fallback_case, dict) and fallback_case.get("case_id") == case_id:
+                    return fallback_case
+
+        return {}
 
     def _find_case(self, case_id: str) -> Dict[str, Any]:
         if not case_id:
             return {}
-        for c in self.case_data:
-            if isinstance(c, dict) and c.get("case_id") == case_id:
-                return c
-        return {}
+        return self.get_case(case_id, include_inactive=True)
+
+    def _get_default_case_id(self) -> Optional[str]:
+        cases = self.list_cases()
+        if cases:
+            case_id = cases[0].get("case_id")
+            if isinstance(case_id, str) and case_id:
+                return case_id
+
+        if self._should_use_json_fallback():
+            return self._json_default_case_id
+
+        return None
 
     def _build_initial_state(self, case_id: str) -> Dict[str, Any]:
         case = self._find_case(case_id) or {}
@@ -77,34 +222,38 @@ class ScenarioManager:
         if isinstance(category, str) and category.strip():
             state["category"] = category.strip()
 
+        canonical_patient = case.get("patient_info")
+        if isinstance(canonical_patient, dict) and canonical_patient:
+            state["patient"] = canonical_patient
+
         # Normalize patient fields (case_scenarios.json is primarily Turkish-keyed today)
         patient: Dict[str, Any] = {}
-        hp = case.get("hasta_profili")
-        if isinstance(hp, dict):
-            if "yas" in hp:
-                patient["age"] = hp.get("yas")
-            if "sikayet" in hp:
-                patient["chief_complaint"] = hp.get("sikayet")
-            if "tibbi_gecmis" in hp:
-                patient["medical_history"] = hp.get("tibbi_gecmis")
-            if "sosyal_gecmis" in hp:
-                patient["social_history"] = hp.get("sosyal_gecmis")
+        if "patient" not in state:
+            hp = case.get("hasta_profili")
+            if isinstance(hp, dict):
+                if "yas" in hp:
+                    patient["age"] = hp.get("yas")
+                if "sikayet" in hp:
+                    patient["chief_complaint"] = hp.get("sikayet")
+                if "tibbi_gecmis" in hp:
+                    patient["medical_history"] = hp.get("tibbi_gecmis")
+                if "sosyal_gecmis" in hp:
+                    patient["social_history"] = hp.get("sosyal_gecmis")
 
-        # Back-compat: if the case uses the older English schema
-        if not patient and isinstance(case.get("patient"), dict):
-            patient = case.get("patient", {})
+            # Back-compat: if the case uses the older English schema
+            if not patient and isinstance(case.get("patient"), dict):
+                patient = case.get("patient", {})
 
-        if patient:
-            state["patient"] = patient
+            if patient:
+                state["patient"] = patient
 
-        if isinstance(case.get("name"), str):
-            state["case_name"] = case.get("name")
-        elif isinstance(case.get("dogru_tani"), str):
-            # Not a perfect name, but helps with context
-            state["case_name"] = case.get("dogru_tani")
+        case_name = case.get("title") or case.get("name")
+        if isinstance(case_name, str) and case_name.strip():
+            state["case_name"] = case_name.strip()
 
-        if isinstance(case.get("zorluk_seviyesi"), str):
-            state["case_difficulty"] = case.get("zorluk_seviyesi")
+        difficulty = case.get("difficulty") or case.get("zorluk_seviyesi")
+        if isinstance(difficulty, str) and difficulty.strip():
+            state["case_difficulty"] = difficulty.strip()
 
         return state
 
@@ -121,7 +270,7 @@ class ScenarioManager:
         if not student_id:
             return {}
 
-        db = SessionLocal()
+        db = self._session_factory()
         try:
             query = db.query(StudentSession).filter(StudentSession.student_id == student_id)
             if case_id:
@@ -131,7 +280,9 @@ class ScenarioManager:
 
             if not session:
                 # Create a new persistent session for the default case
-                chosen_case_id = case_id or self._default_case_id
+                chosen_case_id = case_id or self._get_default_case_id()
+                if not chosen_case_id:
+                    return {}
                 initial_state = self._build_initial_state(chosen_case_id)
                 session = StudentSession(
                     student_id=student_id,
@@ -153,10 +304,10 @@ class ScenarioManager:
                 state = {}
 
             if not isinstance(state, dict) or not state:
-                state = self._build_initial_state(session.case_id or (case_id or self._default_case_id))
+                state = self._build_initial_state(session.case_id or case_id or (self._get_default_case_id() or ""))
 
             # Ensure case_id is present and consistent
-            effective_case_id = case_id or session.case_id or state.get("case_id") or self._default_case_id
+            effective_case_id = case_id or session.case_id or state.get("case_id") or self._get_default_case_id() or ""
             state["case_id"] = effective_case_id
 
             # Keep DB score as the source of truth for score
@@ -187,7 +338,7 @@ class ScenarioManager:
         if not student_id:
             return
 
-        db = SessionLocal()
+        db = self._session_factory()
         try:
             query = db.query(StudentSession).filter(StudentSession.student_id == student_id)
             if case_id:
@@ -212,7 +363,7 @@ class ScenarioManager:
                 state = {}
 
             if not isinstance(state, dict) or not state:
-                state = self._build_initial_state(session.case_id or (case_id or self._default_case_id))
+                state = self._build_initial_state(session.case_id or case_id or (self._get_default_case_id() or ""))
 
             # Apply score change to DB score (source of truth)
             score_delta = updates.get("score_change")
@@ -236,7 +387,7 @@ class ScenarioManager:
                         state[k] = v
 
             # Ensure case_id
-            effective_case_id = case_id or session.case_id or state.get("case_id") or self._default_case_id
+            effective_case_id = case_id or session.case_id or state.get("case_id") or self._get_default_case_id() or ""
             session.case_id = effective_case_id
             state["case_id"] = effective_case_id
 
