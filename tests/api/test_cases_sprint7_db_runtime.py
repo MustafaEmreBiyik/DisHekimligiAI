@@ -229,3 +229,50 @@ def test_start_session_resumes_existing_session_for_inactive_case(cases_client):
         "current_score": 17.5,
         "is_active": True,
     }
+
+
+def test_new_session_blocked_for_inactive_db_case(cases_client):
+    """S7-T3-FIX-A regression: new session creation must be rejected for inactive cases.
+
+    Seeds a CaseDefinition with is_active=False, is_archived=False and
+    attempts POST /api/cases/{case_id}/start with NO pre-existing session.
+    Expects HTTP 404 rejection and zero StudentSession rows created.
+    """
+    client, db_factory, _manager = cases_client
+
+    _create_case(
+        db_factory,
+        case_id="blocked_inactive_01",
+        title="Blocked Inactive Case",
+        is_active=False,
+    )
+
+    # Verify no pre-existing session exists for this student+case.
+    db = db_factory()
+    try:
+        pre_count = (
+            db.query(StudentSession)
+            .filter_by(student_id="student_case_tester", case_id="blocked_inactive_01")
+            .count()
+        )
+        assert pre_count == 0, "Pre-condition failed: session already exists"
+    finally:
+        db.close()
+
+    # Attempt to start a NEW session for the inactive case.
+    response = client.post("/api/cases/blocked_inactive_01/start")
+    assert response.status_code == 404, (
+        f"Expected 404 for inactive case new session, got {response.status_code}: {response.text}"
+    )
+
+    # Verify no StudentSession row was created as a side effect.
+    db = db_factory()
+    try:
+        post_count = (
+            db.query(StudentSession)
+            .filter_by(student_id="student_case_tester", case_id="blocked_inactive_01")
+            .count()
+        )
+        assert post_count == 0, "Session was created despite inactive case rejection"
+    finally:
+        db.close()

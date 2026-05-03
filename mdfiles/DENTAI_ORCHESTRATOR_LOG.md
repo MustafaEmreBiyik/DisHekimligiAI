@@ -1,7 +1,7 @@
 # DENTAI ORCHESTRATOR LOG
 > Bu dosya her Orchestrator oturumuna başlarken yapıştırılmalıdır.
 > Her Completion Block sonrası güncel halini buraya kaydet.
-> Son güncelleme: 2026-04-28
+> Son güncelleme: 2026-05-01
 
 ---
 
@@ -209,7 +209,7 @@ Failures: NONE
 [2026-04-03] [DECISION-059] MEDIUM — Catalog source-of-truth ayrışması tespit edildi:
               admin is_active güncelliyor ama runtime halen JSON üzerinden çalışıyor.
               Breaking change riski düşük. Admin publish akışının olgunlaşmasıyla
-              çözülmeli. Backlog'a alındı.
+              çözülmeli. Backlog'a alındı. → RESOLVED by S7-T3 (DECISION-071).
 [2026-04-03] [DECISION-060] Sprint 6 closure APPROVED — AGENT-7 onayladı.
               44 test geçiyor, 4 deselected. Proje deployment'a hazır.
 [2026-04-27] [DECISION-061] Sprint 7 TASK-1 (Secure Quiz API Rebuild) AGENT-2 tarafından tamamlandı.
@@ -238,6 +238,18 @@ Failures: NONE
               Pending strict audit due to test count anomaly (65 vs 66)
               and potential DB-fallback security risks.
               S7-T4-VERIFY assigned to AGENT-7.
+[2026-05-01] [DECISION-070] S7-T4-VERIFY APPROVED by AGENT-5.
+              Test count anomaly resolved (untracked local file). DB-first boundary
+              verified as secure. S7-T3 conditionally closed pending the addition of
+              a regression test for inactive case session creation (Option A).
+[2026-05-01] [DECISION-071] S7-T3-FIX-A completed by AGENT-2.
+              Regression test added: test_new_session_blocked_for_inactive_db_case.
+              S7-T3 is now FULLY CLOSED. Baseline restored: 66 passed, 4 deselected.
+              DECISION-059 (catalog source-of-truth ayrışması) is resolved.
+[2026-05-01] [DECISION-072] Sprint 7 formally CLOSED and APPROVED.
+              AGENT-7 S7-T5-CLOSURE audit passed. All security boundaries,
+              DB runtime behaviors, inactive-case handling, and test baselines verified.
+              Final baseline: 66 passed, 4 deselected.
 ```
 
 ---
@@ -246,16 +258,19 @@ Failures: NONE
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 7 🔄 IN PROGRESS
+DENTAI AGENT STATUS — Sprint: 7 ✅ DONE — APPROVED
 ═══════════════════════════════════════════
 
-Current priority sprint: Secure Assessment + DB Runtime Unification
-- S7-T1 tamamlandı: secure server-evaluated quiz flow
-- S7-T1-FIX-A tamamlandı: semantic leakage remediation (_safe_feedback static)
-- S7-T2-REAUDIT tamamlandı: AGENT-7 APPROVED
-- S7-T3 tamamlandı: Runtime DB Unification (AGENT-2)
-- Aktif gate: S7-T4-VERIFY AGENT-7 audit (zorunlu)
-- Son doğrulama: quiz hardening 13 passed, default 65 passed / 4 deselected (WARNING: Test count anomaly)
+Sprint 7: Secure Assessment + DB Runtime Unification
+- S7-T1 tamamlandı: secure server-evaluated quiz flow ✅
+- S7-T1-FIX-A tamamlandı: semantic leakage remediation ✅
+- S7-T2-REAUDIT tamamlandı: AGENT-7 APPROVED ✅
+- S7-T3 tamamlandı: Runtime DB Unification ✅ FULLY CLOSED
+- S7-T3-FIX-A tamamlandı: inactive case regression test ✅
+- S7-T4-VERIFY tamamlandı: AGENT-5 APPROVED ✅
+- S7-T5-CLOSURE tamamlandı: AGENT-7 APPROVED ✅
+- Sprint 7 closure: APPROVED — 2026-05-01
+- Final baseline: 66 passed, 4 deselected
 
 | Agent   | Task ID           | Status       |
 |---------|------------------|--------------|
@@ -268,28 +283,31 @@ Current priority sprint: Secure Assessment + DB Runtime Unification
 | AGENT-2 | SPRINT-5-TASK-1  | DONE         |
 | AGENT-2 | SPRINT-6-TASK-1  | DONE         |
 | AGENT-2 | S7-T1            | DONE         |
+| AGENT-2 | S7-T3            | DONE ✅ CLOSED |
+| AGENT-2 | S7-T3-FIX-A      | DONE         |
 | AGENT-3 | SPRINT-3-TASK-2  | DONE         |
 | AGENT-3 | SPRINT-5-TASK-2  | DONE         |
 | AGENT-3 | SPRINT-6-TASK-2  | DONE         |
 | AGENT-5 | SPRINT-1-TASK-1  | DONE         |
+| AGENT-5 | S7-T4-VERIFY     | DONE ✅ APPROVED |
 | AGENT-6 | SPRINT-4-TASK-4  | DONE         |
+| AGENT-6 | S7-SAFETY-REVIEW | DONE         |
 | AGENT-7 | SPRINT-1-TASK-4A | DONE         |
 | AGENT-7 | SPRINT-1-TASK-4B | DONE ✅ APPROVED |
 | AGENT-7 | SPRINT-4-TASK-2  | DONE ✅ APPROVED |
 | AGENT-7 | SPRINT-4-TASK-3  | DONE ✅ APPROVED |
 | AGENT-7 | SPRINT-6-TASK-3  | DONE ✅ APPROVED |
-| AGENT-7 | S7-T2            | PARTIAL (semantic leakage risk) |
+| AGENT-7 | S7-T2            | PARTIAL (remediated) |
 | AGENT-7 | S7-T2-REAUDIT    | DONE ✅ APPROVED |
-| AGENT-2 | S7-T3            | DONE (PENDING AUDIT) |
-| AGENT-7 | S7-T4-VERIFY     | ASSIGNED (AUDIT GATE) |
+| AGENT-7 | S7-T5-CLOSURE    | DONE ✅ APPROVED |
 ═══════════════════════════════════════════
 ```
 
 ---
 
-## PROJE TAMAMLANDI ✅ — 2026-04-03
+## PROJE TAMAMLANDI ✅ — 2026-05-01
 
-**Tüm 6 sprint tamamlandı. Proje deployment'a hazır.**
+**Tüm 7 sprint tamamlandı. Proje deployment'a hazır.**
 
 | Sprint | Kapsam | Test Sonucu |
 |--------|--------|-------------|
@@ -299,12 +317,13 @@ Current priority sprint: Secure Assessment + DB Runtime Unification
 | Sprint 4 | Coach + MedGemma + Injection | 37 passed |
 | Sprint 5 | Instructor portal | 37+ passed |
 | Sprint 6 | Admin portal | 44 passed |
+| Sprint 7 | Secure Assessment + DB Runtime Unification | 66 passed |
 
 **Açık backlog (deployment blocker değil):**
 - Token revocation / jti blacklist (HIGH)
-- Catalog source-of-truth ayrışması (MEDIUM)
+- ~~Catalog source-of-truth ayrışması (MEDIUM)~~ → RESOLVED (S7-T3)
 - utcnow deprecation fix (MEDIUM)
-- Quiz answer key ifşası (MEDIUM)
+- ~~Quiz answer key ifşası (MEDIUM)~~ → RESOLVED (S7-T1)
 - İç hata detayı sızıntısı (MEDIUM)
 - Audit log tamper-evidence (MEDIUM)
 - CORS origin allowlist (LOW)
@@ -450,6 +469,78 @@ DEPENDENCY NOTICE / WARNINGS:
 - [WARNING] Default baseline test count decreased from 66 to 65.
 - [WARNING] Security fixtures modified to inject allow_json_fallback=True.
 - Verification required to ensure production DB-first behavior is not weakened.
+```
+
+### AGENT-5 — S7-T4-VERIFY (DONE — APPROVED)
+
+```
+Status: DONE
+Verdict: APPROVED
+Deliverable: Independent verification of S7-T3 DB Unification.
+
+FINDINGS:
+- Test Count Anomaly: Resolved. The previous count of 66 included an untracked local test file. The current 65 passed, 4 deselected is the correct new baseline. No tests were deleted or weakened.
+- allow_json_fallback=True: Safe. Fixture changes align test setup only and do not mask production DB-first behavior.
+- DB-First Boundary: Verified. JSON fallback is strictly opt-in/empty-catalog only.
+- Existing Sessions: Verified. Inactive-case sessions can be resumed.
+- Non-blocking Issue (MEDIUM): Missing direct regression test proving new session creation for inactive DB cases is blocked.
+
+DECISION:
+- S7-T3 is verified but conditionally closed pending S7-T3-FIX-A (adding the missing regression test).
+```
+
+### AGENT-7 — S7-T5-CLOSURE (DONE — APPROVED)
+
+```
+Status: DONE
+Verdict: APPROVED
+Deliverable: Sprint 7 formal closure audit.
+
+CLOSURE CHECKLIST (ALL PASS):
+- Quiz payload safety: No correct_option, raw explanation, answer_key,
+  evaluator metadata, or raw validator output exposed in student-facing
+  quiz payloads.
+- DB runtime source-of-truth: JSON fallback gated behind explicit opt-in
+  and empty DB catalog only.
+- Inactive cases excluded from student runtime.
+- New sessions for inactive cases are blocked (HTTP 404).
+- Existing sessions for deactivated cases are preserved.
+- AGENT-5 and AGENT-6 findings resolved or non-blocking.
+- Full default test suite passes.
+
+FINAL BASELINE:
+- pytest -q → 66 passed, 4 deselected, 0 failures
+
+VERDICT:
+- Sprint 7 formally CLEAR for closure.
+```
+
+### AGENT-2 — S7-T3-FIX-A INACTIVE CASE REGRESSION TEST (DONE)
+
+```
+Status: DONE
+Deliverable: Regression test proving new session creation for inactive DB cases is blocked.
+
+FILES CHANGED:
+- tests/api/test_cases_sprint7_db_runtime.py
+
+TEST ADDED:
+- test_new_session_blocked_for_inactive_db_case
+  - Seeds an inactive, non-archived CaseDefinition
+  - Verifies no existing StudentSession
+  - Calls POST /api/cases/{case_id}/start
+  - Asserts inactive case is rejected with HTTP 404
+  - Verifies no StudentSession created as side effect
+
+RUNTIME CODE CHANGES: NONE
+
+VALIDATION:
+- test_cases_sprint7_db_runtime.py: 4 passed
+- Default pytest: 66 passed, 4 deselected, 0 failed
+
+BASELINE UPDATE:
+- New default baseline: 66 passed, 4 deselected
+- S7-T3 is now FULLY CLOSED. DECISION-059 backlog item resolved.
 ```
 
 ### AGENT-6 — S7-SAFETY-REVIEW (DONE)
