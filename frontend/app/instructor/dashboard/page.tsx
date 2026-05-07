@@ -103,11 +103,19 @@ export default function InstructorDashboardPage() {
     <InstructorRouteGuard>
       <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-7xl space-y-8">
-          <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h1 className="text-3xl font-bold text-slate-900">Eğitmen Paneli</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Öğrenci risk durumları, kritik güvenlik ihlalleri ve yetkinlik özetleri
-            </p>
+          <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Eğitmen Paneli</h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Öğrenci risk durumları, kritik güvenlik ihlalleri ve yetkinlik özetleri
+              </p>
+            </div>
+            <Link
+              href="/instructor/grading"
+              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm"
+            >
+              Değerlendirme Kuyruğu
+            </Link>
           </header>
 
           {isLoading && (
