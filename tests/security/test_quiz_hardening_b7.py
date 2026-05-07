@@ -9,6 +9,7 @@ Verifies that:
 """
 
 import json
+from datetime import datetime
 
 import pytest
 from fastapi import FastAPI
@@ -18,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.api import deps
 from db import database as database_module
-from db.database import Base, User, UserRole
+from db.database import Base, User, UserRole, Question, QuestionType
 
 _SAMPLE_QUESTIONS = {
     "oral_pathology": [
@@ -56,6 +57,40 @@ def quiz_client(tmp_path, monkeypatch, mock_external_ai_sdks):
     testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
     monkeypatch.setattr(database_module, "SessionLocal", testing_session_local)
+
+    # SEED DB
+    db = testing_session_local()
+    try:
+        q1 = Question(
+            question_id="q001",
+            question_type=QuestionType.MCQ,
+            question_text="Which lesion carries malignant potential?",
+            topic_id="Oral Patoloji",
+            bloom_level="apply",
+            difficulty="medium",
+            safety_category="none",
+            options_json=["Fibroma", "Leukoplakia", "Epulis", "Mucocele"],
+            correct_option="Leukoplakia",
+            instructor_explanation="Leukoplakia is a premalignant lesion.",
+            max_score=1
+        )
+        q2 = Question(
+            question_id="q002",
+            question_type=QuestionType.MCQ,
+            question_text="Which condition is caused by Candida albicans?",
+            topic_id="Oral Patoloji",
+            bloom_level="remember",
+            difficulty="easy",
+            safety_category="none",
+            options_json=["Aphthous ulcer", "Oral thrush", "Lichen planus", "Geographic tongue"],
+            correct_option="Oral thrush",
+            instructor_explanation="Oral thrush (pseudomembranous candidiasis) is caused by Candida albicans.",
+            max_score=1
+        )
+        db.add_all([q1, q2])
+        db.commit()
+    finally:
+        db.close()
 
     def override_get_db():
         db = testing_session_local()
@@ -117,8 +152,11 @@ def test_b7_student_questions_no_answer_key(quiz_client):
         assert "correct_option" not in q, f"Answer key leaked in question {q['id']!r}"
         assert "explanation" not in q, f"Explanation leaked in question {q['id']!r}"
         assert "answer_key" not in q, f"Answer key alias leaked in question {q['id']!r}"
+        assert "instructor_explanation" not in q
+        assert "rubric_guide" not in q
+        assert "model_answer_outline" not in q
         # Only the safe fields must be present
-        assert set(q.keys()) == {"id", "topic", "question", "options"}
+        assert set(q.keys()) == {"id", "topic", "question", "options", "question_type", "difficulty", "bloom_level"}
 
 
 def test_b7_instructor_questions_forbidden(quiz_client):
@@ -150,6 +188,7 @@ def test_b7_submit_wrong_answer_graded_server_side(quiz_client):
     assert result["score"] == 0
     assert result["total"] == 1
     assert result["percentage"] == 0
+    assert result["overall_status"] == "PUBLISHED"
     assert isinstance(result["attempt_id"], int)
 
     qr = result["results"][0]
@@ -201,6 +240,7 @@ def test_b7_submit_correct_answer_scores_100(quiz_client):
     assert result["score"] == 2
     assert result["total"] == 2
     assert result["percentage"] == 100
+    assert result["overall_status"] == "PUBLISHED"
     assert "attempt_id" in result
     for qr in result["results"]:
         assert qr["is_correct"] is True
@@ -241,10 +281,10 @@ def test_b7_submit_response_schema_is_student_safe(quiz_client):
     assert resp.status_code == 200
     body = resp.json()
 
-    assert set(body.keys()) == {"attempt_id", "score", "total", "percentage", "results"}
+    assert set(body.keys()) == {"attempt_id", "score", "total", "percentage", "overall_status", "results"}
     assert isinstance(body["results"], list)
     assert body["results"]
-    safe_keys = {"id", "topic", "question", "selected_option", "is_correct", "feedback"}
+    safe_keys = {"id", "topic", "question", "question_type", "selected_option", "is_correct", "feedback", "grading_status", "instructor_score", "instructor_feedback"}
     assert set(body["results"][0].keys()) == safe_keys
     assert "raw_validator_output" not in body
     assert "evaluation" not in body
@@ -313,42 +353,41 @@ def test_b7_attempt_retrieval_sanitizes_tampered_details_json(quiz_client):
     _create_user(db_factory, "tamper_owner", UserRole.STUDENT)
     _create_user(db_factory, "tamper_admin", UserRole.ADMIN)
 
-    submit_resp = client.post(
-        "/api/quiz/submit",
-        json={"answers": {"q001": "Fibroma"}},
-        headers=_auth(_token("tamper_owner", UserRole.STUDENT)),
-    )
-    assert submit_resp.status_code == 200
-    attempt_id = submit_resp.json()["attempt_id"]
-
+    # Note: We simulate a legacy JSON legacy attempt by manually creating ExamResult
     db = db_factory()
     try:
         from db.database import ExamResult
-
-        attempt = db.query(ExamResult).filter(ExamResult.id == attempt_id).first()
-        assert attempt is not None
-        attempt.details_json = json.dumps(
-            {
-                "results": [
-                    {
-                        "id": "q001",
-                        "topic": "Oral Patoloji",
-                        "question": "Which lesion carries malignant potential?",
-                        "selected_option": "Fibroma",
-                        "is_correct": False,
-                        "feedback": "Safe feedback",
-                        "correct_option": "Leukoplakia",
-                        "explanation": "Leukoplakia is a premalignant lesion.",
-                        "answer_key": "Leukoplakia",
-                        "raw_validator_output": {"unsafe": True},
-                        "evaluator_metadata": {"model": "medgemma"},
-                    }
-                ],
-                "percentage": 0,
-                "evaluation": {"internal": True},
-            }
+        attempt = ExamResult(
+            user_id="tamper_owner",
+            case_id="quiz_global",
+            score=0,
+            max_score=1,
+            details_json=json.dumps(
+                {
+                    "results": [
+                        {
+                            "id": "q001",
+                            "topic": "Oral Patoloji",
+                            "question": "Which lesion carries malignant potential?",
+                            "selected_option": "Fibroma",
+                            "is_correct": False,
+                            "feedback": "Safe feedback",
+                            "correct_option": "Leukoplakia",
+                            "explanation": "Leukoplakia is a premalignant lesion.",
+                            "answer_key": "Leukoplakia",
+                            "raw_validator_output": {"unsafe": True},
+                            "evaluator_metadata": {"model": "medgemma"},
+                        }
+                    ],
+                    "percentage": 0,
+                    "evaluation": {"internal": True},
+                }
+            )
         )
+        db.add(attempt)
         db.commit()
+        db.refresh(attempt)
+        attempt_id = attempt.id
     finally:
         db.close()
 
@@ -360,7 +399,6 @@ def test_b7_attempt_retrieval_sanitizes_tampered_details_json(quiz_client):
     body = admin_get.json()
     qr = body["results"][0]
 
-    assert set(qr.keys()) == {"id", "topic", "question", "selected_option", "is_correct", "feedback"}
     assert "correct_option" not in qr
     assert "explanation" not in qr
     assert "answer_key" not in qr

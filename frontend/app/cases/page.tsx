@@ -20,7 +20,7 @@ interface CaseScenario {
 
 const mockCasesData: CaseScenario[] = [
   { 
-    id: "c1", 
+    id: "olp_001", 
     title: "Oral Liken Planus", 
     difficulty: "Orta", 
     age: 45, 
@@ -29,7 +29,7 @@ const mockCasesData: CaseScenario[] = [
     tags: ["Anamnez", "Ayırıcı Tanı"] 
   },
   { 
-    id: "c2", 
+    id: "perio_001", 
     title: "Kronik Periodontitis", 
     difficulty: "Zor", 
     age: 55, 
@@ -38,7 +38,7 @@ const mockCasesData: CaseScenario[] = [
     tags: ["Risk Faktörü", "Sistemik Durum"] 
   },
   { 
-    id: "c3", 
+    id: "herpes_primary_01", 
     title: "Primer Herpetik Gingivostomatitis", 
     difficulty: "Orta", 
     age: 6, 
@@ -47,7 +47,7 @@ const mockCasesData: CaseScenario[] = [
     tags: ["Viral Enfeksiyon", "Vital Bulgular"] 
   },
   { 
-    id: "c4", 
+    id: "behcet_01", 
     title: "Behçet Hastalığı", 
     difficulty: "Zor", 
     age: 32, 
@@ -56,13 +56,31 @@ const mockCasesData: CaseScenario[] = [
     tags: ["Paterji Testi", "Sistemik Hastalık"] 
   },
   { 
-    id: "c5", 
+    id: "syphilis_02", 
     title: "Sekonder Sifiliz", 
     difficulty: "Zor", 
     age: 28, 
     gender: "Erkek", 
     description: "Ağızda beyaz lezyonlar", 
     tags: ["CYBH", "Seroloji"] 
+  },
+  { 
+    id: "infectious_child_01", 
+    title: "Primer Herpetik Gingivostomatitis (Pediatrik)", 
+    difficulty: "Orta", 
+    age: 4, 
+    gender: "Çocuk", 
+    description: "Yüksek ateş ve oral veziküller", 
+    tags: ["Pediatri", "Viral Enfeksiyon"] 
+  },
+  { 
+    id: "desquamative_01", 
+    title: "Kronik Deskuamatif Gingivitis", 
+    difficulty: "Zor", 
+    age: 50, 
+    gender: "Kadın", 
+    description: "Dişetlerinde kızarıklık ve soyulma", 
+    tags: ["Otoimmün", "Biyopsi"] 
   }
 ];
 
@@ -89,10 +107,8 @@ export default function CaseLibraryPage() {
   }, [searchQuery, activeFilter]);
 
   // Handle case start
-  const handleStartCase = (id: string, title: string) => {
-    // Navigating to the chat tool. If you have a specific route mapping id -> chat, update here.
-    alert(`"${title}" vakasına yönlendiriliyorsunuz! (Bu bir mock fonksiyondur, API ile chat sayfasına bağlanacak)`);
-    // router.push(`/chat?caseId=${id}`); // example logic when active
+  const handleStartCase = (id: string) => {
+    router.push(`/chat/${id}`);
   };
 
   return (
@@ -175,7 +191,7 @@ export default function CaseLibraryPage() {
 
                 <button 
                   className={styles.btnStart} 
-                  onClick={() => handleStartCase(c.id, c.title)}
+                  onClick={() => handleStartCase(c.id)}
                 >
                   <Stethoscope size={18} />
                   <span>Vakaya Başla</span>
