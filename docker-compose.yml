@@ -3,7 +3,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: docker/backend/Dockerfile
     container_name: dentai-backend
     ports:
       - "8000:8000"
@@ -17,10 +17,12 @@ services:
     volumes:
       # Hot reload for development (commented out for production)
       # Uncomment in docker-compose.override.yml
-      - ./dentai/app:/app/app
-      - ./dentai/db:/app/db
-      - ./dentai/alembic:/app/alembic
-      - ./dentai/scripts:/app/scripts
+      - ./backend/app:/app/app
+      - ./backend/db:/app/db
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
+      - ./backend/data:/app/data
+      - ./backend/assets:/app/assets
       - dentai_db_volume:/app/db/runtime
     networks:
       - dentai-network
@@ -42,7 +44,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: docker/frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
     container_name: dentai-frontend

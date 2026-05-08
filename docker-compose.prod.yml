@@ -12,7 +12,7 @@ services:
       # Uncomment for HTTPS:
       # - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       # Uncomment for SSL certificates:
       # - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:

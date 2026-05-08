@@ -32,49 +32,49 @@ help:
 	@echo "  make clean            - Remove all containers and volumes"
 	@echo "  make status           - Show container status"
 	@echo ""
-	@echo "Note: Docker files are in docker/ directory"
+	@echo "Note: Compose files live at repo root and Dockerfiles live in docker/"
 
 # Development targets
 dev: env-check
 	@echo "Starting DentAI development environment..."
-	docker-compose -f docker/docker-compose.yml --profile dev up -d
+	docker-compose -f docker-compose.yml --profile dev up -d
 
 dev-logs:
-	docker-compose -f docker/docker-compose.yml logs -f
+	docker-compose -f docker-compose.yml logs -f
 
 dev-stop:
 	@echo "Stopping development environment..."
-	docker-compose -f docker/docker-compose.yml --profile dev down
+	docker-compose -f docker-compose.yml --profile dev down
 
 dev-clean:
 	@echo "Cleaning up development environment..."
-	docker-compose -f docker/docker-compose.yml --profile dev down -v
+	docker-compose -f docker-compose.yml --profile dev down -v
 	rm -rf db/runtime/*.db
 
 # Production targets
 prod: env-check
 	@echo "Starting DentAI production environment..."
-	docker-compose -f docker/docker-compose.yml --profile prod --profile postgres up -d
+	docker-compose -f docker-compose.yml --profile prod --profile postgres up -d
 
 prod-logs:
-	docker-compose -f docker/docker-compose.yml logs -f
+	docker-compose -f docker-compose.yml logs -f
 
 prod-stop:
 	@echo "Stopping production environment..."
-	docker-compose -f docker/docker-compose.yml --profile prod --profile postgres down
+	docker-compose -f docker-compose.yml --profile prod --profile postgres down
 
 # PostgreSQL targets
 postgres: env-check
 	@echo "Starting with PostgreSQL..."
-	docker-compose -f docker/docker-compose.yml --profile postgres up -d
+	docker-compose -f docker-compose.yml --profile postgres up -d
 
 postgres-stop:
-	docker-compose -f docker/docker-compose.yml --profile postgres down
+	docker-compose -f docker-compose.yml --profile postgres down
 
 adminer:
 	@echo "Adminer available at http://localhost:8080"
 	@echo "Server: postgres"
-	docker-compose -f docker/docker-compose.yml up -d adminer
+	docker-compose -f docker-compose.yml up -d adminer
 
 # Build targets
 build: build-backend build-frontend
@@ -82,18 +82,18 @@ build: build-backend build-frontend
 
 build-backend:
 	@echo "Building backend image..."
-	docker-compose -f docker/docker-compose.yml build backend
+	docker-compose -f docker-compose.yml build backend
 
 build-frontend:
 	@echo "Building frontend image..."
-	docker-compose -f docker/docker-compose.yml build frontend
+	docker-compose -f docker-compose.yml build frontend
 
 # Shell access
 shell-backend:
-	docker-compose -f docker/docker-compose.yml exec backend /bin/bash
+	docker-compose -f docker-compose.yml exec backend /bin/bash
 
 shell-frontend:
-	docker-compose -f docker/docker-compose.yml exec frontend /bin/sh
+	docker-compose -f docker-compose.yml exec frontend /bin/sh
 
 # Utility targets
 env-check:
@@ -118,35 +118,35 @@ env-setup:
 
 status:
 	@echo "Container Status:"
-	docker-compose -f docker/docker-compose.yml ps
+	docker-compose -f docker-compose.yml ps
 
 logs:
-	docker-compose -f docker/docker-compose.yml logs -f
+	docker-compose -f docker-compose.yml logs -f
 
 logs-backend:
-	docker-compose -f docker/docker-compose.yml logs -f backend
+	docker-compose -f docker-compose.yml logs -f backend
 
 logs-frontend:
-	docker-compose -f docker/docker-compose.yml logs -f frontend
+	docker-compose -f docker-compose.yml logs -f frontend
 
 stop:
-	docker-compose -f docker/docker-compose.yml down
+	docker-compose -f docker-compose.yml down
 
 restart:
-	docker-compose -f docker/docker-compose.yml restart
+	docker-compose -f docker-compose.yml restart
 
 clean:
 	@echo "Removing all containers and volumes..."
-	docker-compose -f docker/docker-compose.yml down -v
-	docker-compose -f docker/docker-compose.yml --profile postgres down -v
-	docker-compose -f docker/docker-compose.yml --profile prod down -v
+	docker-compose -f docker-compose.yml down -v
+	docker-compose -f docker-compose.yml --profile postgres down -v
+	docker-compose -f docker-compose.yml --profile prod down -v
 	rm -rf db/runtime/*.db
 	@echo "Clean complete!"
 
 # Health checks
 health:
 	@echo "Checking service health..."
-	@docker-compose -f docker/docker-compose.yml ps
+	@docker-compose -f docker-compose.yml ps
 	@echo ""
 	@echo "Backend API docs:"
 	@curl -s http://localhost:8000/docs | grep -q "title" && echo "✓ Backend healthy" || echo "✗ Backend unhealthy"

@@ -11,12 +11,20 @@ export PYTHONPATH="/app:$PYTHONPATH"
 DEV_MODE=${DEVELOPMENT_MODE:-false}
 WORKERS=${WORKERS:-4}
 
-# Set default DATABASE_URL if not provided
-if [ -z "$DATABASE_URL" ]; then
+# Keep Docker/runtime DATABASE_URL and backend DENTAI_DATABASE_URL in sync.
+if [ -z "$DATABASE_URL" ] && [ -n "$DENTAI_DATABASE_URL" ]; then
+    DATABASE_URL="$DENTAI_DATABASE_URL"
+fi
+if [ -z "$DENTAI_DATABASE_URL" ] && [ -n "$DATABASE_URL" ]; then
+    DENTAI_DATABASE_URL="$DATABASE_URL"
+fi
+if [ -z "$DATABASE_URL" ] && [ -z "$DENTAI_DATABASE_URL" ]; then
     DATABASE_URL="sqlite:///db/runtime/dentai_app.db"
+    DENTAI_DATABASE_URL="$DATABASE_URL"
 fi
 
 export DATABASE_URL
+export DENTAI_DATABASE_URL
 
 echo "Database URL: $DATABASE_URL"
 echo "Development Mode: $DEV_MODE"

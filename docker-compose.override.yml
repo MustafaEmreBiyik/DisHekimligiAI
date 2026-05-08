@@ -9,10 +9,12 @@ services:
       - DEVELOPMENT_MODE=true
     volumes:
       # Mount source code for hot reload (overrides production mounts)
-      - ./dentai/app:/app/app
-      - ./dentai/db:/app/db
-      - ./dentai/alembic:/app/alembic
-      - ./dentai/scripts:/app/scripts
+      - ./backend/app:/app/app
+      - ./backend/db:/app/db
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
+      - ./backend/data:/app/data
+      - ./backend/assets:/app/assets
     profiles:
       - dev
 

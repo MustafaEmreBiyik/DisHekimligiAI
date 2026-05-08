@@ -1,0 +1,232 @@
+# Dental Education AI Simulator: React Migration Plan
+
+Implementation plan for migrating the Chat Simulation and Dashboard features from Streamlit to React (Next.js).
+
+## Current State Analysis
+
+**Already Implemented:**
+- ✅ Login page (`/login`) with JWT authentication
+- ✅ Register page (`/register`)
+- ✅ Dashboard page (`/dashboard`) with case selection
+- ✅ AuthContext for state management
+- ✅ API client ([lib/api.ts](file:///d:/Projects/dentai/dentai/frontend/lib/api.ts)) with axios interceptors
+- ✅ Backend FastAPI server with `/api/auth/*` and `/api/chat/*` endpoints
+
+**Needs Implementation:**
+- 🔧 Chat simulation page (`/chat/[caseId]`)
+- 🔧 Enhanced Dashboard with real stats from backend
+- 🔧 Backend endpoint for fetching available cases
+- 🔧 Backend endpoint for starting a new session
+
+---
+
+## Proposed Changes
+
+### Component 1: Backend API Extensions
+
+These endpoints will provide necessary data for the React frontend.
+
+---
+
+#### [NEW] [cases.py](file:///d:/Projects/dentai/dentai/app/api/routers/cases.py)
+
+New router for case-related endpoints:
+- `GET /api/cases` - List all available cases
+- `GET /api/cases/{case_id}` - Get specific case details (filtered for student view)
+- `POST /api/cases/{case_id}/start` - Start/reset a session for a case
+
+---
+
+#### [MODIFY] [main.py](file:///d:/Projects/dentai/dentai/app/api/main.py)
+
+Register the new cases router:
+```diff
++from app.api.routers import chat, auth, cases
+
+ app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
+ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
++app.include_router(cases.router, prefix="/api/cases", tags=["cases"])
+```
+
+---
+
+#### [MODIFY] [chat.py](file:///d:/Projects/dentai/dentai/app/api/routers/chat.py)
+
+Update the response model to match the "Silent Evaluator" architecture you specified:
+
+```diff
+ class ChatResponse(BaseModel):
+     student_id: str
+     case_id: str
+-    final_feedback: str
++    response_text: str  # Patient's dialogue response
++    interpreted_action: str  # What the system understood
++    evaluation: dict  # Hidden grader output (is_clinically_accurate, safety_violation, score, feedback)
++    is_case_finished: bool  # Whether case is complete
+     score: float
+     metadata: dict
+```
+
+---
+
+### Component 2: React Chat Page
+
+Core simulation interface where students interact with the virtual patient.
+
+---
+
+#### [NEW] [page.tsx](file:///d:/Projects/dentai/dentai/frontend/app/chat/[caseId]/page.tsx)
+
+Chat simulation page featuring:
+- Real-time chat interface with AI patient
+- Message history with timestamps
+- Visual distinction between student questions and patient responses
+- Hidden score display (visible only on case completion)
+- Loading states during API calls
+- Case context header (patient info, case name)
+
+**Key Features:**
+1. **Message Bubbles**: Student messages on right (blue), patient on left (gray)
+2. **Input Area**: Text input with send button
+3. **Case Header**: Shows case name, patient age, chief complaint
+4. **Progress Indicator**: Optional score/progress (hidden by default)
+5. **Session Management**: Auto-loads existing chat history if session exists
+
+---
+
+#### [NEW] [components/ChatMessage.tsx](file:///d:/Projects/dentai/dentai/frontend/components/ChatMessage.tsx)
+
+Reusable message bubble component:
+- Props: `role`, `content`, `timestamp`, `isLoading`
+- Different styles for "student" vs "patient" roles
+- Typing indicator animation for loading state
+
+---
+
+#### [NEW] [components/CaseHeader.tsx](file:///d:/Projects/dentai/dentai/frontend/components/CaseHeader.tsx)
+
+Case context display:
+- Patient demographics
+- Chief complaint
+- Case difficulty badge
+- Session score (optional visibility)
+
+---
+
+### Component 3: API Client Extensions
+
+---
+
+#### [MODIFY] [api.ts](file:///d:/Projects/dentai/dentai/frontend/lib/api.ts)
+
+Add new API functions:
+
+```typescript
+export const casesAPI = {
+    /** List all available cases */
+    getAllCases: async () => {
+        const response = await apiClient.get('/api/cases');
+        return response.data;
+    },
+
+    /** Get a specific case (student-safe view) */
+    getCase: async (caseId: string) => {
+        const response = await apiClient.get(`/api/cases/${caseId}`);
+        return response.data;
+    },
+
+    /** Start or reset a session for a case */
+    startSession: async (caseId: string) => {
+        const response = await apiClient.post(`/api/cases/${caseId}/start`);
+        return response.data;
+    },
+};
+```
+
+---
+
+### Component 4: Dashboard Enhancement
+
+---
+
+#### [MODIFY] [page.tsx](file:///d:/Projects/dentai/dentai/frontend/app/dashboard/page.tsx)
+
+Update to:
+1. Fetch cases dynamically from `/api/cases` instead of hardcoded list
+2. Show session status (in-progress, completed, not started)
+3. Display student's total score across all sessions
+4. Add loading skeleton UI
+
+---
+
+## Response Format Specification
+
+The chat endpoint will return responses matching your specified JSON structure:
+
+```json
+{
+  "response_text": "Doctor, I have a burning sensation in my cheek.",
+  "interpreted_action": "ask_complaint",
+  "evaluation": {
+    "is_clinically_accurate": true,
+    "safety_violation": false,
+    "score": 10,
+    "feedback": "Correctly identified the chief complaint."
+  },
+  "is_case_finished": false
+}
+```
+
+**Frontend Handling:**
+- `response_text` → Displayed as patient's speech bubble
+- `interpreted_action` → Logged for debugging (optional display)
+- [evaluation](file:///d:/Projects/dentai/dentai/app/agent.py#235-279) → Hidden from UI; stored for analytics
+- `is_case_finished` → Triggers case completion modal
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Backend API Tests:**
+   ```bash
+   cd d:\Projects\dentai\dentai
+   pytest tests/ -v
+   ```
+
+2. **Frontend Build Check:**
+   ```bash
+   cd d:\Projects\dentai\dentai\frontend
+   npm run build
+   ```
+
+3. **Integration Test (Manual):**
+   - Start backend: `uvicorn app.api.main:app --reload --port 8000`
+   - Start frontend: `npm run dev`
+   - Test full login → dashboard → chat flow
+
+### Manual Verification
+
+1. Register a new student account
+2. Login and verify redirect to dashboard
+3. Select a case (e.g., `olp_001`)
+4. Send a message: "Hastanın tıbbi geçmişini soruyorum"
+5. Verify patient response appears in chat
+6. Check browser DevTools for response JSON structure
+7. Verify session persists on page refresh
+
+---
+
+## File Summary
+
+| Action | File | Purpose |
+|--------|------|---------|
+| NEW | `app/api/routers/cases.py` | Cases API endpoints |
+| MODIFY | [app/api/routers/chat.py](file:///d:/Projects/dentai/dentai/app/api/routers/chat.py) | Update response format |
+| MODIFY | [app/api/main.py](file:///d:/Projects/dentai/dentai/app/api/main.py) | Register cases router |
+| NEW | `frontend/app/chat/[caseId]/page.tsx` | Chat simulation page |
+| NEW | `frontend/components/ChatMessage.tsx` | Message bubble component |
+| NEW | `frontend/components/CaseHeader.tsx` | Case context header |
+| MODIFY | [frontend/lib/api.ts](file:///d:/Projects/dentai/dentai/frontend/lib/api.ts) | Add cases API functions |
+| MODIFY | [frontend/app/dashboard/page.tsx](file:///d:/Projects/dentai/dentai/frontend/app/dashboard/page.tsx) | Dynamic case loading |
