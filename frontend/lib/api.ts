@@ -324,6 +324,24 @@ export interface InstructorSpotlightResponse {
   message: string;
 }
 
+export interface GradingQueueItem {
+  answer_id: number;
+  attempt_id: number;
+  question_id: string;
+  question_text: string;
+  student_response: string;
+  rubric_guide?: string | null;
+  model_answer_outline?: string | null;
+  max_score: number;
+  submitted_at?: string | null;
+}
+
+export interface GradeSubmission {
+  instructor_score: number;
+  instructor_feedback: string;
+  publish: boolean;
+}
+
 /**
  * Instructor API
  */
@@ -356,6 +374,15 @@ export const instructorAPI = {
       payload,
     );
     return response.data as InstructorSpotlightResponse;
+  },
+
+  getGradingQueue: async (): Promise<GradingQueueItem[]> => {
+    const response = await apiClient.get("/api/quiz/instructor/grading_queue");
+    return response.data as GradingQueueItem[];
+  },
+
+  submitGrade: async (answerId: number, payload: GradeSubmission): Promise<void> => {
+    await apiClient.post(`/api/quiz/instructor/grade/${answerId}`, payload);
   },
 };
 
@@ -596,6 +623,9 @@ export interface QuizQuestion {
     topic: string;
     question: string;
     options: string[];
+    question_type?: string;
+    difficulty?: string;
+    bloom_level?: string;
 }
 
 /** Per-question result after server-side grading — student-safe feedback only. */
@@ -604,16 +634,21 @@ export interface QuizQuestionResult {
     topic: string;
     question: string;
     selected_option: string | null;
-    is_correct: boolean;
-    feedback: string;
+    is_correct: boolean | null;
+    feedback: string | null;
+    question_type?: string;
+    grading_status?: string;
+    instructor_score?: number | null;
+    instructor_feedback?: string | null;
 }
 
 /** POST /api/quiz/submit response — student-safe. */
 export interface QuizSubmitResponse {
     attempt_id: number;
-    score: number;
+    score: number | null;
     total: number;
-    percentage: number;
+    percentage: number | null;
+    overall_status?: string;
     results: QuizQuestionResult[];
 }
 

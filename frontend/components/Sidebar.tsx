@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Home, User, BarChart2, BookOpen, Sparkles, LogOut, Menu, X, Activity, FileQuestion } from "lucide-react";
+import { Home, User, BarChart2, BookOpen, LogOut, Menu, X, Activity, FileQuestion } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
 export default function Sidebar() {
@@ -15,7 +15,6 @@ export default function Sidebar() {
     { href: "/profile", icon: <User size={20} />, label: "My Account" },
     { href: "/statistics", icon: <BarChart2 size={20} />, label: "My Statistics" },
     { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
-    { href: "/medgemma", icon: <Sparkles size={20} />, label: "MedGemma" },
     { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
   ];
 
