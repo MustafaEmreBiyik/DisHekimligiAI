@@ -1,9 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(d:/Projects/dentai/dentai/venv/Scripts/python.exe --version)",
-      "Bash(d:/Projects/dentai/dentai/venv/Scripts/python.exe -c \"import sys; print\\(sys.executable\\)\")",
-      "Bash(d:/Projects/dentai/dentai/venv/Scripts/pip.exe list *)"
+      "Bash(d:/Projects/dentai/venv/Scripts/python.exe --version)",
+      "Bash(d:/Projects/dentai/venv/Scripts/python.exe -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(d:/Projects/dentai/venv/Scripts/pip.exe list *)"
     ]
   }
 }

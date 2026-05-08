@@ -34,6 +34,7 @@ frontend/tsconfig.tsbuildinfo
 # IDE and OS
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 
