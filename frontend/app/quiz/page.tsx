@@ -18,6 +18,8 @@ export default function QuizPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
+  const isAssessmentMode = true; // S8B safety constraint: assessment mode defaults to safe.
+
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [topics, setTopics] = useState<string[]>(["Tümü"]);
   const [selectedTopic, setSelectedTopic] = useState<string>("Tümü");
@@ -74,7 +76,7 @@ export default function QuizPage() {
 
   const allAnswered =
     filteredQuestions.length > 0 &&
-    filteredQuestions.every((q) => userAnswers[q.id]);
+    filteredQuestions.every((q) => userAnswers[q.id]?.trim());
 
   const handleReset = () => {
     setUserAnswers({});
@@ -112,7 +114,13 @@ export default function QuizPage() {
   let feedbackIcon = "📚";
   let progressColor = "#e53e3e";
 
-  if (scorePercentage >= 80) {
+  const isPending = serverScore?.overall_status === "PENDING";
+
+  if (isPending) {
+    feedbackLabel = "Değerlendirme Bekleniyor";
+    feedbackIcon = "⏳";
+    progressColor = "#ecc94b";
+  } else if (scorePercentage >= 80) {
     feedbackLabel = "Mükemmel!";
     feedbackIcon = "🏆";
     progressColor = "#38a169";
@@ -192,47 +200,74 @@ export default function QuizPage() {
                   <div className={styles.questionNum}>Soru {idx + 1}</div>
                   <div className={styles.questionText}>{q.question}</div>
 
-                  <div className={styles.optionsList}>
-                    {q.options.map((option) => {
-                      const isSelected = selectedAnswer === option;
+                  {q.question_type === "OPEN_ENDED" ? (
+                    <div className={styles.optionsList}>
+                      <textarea
+                        placeholder="Yanıtınızı buraya yazınız..."
+                        value={selectedAnswer || ""}
+                        onChange={(e) => handleSelectOption(q.id, e.target.value)}
+                        disabled={isSubmitted}
+                        rows={4}
+                        style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                      />
+                    </div>
+                  ) : (
+                    <div className={styles.optionsList}>
+                      {q.options.map((option) => {
+                        const isSelected = selectedAnswer === option;
 
-                      let isCorrectOption = false;
-                      let isWrongOption = false;
+                        let isCorrectOption = false;
+                        let isWrongOption = false;
 
-                      if (isSubmitted && result) {
-                        isCorrectOption = option === result.selected_option && result.is_correct;
-                        isWrongOption = option === result.selected_option && !result.is_correct;
-                      }
+                        if (isSubmitted && result) {
+                          isCorrectOption = option === result.selected_option && result.is_correct === true;
+                          isWrongOption = option === result.selected_option && result.is_correct === false;
+                        }
 
-                      return (
-                        <div
-                          key={option}
-                          className={`${styles.option} ${isSubmitted ? styles.optionDisabled : ""}`}
-                          data-selected={isSelected && !isSubmitted}
-                          data-correct={isCorrectOption}
-                          data-wrong={isWrongOption}
-                          onClick={() => handleSelectOption(q.id, option)}
-                        >
-                          <div className={styles.optionRadio}>
-                            {isCorrectOption ? (
-                              <CheckCircle2 size={16} />
-                            ) : isWrongOption ? (
-                              <XOctagon size={16} />
-                            ) : null}
+                        return (
+                          <div
+                            key={option}
+                            className={`${styles.option} ${isSubmitted ? styles.optionDisabled : ""}`}
+                            data-selected={isSelected && !isSubmitted}
+                            data-correct={isCorrectOption}
+                            data-wrong={isWrongOption}
+                            onClick={() => handleSelectOption(q.id, option)}
+                          >
+                            <div className={styles.optionRadio}>
+                              {isCorrectOption ? (
+                                <CheckCircle2 size={16} />
+                              ) : isWrongOption ? (
+                                <XOctagon size={16} />
+                              ) : null}
+                            </div>
+                            <span>{option}</span>
                           </div>
-                          <span>{option}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* FEEDBACK — only after server grading */}
                   {isSubmitted && result && (
                     <div className={styles.explanation}>
                       <Info size={24} style={{ flexShrink: 0, marginTop: "2px" }} />
                       <div>
-                        <strong>Geri Bildirim:</strong>
-                        <p style={{ margin: "0.25rem 0 0 0" }}>{result.feedback}</p>
+                        {result.grading_status === 'PENDING' ? (
+                          <>
+                            <strong>Durum:</strong>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>Açık uçlu sorunuz eğitmen değerlendirmesi için sıraya alındı.</p>
+                          </>
+                        ) : result.grading_status === 'PUBLISHED' && q.question_type === 'OPEN_ENDED' ? (
+                          <>
+                            <strong>Eğitmen Geri Bildirimi (Puan: {result.instructor_score}):</strong>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>{result.instructor_feedback || "Geri bildirim girilmemiş."}</p>
+                          </>
+                        ) : (
+                          <>
+                            <strong>Geri Bildirim:</strong>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>{result.feedback}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -261,40 +296,45 @@ export default function QuizPage() {
               <div className={styles.resultsIcon}>{feedbackIcon}</div>
               <h2 className={styles.resultsTitle}>{feedbackLabel}</h2>
               <p className={styles.resultsDesc}>
-                Testi tamamladınız. Toplam {totalCount} soru üzerinden
-                performansınız aşağıda gösterilmektedir.
+                {isPending 
+                  ? "Testi tamamladınız. Açık uçlu sorularınızın değerlendirilmesi bittikten sonra toplam puanınız hesaplanacaktır." 
+                  : `Testi tamamladınız. Toplam ${totalCount} üzerinden performansınız aşağıda gösterilmektedir.`}
               </p>
 
-              <div className={styles.progressBarBg}>
-                <div
-                  className={styles.progressBarFill}
-                  style={{
-                    width: `${scorePercentage}%`,
-                    backgroundColor: progressColor,
-                  }}
-                />
-              </div>
+              {!isPending && (
+                <>
+                  <div className={styles.progressBarBg}>
+                    <div
+                      className={styles.progressBarFill}
+                      style={{
+                        width: `${scorePercentage}%`,
+                        backgroundColor: progressColor,
+                      }}
+                    />
+                  </div>
 
-              <div className={styles.statsGrid}>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue} data-color="blue">
-                    {scorePercentage}%
+                  <div className={styles.statsGrid}>
+                    <div className={styles.statItem}>
+                      <div className={styles.statValue} data-color="blue">
+                        {scorePercentage}%
+                      </div>
+                      <div className={styles.statLabel}>Başarı Oranı</div>
+                    </div>
+                    <div className={styles.statItem}>
+                      <div className={styles.statValue} data-color="green">
+                        {correctCount}
+                      </div>
+                      <div className={styles.statLabel}>Kazanılan Puan</div>
+                    </div>
+                    <div className={styles.statItem}>
+                      <div className={styles.statValue} data-color="red">
+                        {totalCount - correctCount}
+                      </div>
+                      <div className={styles.statLabel}>Kayıp Puan</div>
+                    </div>
                   </div>
-                  <div className={styles.statLabel}>Başarı Oranı</div>
-                </div>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue} data-color="green">
-                    {correctCount}
-                  </div>
-                  <div className={styles.statLabel}>Doğru</div>
-                </div>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue} data-color="red">
-                    {totalCount - correctCount}
-                  </div>
-                  <div className={styles.statLabel}>Yanlış</div>
-                </div>
-              </div>
+                </>
+              )}
 
               <button className={styles.btnReset} onClick={handleReset}>
                 <RotateCcw size={18} />
