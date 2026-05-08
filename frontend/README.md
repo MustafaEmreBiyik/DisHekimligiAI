@@ -70,7 +70,6 @@ http://localhost:8000
 - `/profile` student profile
 - `/statistics` statistics page
 - `/stats` additional stats view
-- `/medgemma` MedGemma-related page
 
 ## Project Structure
 

@@ -50,6 +50,25 @@ class UserRole(str, enum.Enum):
     INSTRUCTOR = "instructor"
     ADMIN = "admin"
 
+class QuestionType(str, enum.Enum):
+    MCQ = "MCQ"
+    OPEN_ENDED = "OPEN_ENDED"
+
+class GradingStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    GRADED = "GRADED"
+    PUBLISHED = "PUBLISHED"
+
+class MappingType(str, enum.Enum):
+    THEORY_SUPPORT = "theory_support"
+    CASE_REINFORCEMENT = "case_reinforcement"
+    ASSESSMENT_LINK = "assessment_link"
+
+class ReviewStatus(str, enum.Enum):
+    APPROVED = "approved"
+    BLOCKED_REVIEW_NEEDED = "blocked_review_needed"
+    UNMAPPED = "unmapped"
+
 class StudentSession(Base):
     """
     Öğrenci Oturumu Tablosu
@@ -279,6 +298,113 @@ class FeedbackLog(Base):
 
     def __repr__(self):
         return f"<FeedbackLog(id={self.id}, student={self.student_id}, case={self.case_id}, rating={self.rating})>"
+
+
+class Question(Base):
+    """
+    Oral Pathology Question Bank (S8)
+    ---------------------------------
+    Stores MCQ and Open-Ended questions.
+    """
+    __tablename__ = "questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(String, unique=True, nullable=False, index=True)
+    question_type = Column(Enum(QuestionType), nullable=False)
+    question_text = Column(Text, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    is_archived = Column(Boolean, nullable=False, default=False)
+    topic_id = Column(String, nullable=False, index=True)
+    competency_areas = Column(JSON, nullable=False, default=list)
+    bloom_level = Column(String, nullable=False)
+    difficulty = Column(String, nullable=False)
+    safety_category = Column(String, nullable=False)
+    
+    # Protected authoring fields (never exposed to student API)
+    options_json = Column(JSON, nullable=True)  # Used for MCQs
+    correct_option = Column(String, nullable=True)
+    instructor_explanation = Column(Text, nullable=True)
+    rubric_guide = Column(Text, nullable=True)
+    model_answer_outline = Column(Text, nullable=True)
+    max_score = Column(Integer, nullable=False, default=1)
+    
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    case_mappings = relationship("QuestionCaseMapping", back_populates="question", cascade="all, delete-orphan")
+    answers = relationship("QuizAnswer", back_populates="question", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Question(id={self.id}, type={self.question_type}, topic={self.topic_id})>"
+
+
+class QuestionCaseMapping(Base):
+    """
+    Theory-to-Case Mapping (S8)
+    ---------------------------
+    Maps a question to multiple clinical cases.
+    """
+    __tablename__ = "question_case_mappings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False, index=True)
+    case_id = Column(String, nullable=False, index=True)
+    mapping_type = Column(Enum(MappingType), nullable=False)
+    review_status = Column(Enum(ReviewStatus), nullable=False, default=ReviewStatus.UNMAPPED)
+
+    question = relationship("Question", back_populates="case_mappings")
+
+    def __repr__(self):
+        return f"<QuestionCaseMapping(question_id={self.question_id}, case_id={self.case_id}, status={self.review_status})>"
+
+
+class QuizAttempt(Base):
+    """
+    Quiz Attempt (S8)
+    -----------------
+    Tracks a student's attempt at a theory module/quiz.
+    """
+    __tablename__ = "quiz_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    session_id = Column(String, nullable=True)  # Optional link to curriculum session
+    total_score = Column(Integer, nullable=False, default=0)
+    max_score = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    answers = relationship("QuizAnswer", back_populates="attempt", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<QuizAttempt(id={self.id}, user_id={self.user_id}, score={self.total_score}/{self.max_score})>"
+
+
+class QuizAnswer(Base):
+    """
+    Quiz Answer (S8)
+    ----------------
+    Stores a student's individual answer to a question.
+    """
+    __tablename__ = "quiz_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), nullable=False, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False, index=True)
+    student_response_text = Column(Text, nullable=False)
+    auto_score = Column(Integer, nullable=True)
+    instructor_score = Column(Integer, nullable=True)
+    instructor_feedback = Column(Text, nullable=True)
+    grading_status = Column(Enum(GradingStatus), nullable=False, default=GradingStatus.PENDING)
+    graded_by_id = Column(String, nullable=True)  # ID of instructor who graded
+    graded_at = Column(DateTime, nullable=True)
+
+    attempt = relationship("QuizAttempt", back_populates="answers")
+    question = relationship("Question", back_populates="answers")
+
+    def __repr__(self):
+        return f"<QuizAnswer(attempt_id={self.attempt_id}, question_id={self.question_id}, status={self.grading_status})>"
 
 
 # ==================== VERİTABANI FONKSİYONLARI ====================
