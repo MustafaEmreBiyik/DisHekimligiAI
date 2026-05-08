@@ -6,12 +6,14 @@ Answer keys and protected fields are strictly omitted.
 """
 
 from fastapi import APIRouter, status, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 import json
 import logging
 from pathlib import Path
 from datetime import datetime
+import re
+import unicodedata
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_context, AuthenticatedUser, get_db, require_roles
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-QUESTIONS_FILE = Path(__file__).parent.parent.parent.parent / "data" / "mcq_questions.json"
+QUESTIONS_FILE = Path(__file__).parent.parent.parent.parent / "data" / "question_bank" / "mcq_questions.json"
 
 TOPIC_MAP = {
     "oral_pathology": "Oral Patoloji",
@@ -87,6 +89,44 @@ class GradeSubmission(BaseModel):
     publish: bool
 
 
+class InstructorQuestionCreateRequest(BaseModel):
+    question_type: str = QuestionType.OPEN_ENDED.value
+    question_id: Optional[str] = None
+    question_text: str
+    topic_id: str
+    competency_areas: List[str] = Field(default_factory=list)
+    bloom_level: str
+    difficulty: str
+    safety_category: str
+    rubric_guide: Optional[str] = None
+    model_answer_outline: Optional[str] = None
+    instructor_explanation: Optional[str] = None
+    options: List[str] = Field(default_factory=list)
+    correct_option: Optional[str] = None
+    max_score: int = 10
+    is_active: bool = True
+
+
+class InstructorQuestionSummary(BaseModel):
+    question_id: str
+    question_type: str
+    question_text: str
+    topic_id: str
+    competency_areas: List[str] = Field(default_factory=list)
+    bloom_level: str
+    difficulty: str
+    safety_category: str
+    rubric_guide: Optional[str] = None
+    model_answer_outline: Optional[str] = None
+    instructor_explanation: Optional[str] = None
+    options: List[str] = Field(default_factory=list)
+    correct_option: Optional[str] = None
+    max_score: int
+    is_active: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
 def _forbidden() -> HTTPException:
     return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
@@ -95,6 +135,75 @@ def _safe_feedback(*, is_correct: bool) -> str:
     if is_correct:
         return "Dogru cevap. Benzer vakalarda ayni klinik yaklasimi surdurun."
     return "Bu yanit dogru degil. Konuyu yeniden gozden gecirip tekrar deneyin."
+
+
+def _normalize_text(value: Optional[str]) -> str:
+    return (value or "").strip()
+
+
+def _normalize_str_list(values: Optional[List[str]]) -> List[str]:
+    normalized: List[str] = []
+    for value in values or []:
+        cleaned = _normalize_text(value)
+        if cleaned and cleaned not in normalized:
+            normalized.append(cleaned)
+    return normalized
+
+
+def _slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_value.lower()).strip("-")
+    return slug or "question"
+
+
+def _question_to_summary(question: Question) -> InstructorQuestionSummary:
+    return InstructorQuestionSummary(
+        question_id=question.question_id,
+        question_type=question.question_type.value,
+        question_text=question.question_text,
+        topic_id=question.topic_id,
+        competency_areas=question.competency_areas or [],
+        bloom_level=question.bloom_level,
+        difficulty=question.difficulty,
+        safety_category=question.safety_category,
+        rubric_guide=question.rubric_guide,
+        model_answer_outline=question.model_answer_outline,
+        instructor_explanation=question.instructor_explanation,
+        options=question.options_json or [],
+        correct_option=question.correct_option,
+        max_score=question.max_score,
+        is_active=question.is_active,
+        created_at=question.created_at.isoformat() if question.created_at else None,
+        updated_at=question.updated_at.isoformat() if question.updated_at else None,
+    )
+
+
+def _generate_question_id(db: Session, question_type: QuestionType, topic_id: str, question_text: str) -> str:
+    topic_slug = _slugify(topic_id)[:24]
+    question_slug = _slugify(question_text)[:36]
+    type_prefix = "oe" if question_type == QuestionType.OPEN_ENDED else "mcq"
+    base_id = f"{type_prefix}-{topic_slug}-{question_slug}".strip("-")
+
+    candidate = base_id
+    suffix = 2
+    while db.query(Question).filter(Question.question_id == candidate).first():
+        candidate = f"{base_id}-{suffix}"
+        suffix += 1
+
+    return candidate
+
+
+def _normalize_question_type(value: Optional[str]) -> QuestionType:
+    normalized = _normalize_text(value).upper()
+    if normalized == QuestionType.MCQ.value:
+        return QuestionType.MCQ
+    if normalized == QuestionType.OPEN_ENDED.value:
+        return QuestionType.OPEN_ENDED
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Question type must be MCQ or OPEN_ENDED",
+    )
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -465,3 +574,113 @@ def submit_grade(answer_id: int, payload: GradeSubmission, current_user: Authent
         db.commit()
         
     return {"status": "success"}
+
+
+@router.get(
+    "/instructor/questions",
+    response_model=List[InstructorQuestionSummary],
+    status_code=status.HTTP_200_OK,
+)
+def get_instructor_open_ended_questions(
+    topic: Optional[str] = None,
+    question_type: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Question)
+    if topic:
+        query = query.filter(Question.topic_id == topic)
+    if question_type:
+        query = query.filter(Question.question_type == _normalize_question_type(question_type))
+
+    questions = query.order_by(Question.created_at.desc(), Question.id.desc()).all()
+    return [_question_to_summary(question) for question in questions]
+
+
+@router.post(
+    "/instructor/questions",
+    response_model=InstructorQuestionSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_instructor_open_ended_question(
+    payload: InstructorQuestionCreateRequest,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    question_type = _normalize_question_type(payload.question_type)
+    question_text = _normalize_text(payload.question_text)
+    topic_id = _normalize_text(payload.topic_id)
+    bloom_level = _normalize_text(payload.bloom_level)
+    difficulty = _normalize_text(payload.difficulty)
+    safety_category = _normalize_text(payload.safety_category)
+    rubric_guide = _normalize_text(payload.rubric_guide)
+    model_answer_outline = _normalize_text(payload.model_answer_outline)
+    instructor_explanation = _normalize_text(payload.instructor_explanation)
+    competency_areas = _normalize_str_list(payload.competency_areas)
+    options = _normalize_str_list(payload.options)
+    correct_option = _normalize_text(payload.correct_option)
+
+    if not question_text:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Question text is required")
+    if not topic_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Topic is required")
+    if not bloom_level:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Bloom level is required")
+    if not difficulty:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Difficulty is required")
+    if not safety_category:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Safety category is required")
+    if payload.max_score < 1 or payload.max_score > 100:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Max score must be between 1 and 100")
+
+    if question_type == QuestionType.OPEN_ENDED:
+        if not rubric_guide:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Rubric guide is required")
+        if not model_answer_outline:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Model answer outline is required")
+        if options:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Open-ended questions cannot include options")
+        if correct_option:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Open-ended questions cannot include a correct option")
+    else:
+        if len(options) < 3:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="MCQ questions require at least 3 options")
+        if len(options) != len(set(options)):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="MCQ options must be unique")
+        if not correct_option:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Correct option is required for MCQ questions")
+        if correct_option not in options:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Correct option must match one of the provided options")
+
+    requested_id = _normalize_text(payload.question_id)
+    if requested_id and not re.fullmatch(r"[a-zA-Z0-9_-]+", requested_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Question ID may contain only letters, numbers, hyphens, and underscores",
+        )
+    question_id = requested_id or _generate_question_id(db, question_type, topic_id, question_text)
+    if db.query(Question).filter(Question.question_id == question_id).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Question ID already exists")
+
+    question = Question(
+        question_id=question_id,
+        question_type=question_type,
+        question_text=question_text,
+        is_active=payload.is_active,
+        topic_id=topic_id,
+        competency_areas=competency_areas,
+        bloom_level=bloom_level,
+        difficulty=difficulty,
+        safety_category=safety_category,
+        options_json=options or None,
+        correct_option=correct_option or None,
+        instructor_explanation=instructor_explanation or None,
+        rubric_guide=rubric_guide or None,
+        model_answer_outline=model_answer_outline or None,
+        max_score=payload.max_score,
+    )
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+
+    return _question_to_summary(question)
