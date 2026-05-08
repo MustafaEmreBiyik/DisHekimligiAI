@@ -1,6 +1,10 @@
 "use client";
 
+<<<<<<< HEAD
 import React, { useEffect, useEffectEvent, useState } from "react";
+=======
+import React, { useEffect, useState } from "react";
+>>>>>>> origin/main
 import {
   User,
   GraduationCap,
@@ -9,6 +13,10 @@ import {
   Settings,
   Bell,
   Palette,
+<<<<<<< HEAD
+=======
+  History,
+>>>>>>> origin/main
   AlertTriangle,
   Lock,
   ShieldAlert,
@@ -54,7 +62,17 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, router]);
 
+<<<<<<< HEAD
   const loadData = useEffectEvent(async () => {
+=======
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+>>>>>>> origin/main
     setIsLoading(true);
     try {
       // Fetch user info and stats in parallel
@@ -83,6 +101,7 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
+<<<<<<< HEAD
   });
 
   useEffect(() => {
@@ -90,6 +109,9 @@ export default function ProfilePage() {
       loadData();
     }
   }, [user]);
+=======
+  };
+>>>>>>> origin/main
 
   const handleFeatureAlert = () => {
     alert("Bu özellik yakında aktif olacak!");

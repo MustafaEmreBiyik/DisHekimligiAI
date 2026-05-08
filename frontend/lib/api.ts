@@ -21,6 +21,7 @@ export interface AuthMeResponse {
   email?: string | null;
 }
 
+<<<<<<< HEAD
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<{ detail?: string }>(error)) {
     return error.response?.data?.detail ?? error.message ?? fallback;
@@ -33,6 +34,8 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+=======
+>>>>>>> origin/main
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,

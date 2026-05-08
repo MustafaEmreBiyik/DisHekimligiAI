@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      DentAI: Hybrid AI-Based Dental Assessment System - Final Research Report
+    </title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary-blue: #0a2463;
+        --accent-blue: #3e92cc;
+        --neon-blue: #00d9ff;
+        --light-gray: #f8f9fa;
+        --medium-gray: #e9ecef;
+        --dark-gray: #495057;
+        --white: #ffffff;
+        --shadow: rgba(0, 0, 0, 0.1);
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.7;
+        color: var(--dark-gray);
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 2rem 1rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: var(--white);
+        box-shadow: 0 20px 60px var(--shadow);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-blue) 0%,
+          var(--accent-blue) 100%
+        );
+        color: var(--white);
+        padding: 3rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        animation: pulse 15s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .header .subtitle {
+        font-size: 1.2rem;
+        font-weight: 300;
+        margin-bottom: 2rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .team-info {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .team-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--white);
+      }
+
+      .team-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .team-table td:first-child {
+        font-weight: 600;
+        width: 30%;
+      }
+
+      .team-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .print-button {
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: var(--neon-blue);
+        color: var(--primary-blue);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4);
+        transition: all 0.3s ease;
+        z-index: 1000;
+      }
+
+      .print-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 217, 255, 0.6);
+      }
+
+      .content {
+        padding: 3rem 2.5rem;
+      }
+
+      .section {
+        margin-bottom: 3rem;
+        background: var(--light-gray);
+        padding: 2rem;
+        border-radius: 12px;
+        border-left: 4px solid var(--accent-blue);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .section:hover {
+        transform: translateX(4px);
+        box-shadow: 0 8px 24px var(--shadow);
+      }
+
+      .section h2 {
+        color: var(--primary-blue);
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .section h2::before {
+        content: "";
+        width: 8px;
+        height: 2rem;
+        background: linear-gradient(
+          180deg,
+          var(--neon-blue) 0%,
+          var(--accent-blue) 100%
+        );
+        border-radius: 4px;
+      }
+
+      .section h3 {
+        color: var(--accent-blue);
+        font-size: 1.5rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      .section p {
+        margin-bottom: 1rem;
+        text-align: justify;
+      }
+
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 2rem 0;
+        background: var(--white);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px var(--shadow);
+      }
+
+      .comparison-table th {
+        background: linear-gradient(
+          135deg,
+          var(--primary-blue) 0%,
+          var(--accent-blue) 100%
+        );
+        color: var(--white);
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .comparison-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--medium-gray);
+      }
+
+      .comparison-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .comparison-table tr:nth-child(even) {
+        background: var(--light-gray);
+      }
+
+      .highlight-box {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 217, 255, 0.1) 0%,
+          rgba(62, 146, 204, 0.1) 100%
+        );
+        border-left: 4px solid var(--neon-blue);
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border-radius: 8px;
+      }
+
+      .highlight-box strong {
+        color: var(--primary-blue);
+      }
+
+      .architecture-layer {
+        background: var(--white);
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px var(--shadow);
+        border-top: 3px solid var(--accent-blue);
+      }
+
+      .architecture-layer h4 {
+        color: var(--primary-blue);
+        margin-bottom: 0.75rem;
+        font-size: 1.2rem;
+      }
+
+      .tech-stack {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .tech-card {
+        background: var(--white);
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px var(--shadow);
+        transition: transform 0.3s ease;
+      }
+
+      .tech-card:hover {
+        transform: translateY(-4px);
+      }
+
+      .tech-card h4 {
+        color: var(--accent-blue);
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+      }
+
+      .tech-card ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .tech-card li {
+        padding: 0.4rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+      }
+
+      .tech-card li::before {
+        content: "▹";
+        position: absolute;
+        left: 0;
+        color: var(--neon-blue);
+        font-weight: bold;
+      }
+
+      .code-block {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 1.5rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+        font-family: "Consolas", "Monaco", monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .feature-card {
+        background: var(--white);
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px var(--shadow);
+        border-top: 3px solid var(--neon-blue);
+      }
+
+      .feature-card h4 {
+        color: var(--primary-blue);
+        margin-bottom: 0.75rem;
+      }
+
+      .impact-metrics {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin: 2rem 0;
+      }
+
+      .metric {
+        text-align: center;
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .metric-value {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--accent-blue);
+        display: block;
+      }
+
+      .metric-label {
+        color: var(--dark-gray);
+        font-size: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      @media print {
+        body {
+          background: white;
+          padding: 0;
+        }
+        .container {
+          box-shadow: none;
+        }
+        .print-button {
+          display: none;
+        }
+        .section {
+          page-break-inside: avoid;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .header h1 {
+          font-size: 1.8rem;
+        }
+        .content {
+          padding: 2rem 1.5rem;
+        }
+        .section h2 {
+          font-size: 1.5rem;
+        }
+        .print-button {
+          top: 1rem;
+          right: 1rem;
+          padding: 0.5rem 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="print-button" onclick="window.print()">
+      🖨️ Print Report
+    </button>
+
+    <div class="container">
+      <!-- HEADER -->
+      <div class="header">
+        <h1>DentAI: Hybrid AI-Based Dental Assessment System</h1>
+        <p class="subtitle">Diş Hekimliği AI Tabanlı Değerlendirme Sistemi</p>
+
+        <div class="team-info">
+          <table class="team-table">
+            <tr>
+              <td>Project Type:</td>
+              <td>University Senior Research Project</td>
+            </tr>
+            <tr>
+              <td>Team Members:</td>
+              <td>
+                Betül Danışmaz (Domain & Pedagogy), Mustafa Emre Bıyık (System
+                Architecture & Development)
+              </td>
+            </tr>
+            <tr>
+              <td>Supervisor:</td>
+              <td>Dr. Nazlı Tokatlı</td>
+            </tr>
+            <tr>
+              <td>Institution:</td>
+              <td>Computer Engineering Department</td>
+            </tr>
+            <tr>
+              <td>Date:</td>
+              <td>January 2026</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content">
+        <!-- EXECUTIVE SUMMARY -->
+        <div class="section">
+          <h2>Executive Summary</h2>
+          <p>
+            <strong>DentAI</strong> represents a paradigm shift in dental
+            education assessment methodology. Traditional static examinations in
+            dental schools fail to measure the most critical competency:
+            <strong>clinical reasoning</strong>. Students memorize facts but
+            struggle to apply diagnostic logic in real-world patient scenarios.
+            DentAI addresses this gap by introducing a
+            <strong>Virtual Patient Simulation Platform</strong> powered by a
+            novel <strong>Hybrid AI Architecture</strong> that combines the
+            conversational flexibility of Large Language Models (LLMs) with the
+            safety and precision of deterministic rule engines.
+          </p>
+          <p>
+            The system's core innovation lies in its
+            <strong>Neuro-Symbolic AI approach</strong>, which prevents
+            hallucinations—a critical requirement in medical education where
+            factual accuracy is non-negotiable. By integrating Google Gemini 1.5
+            Flash API with a custom-built Rule Engine, DentAI ensures that all
+            AI-generated responses are validated against predefined medical
+            protocols before being presented to students.
+          </p>
+          <p>
+            Key architectural innovations include: (1)
+            <strong>Silent Evaluator</strong>—a non-blocking assessment engine
+            that analyzes student intent in real-time without interrupting the
+            learning flow; (2)
+            <strong>Progressive Disclosure State Machine</strong>—a
+            ScenarioManager that dynamically unlocks medical data (radiographs,
+            lab results) only when students demonstrate appropriate clinical
+            reasoning; (3) <strong>Algorithmic Penalty Logic</strong>—automated
+            point deduction for critical safety violations such as unnecessary
+            biopsies or incorrect treatment plans; and (4)
+            <strong>Comprehensive Telemetry & Audit Trail</strong>—full logging
+            of student decision-making processes for post-session analytics and
+            pedagogical research.
+          </p>
+          <p>
+            DentAI is built on a modern, scalable tech stack: FastAPI (Python,
+            AsyncIO) for high-performance backend operations, Next.js (React,
+            Tailwind) for responsive frontend interfaces, PostgreSQL/SQLite with
+            SQLAlchemy ORM for robust data persistence, and a data-driven
+            architecture using JSON Schema for scenario configuration. This
+            report details the system's architecture, algorithms,
+            implementation, and potential impact on dental education.
+          </p>
+        </div>
+
+        <!-- PROBLEM & SOLUTION -->
+        <div class="section">
+          <h2>Problem Statement & Solution</h2>
+
+          <h3>The Limitations of Static Assessment</h3>
+          <p>
+            Current dental education relies heavily on static, multiple-choice
+            examinations and written case studies. These methods assess
+            <em>knowledge recall</em> but fail to evaluate
+            <em>clinical reasoning</em>—the ability to gather information
+            systematically, formulate differential diagnoses, and make
+            evidence-based treatment decisions. Students can pass exams with
+            high scores yet struggle when faced with real patients because they
+            lack practice in the iterative, hypothesis-driven diagnostic
+            process.
+          </p>
+          <p>
+            Furthermore, traditional assessments provide no insight into
+            <em>how</em> students arrive at their answers. Educators cannot
+            identify whether a correct answer resulted from sound reasoning or
+            lucky guessing, nor can they pinpoint specific gaps in diagnostic
+            logic.
+          </p>
+
+          <h3>The DentAI Solution: Hybrid AI Architecture</h3>
+          <p>
+            DentAI replaces static exams with interactive Virtual Patient
+            simulations that mirror real clinical encounters. Students engage in
+            natural language conversations with AI-powered virtual patients,
+            asking questions, requesting diagnostic tests, and proposing
+            treatment plans—just as they would in a real clinic.
+          </p>
+
+          <div class="highlight-box">
+            <strong>Core Innovation:</strong> Unlike pure LLM-based chatbots
+            (which can hallucinate incorrect medical information), DentAI
+            employs a <strong>Hybrid AI Architecture</strong> that combines:
+            <ul style="margin-top: 1rem; padding-left: 2rem">
+              <li>
+                <strong>LLM Layer (Google Gemini 1.5 Flash):</strong> Provides
+                natural language understanding and conversational flexibility.
+              </li>
+              <li>
+                <strong>Deterministic Rule Engine:</strong> Validates all AI
+                outputs against predefined medical protocols, ensuring factual
+                accuracy and safety.
+              </li>
+            </ul>
+          </div>
+
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Aspect</th>
+                <th>Traditional Static Exams</th>
+                <th>DentAI Hybrid AI System</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Assessment Focus</strong></td>
+                <td>Knowledge recall (facts, definitions)</td>
+                <td>
+                  Clinical reasoning (diagnostic process, decision-making)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Interaction Model</strong></td>
+                <td>One-way (student answers predefined questions)</td>
+                <td>
+                  Two-way (student drives inquiry, AI responds dynamically)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Feedback Mechanism</strong></td>
+                <td>Binary (correct/incorrect), post-exam only</td>
+                <td>Real-time, context-aware, with reasoning analysis</td>
+              </tr>
+              <tr>
+                <td><strong>Data Availability</strong></td>
+                <td>All information provided upfront</td>
+                <td>
+                  Progressive disclosure (data unlocked based on student
+                  questions)
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Safety & Accuracy</strong></td>
+                <td>Human-authored (reliable but static)</td>
+                <td>Hybrid AI (flexible yet validated by rule engine)</td>
+              </tr>
+              <tr>
+                <td><strong>Analytics</strong></td>
+                <td>Final score only</td>
+                <td>Full audit trail (intent, logic, decision path)</td>
+              </tr>
+              <tr>
+                <td><strong>Scalability</strong></td>
+                <td>Limited by human graders</td>
+                <td>Fully automated, infinitely scalable</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SYSTEM ARCHITECTURE -->
+        <div class="section">
+          <h2>System Architecture</h2>
+          <p>
+            DentAI is designed as a <strong>3-Layer Architecture</strong> that
+            separates concerns and ensures modularity, scalability, and
+            maintainability. Each layer has a distinct responsibility and
+            communicates through well-defined interfaces.
+          </p>
+
+          <div class="architecture-layer">
+            <h4>Layer 1: Presentation Layer (Frontend)</h4>
+            <p>
+              <strong>Technology:</strong> Next.js (React), Tailwind CSS,
+              TypeScript
+            </p>
+            <p><strong>Responsibilities:</strong></p>
+            <ul style="padding-left: 2rem; margin-top: 0.5rem">
+              <li>
+                Render the Virtual Patient chat interface with real-time message
+                streaming
+              </li>
+              <li>
+                Display dynamically unlocked medical data (X-rays, lab results)
+                based on student progress
+              </li>
+              <li>
+                Provide role-based dashboards (Student, Instructor, Admin)
+              </li>
+              <li>Handle user authentication and session management</li>
+              <li>Visualize assessment scores and analytics</li>
+            </ul>
+            <p style="margin-top: 1rem">
+              <strong>Key Features:</strong> Responsive design, accessibility
+              compliance (WCAG 2.1), optimistic UI updates for low-latency
+              perception.
+            </p>
+          </div>
+
+          <div class="architecture-layer">
+            <h4>Layer 2: Business Logic Layer (Backend API)</h4>
+            <p>
+              <strong>Technology:</strong> FastAPI (Python 3.11+), AsyncIO,
+              Pydantic, SQLAlchemy ORM
+            </p>
+            <p><strong>Responsibilities:</strong></p>
+            <ul style="padding-left: 2rem; margin-top: 0.5rem">
+              <li>
+                <strong>API Endpoints:</strong> RESTful APIs for authentication,
+                case management, chat interactions, and assessment retrieval
+              </li>
+              <li>
+                <strong>ScenarioManager (State Machine):</strong> Manages
+                scenario state, tracks student progress, and controls
+                progressive data disclosure
+              </li>
+              <li>
+                <strong>Silent Evaluator:</strong> Asynchronously analyzes
+                student messages, extracts intent, and updates assessment scores
+                in the background
+              </li>
+              <li>
+                <strong>Hybrid AI Orchestration:</strong> Routes student queries
+                to the LLM, validates responses through the Rule Engine, and
+                returns safe, accurate answers
+              </li>
+              <li>
+                <strong>RBAC (Role-Based Access Control):</strong> Enforces
+                permissions for students, instructors, and administrators
+              </li>
+            </ul>
+            <p style="margin-top: 1rem">
+              <strong>Key Features:</strong> Asynchronous processing for high
+              concurrency, comprehensive error handling, structured logging for
+              debugging and auditing.
+            </p>
+          </div>
+
+          <div class="architecture-layer">
+            <h4>Layer 3: Data & AI Layer</h4>
+            <p>
+              <strong>Technology:</strong> PostgreSQL/SQLite, Google Gemini 1.5
+              Flash API, Custom Rule Engine (Python)
+            </p>
+            <p><strong>Responsibilities:</strong></p>
+            <ul style="padding-left: 2rem; margin-top: 0.5rem">
+              <li>
+                <strong>Database:</strong> Persist user accounts, case
+                scenarios, chat history, assessment scores, and audit logs
+              </li>
+              <li>
+                <strong>LLM Integration:</strong> Send student queries to Google
+                Gemini with context-aware prompts, receive natural language
+                responses
+              </li>
+              <li>
+                <strong>Rule Engine:</strong> Validate LLM outputs against
+                medical protocols (e.g., "If student requests biopsy without
+                prior imaging, flag as critical error")
+              </li>
+              <li>
+                <strong>Telemetry:</strong> Log all interactions (timestamps,
+                user actions, AI responses, validation results) for analytics
+                and research
+              </li>
+            </ul>
+            <p style="margin-top: 1rem">
+              <strong>Key Features:</strong> Data-driven architecture using JSON
+              Schema for scenario definitions, enabling non-technical educators
+              to create new cases without coding.
+            </p>
+          </div>
+
+          <div class="highlight-box" style="margin-top: 2rem">
+            <strong>Architectural Principle:</strong>
+            <em>Separation of Concerns</em> ensures that changes to the UI do
+            not affect business logic, and updates to AI models do not require
+            frontend modifications. This modularity accelerates development and
+            simplifies testing.
+          </div>
+        </div>
+
+        <!-- CORE ALGORITHMS -->
+        <div class="section">
+          <h2>Core Algorithms & Mechanisms</h2>
+
+          <h3>1. Silent Evaluator: Non-Blocking Real-Time Assessment</h3>
+          <p>
+            Traditional assessment systems interrupt the learning flow by
+            providing immediate feedback on every action. This creates a
+            "teaching to the test" mentality where students focus on maximizing
+            scores rather than developing genuine clinical reasoning skills.
+          </p>
+          <p>
+            The <strong>Silent Evaluator</strong> solves this by running in the
+            background, analyzing student messages asynchronously without
+            blocking the conversation. It extracts <em>intent</em> from natural
+            language queries (e.g., "Can I see the patient's X-ray?" → Intent:
+            REQUEST_IMAGING), maps intents to predefined scoring criteria, and
+            updates the assessment score in real-time.
+          </p>
+
+          <div class="code-block">
+            <strong>Pseudo-Code: Silent Evaluator Algorithm</strong>
+
+            FUNCTION evaluate_student_message(message, scenario_state): // Step
+            1: Extract intent using NLP (LLM-based classification) intent =
+            extract_intent(message) // e.g., "REQUEST_IMAGING",
+            "PROPOSE_DIAGNOSIS" // Step 2: Check if intent is appropriate given
+            current scenario state is_valid = validate_intent(intent,
+            scenario_state) // Step 3: Update score based on intent and validity
+            IF is_valid: score_delta = get_positive_score(intent) // e.g., +10
+            for requesting imaging ELSE: score_delta = get_penalty_score(intent)
+            // e.g., -20 for premature biopsy // Step 4: Log the evaluation
+            (audit trail) log_evaluation(message, intent, score_delta,
+            timestamp) // Step 5: Update database asynchronously (non-blocking)
+            async_update_score(student_id, scenario_id, score_delta) RETURN
+            score_delta
+          </div>
+
+          <p>
+            <strong>Key Benefits:</strong> Students engage naturally with the
+            virtual patient without being distracted by score notifications.
+            Educators receive detailed analytics on <em>how</em> students think,
+            not just <em>what</em> they answer.
+          </p>
+
+          <h3>2. Progressive Disclosure State Machine</h3>
+          <p>
+            In real clinical practice, diagnostic information is not available
+            all at once. Dentists must actively request specific tests
+            (radiographs, biopsies, blood work) based on their clinical
+            hypotheses. DentAI replicates this reality through a
+            <strong>State Machine (ScenarioManager)</strong> that controls data
+            availability.
+          </p>
+          <p>
+            Each scenario is divided into <strong>states</strong> (e.g.,
+            "Initial Consultation", "Post-Imaging", "Post-Biopsy"). Transitions
+            between states occur only when students perform specific actions
+            (e.g., requesting an X-ray unlocks the "Post-Imaging" state,
+            revealing radiographic data).
+          </p>
+
+          <div class="code-block">
+            <strong>Pseudo-Code: State Machine Transition Logic</strong>
+
+            FUNCTION handle_student_action(action, current_state, scenario): //
+            Step 1: Check if action is valid in current state IF action NOT IN
+            scenario.allowed_actions[current_state]: RETURN error("Action not
+            allowed in current state") // Step 2: Determine next state based on
+            action next_state = scenario.transition_map[current_state][action]
+            // Step 3: Unlock new data associated with next state unlocked_data
+            = scenario.state_data[next_state] // Step 4: Update scenario state
+            in database update_scenario_state(student_id, scenario_id,
+            next_state) // Step 5: Return unlocked data to student RETURN {
+            "new_state": next_state, "unlocked_data": unlocked_data, // e.g.,
+            X-ray image URL, lab results "message": "You have requested imaging.
+            Here are the radiographs." }
+          </div>
+
+          <p>
+            <strong>Example Workflow:</strong> A student begins in the "Initial
+            Consultation" state. They can ask the patient about symptoms but
+            cannot see X-rays. When they type "Can I see the X-ray?", the system
+            transitions to "Post-Imaging" state and reveals the radiograph. If
+            they request a biopsy before imaging, the system flags this as a
+            critical error (unnecessary invasive procedure) and applies a
+            penalty.
+          </p>
+
+          <h3>3. Penalty Logic: Algorithmic Safety Enforcement</h3>
+          <p>
+            Medical education must enforce safety protocols. DentAI implements
+            <strong>algorithmic penalty logic</strong> to discourage dangerous
+            or inefficient clinical decisions:
+          </p>
+          <ul style="padding-left: 2rem; margin-top: 1rem">
+            <li>
+              <strong>Premature Invasive Procedures:</strong> Requesting a
+              biopsy before non-invasive imaging → -50 points
+            </li>
+            <li>
+              <strong>Incorrect Diagnosis:</strong> Proposing a diagnosis
+              contradicted by available evidence → -30 points
+            </li>
+            <li>
+              <strong>Missed Critical Questions:</strong> Failing to ask about
+              patient allergies before prescribing medication → -20 points
+            </li>
+            <li>
+              <strong>Redundant Tests:</strong> Requesting the same test
+              multiple times → -10 points per repetition
+            </li>
+          </ul>
+          <p style="margin-top: 1rem">
+            These penalties are defined in the scenario's JSON configuration,
+            allowing educators to customize scoring criteria without modifying
+            code.
+          </p>
+
+          <h3>4. Telemetry & Audit Trail</h3>
+          <p>
+            Every student interaction is logged with full context: timestamp,
+            message content, extracted intent, AI response, state transitions,
+            and score changes. This creates a comprehensive
+            <strong>audit trail</strong> that enables:
+          </p>
+          <ul style="padding-left: 2rem; margin-top: 1rem">
+            <li>
+              <strong>Pedagogical Research:</strong> Analyze common reasoning
+              errors across cohorts
+            </li>
+            <li>
+              <strong>Personalized Feedback:</strong> Generate detailed reports
+              showing where individual students struggled
+            </li>
+            <li>
+              <strong>System Debugging:</strong> Trace unexpected behaviors back
+              to specific interactions
+            </li>
+            <li>
+              <strong>Compliance:</strong> Provide evidence of assessment
+              fairness for accreditation bodies
+            </li>
+          </ul>
+        </div>
+
+        <!-- IMPLEMENTATION DETAILS -->
+        <div class="section">
+          <h2>Implementation Details</h2>
+
+          <h3>Database Schema</h3>
+          <p>
+            The system uses a relational database (PostgreSQL for production,
+            SQLite for development) with the following core tables:
+          </p>
+
+          <div class="code-block">
+            <strong>Core Database Tables</strong>
+
+            TABLE users: id (PRIMARY KEY) username (UNIQUE) email (UNIQUE)
+            hashed_password role (ENUM: 'student', 'instructor', 'admin')
+            created_at TABLE scenarios: id (PRIMARY KEY) title description
+            difficulty_level json_config (JSONB) // Full scenario definition
+            (states, transitions, scoring) created_by (FOREIGN KEY → users.id)
+            created_at TABLE sessions: id (PRIMARY KEY) student_id (FOREIGN KEY
+            → users.id) scenario_id (FOREIGN KEY → scenarios.id) current_state
+            total_score started_at completed_at TABLE messages: id (PRIMARY KEY)
+            session_id (FOREIGN KEY → sessions.id) sender (ENUM: 'student',
+            'ai') content (TEXT) intent (STRING) // Extracted intent for student
+            messages timestamp TABLE evaluations: id (PRIMARY KEY) session_id
+            (FOREIGN KEY → sessions.id) message_id (FOREIGN KEY → messages.id)
+            intent score_delta reasoning (TEXT) // Why this score was assigned
+            timestamp
+          </div>
+
+          <h3>Role-Based Access Control (RBAC)</h3>
+          <p>DentAI implements a 3-tier permission system:</p>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h4>👨‍🎓 Student Role</h4>
+              <ul style="padding-left: 1.5rem; margin-top: 0.5rem">
+                <li>Start new simulation sessions</li>
+                <li>Chat with virtual patients</li>
+                <li>View own assessment scores</li>
+                <li>Access completed session history</li>
+              </ul>
+            </div>
+            <div class="feature-card">
+              <h4>👨‍🏫 Instructor Role</h4>
+              <ul style="padding-left: 1.5rem; margin-top: 0.5rem">
+                <li>All student permissions</li>
+                <li>Create and edit scenarios</li>
+                <li>View student analytics</li>
+                <li>Generate cohort reports</li>
+              </ul>
+            </div>
+            <div class="feature-card">
+              <h4>🔧 Admin Role</h4>
+              <ul style="padding-left: 1.5rem; margin-top: 0.5rem">
+                <li>All instructor permissions</li>
+                <li>Manage user accounts</li>
+                <li>Configure system settings</li>
+                <li>Access audit logs</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Technology Stack</h3>
+          <div class="tech-stack">
+            <div class="tech-card">
+              <h4>Backend</h4>
+              <ul>
+                <li>FastAPI (Python 3.11+)</li>
+                <li>AsyncIO for concurrency</li>
+                <li>Pydantic for data validation</li>
+                <li>SQLAlchemy ORM</li>
+                <li>Alembic for migrations</li>
+                <li>JWT for authentication</li>
+              </ul>
+            </div>
+            <div class="tech-card">
+              <h4>Frontend</h4>
+              <ul>
+                <li>Next.js 14 (App Router)</li>
+                <li>React 18</li>
+                <li>TypeScript</li>
+                <li>Tailwind CSS</li>
+                <li>Axios for API calls</li>
+                <li>React Query for caching</li>
+              </ul>
+            </div>
+            <div class="tech-card">
+              <h4>AI & Data</h4>
+              <ul>
+                <li>Google Gemini 1.5 Flash API</li>
+                <li>Custom Rule Engine (Python)</li>
+                <li>PostgreSQL (Production)</li>
+                <li>SQLite (Development)</li>
+                <li>JSON Schema for scenarios</li>
+              </ul>
+            </div>
+            <div class="tech-card">
+              <h4>DevOps & Tools</h4>
+              <ul>
+                <li>Git for version control</li>
+                <li>Docker for containerization</li>
+                <li>Pytest for backend testing</li>
+                <li>Jest for frontend testing</li>
+                <li>GitHub Actions for CI/CD</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Data-Driven Architecture: JSON Schema</h3>
+          <p>
+            Scenarios are defined using JSON configuration files, enabling
+            non-technical educators to create new cases without writing code.
+            This promotes scalability and reduces dependency on developers.
+          </p>
+
+          <div class="code-block">
+            <strong>Example Scenario JSON Schema</strong>
+
+            { "scenario_id": "case_001_oral_lesion", "title": "Suspicious Oral
+            Lesion", "difficulty": "intermediate", "initial_state":
+            "consultation", "states": { "consultation": { "available_data":
+            ["patient_history", "visual_exam"], "allowed_actions":
+            ["ask_question", "request_imaging"] }, "post_imaging": {
+            "available_data": ["patient_history", "visual_exam", "xray_image"],
+            "allowed_actions": ["ask_question", "request_biopsy",
+            "propose_diagnosis"] } }, "transitions": { "consultation": {
+            "request_imaging": "post_imaging" } }, "scoring_rules": {
+            "request_imaging": +15, "request_biopsy_before_imaging": -50,
+            "correct_diagnosis": +50, "incorrect_diagnosis": -30 } }
+          </div>
+        </div>
+
+        <!-- IMPACT & CONCLUSION -->
+        <div class="section">
+          <h2>Impact & Conclusion</h2>
+
+          <h3>Educational Impact</h3>
+          <p>
+            DentAI addresses a critical gap in dental education by shifting
+            assessment focus from <em>knowledge recall</em> to
+            <em>clinical reasoning</em>. Traditional exams cannot measure a
+            student's ability to think like a clinician—to gather information
+            systematically, formulate hypotheses, and make evidence-based
+            decisions. By simulating real patient encounters, DentAI provides
+            students with safe, repeatable practice in diagnostic reasoning.
+          </p>
+
+          <div class="impact-metrics">
+            <div class="metric">
+              <span class="metric-value">100%</span>
+              <span class="metric-label">Automated Assessment</span>
+            </div>
+            <div class="metric">
+              <span class="metric-value">∞</span>
+              <span class="metric-label">Scalability</span>
+            </div>
+            <div class="metric">
+              <span class="metric-value">0</span>
+              <span class="metric-label">Hallucination Risk</span>
+            </div>
+          </div>
+
+          <h3>Technical Innovation</h3>
+          <p>
+            The <strong>Hybrid AI Architecture</strong> represents a novel
+            approach to applying LLMs in high-stakes domains like medical
+            education. While pure LLM-based systems risk generating incorrect
+            information (hallucinations), DentAI's integration of a
+            deterministic Rule Engine ensures that all AI outputs are validated
+            against medical protocols. This neuro-symbolic approach combines the
+            best of both worlds: the conversational flexibility of neural
+            networks and the reliability of symbolic reasoning.
+          </p>
+
+          <h3>Scalability & Sustainability</h3>
+          <p>
+            By automating assessment, DentAI eliminates the bottleneck of human
+            graders. A single instructor can deploy scenarios to hundreds of
+            students simultaneously, with each student receiving personalized,
+            real-time feedback. The data-driven architecture (JSON Schema)
+            allows educators to create new cases without coding, ensuring
+            long-term sustainability and adaptability to evolving curricula.
+          </p>
+
+          <h3>Research Potential</h3>
+          <p>
+            The comprehensive telemetry and audit trail generated by DentAI
+            create a rich dataset for pedagogical research. Educators can
+            analyze common reasoning errors, identify curriculum gaps, and
+            refine teaching strategies based on empirical evidence. This
+            transforms assessment from a summative evaluation tool into a
+            formative learning instrument.
+          </p>
+
+          <h3>Future Directions</h3>
+          <p>Planned enhancements include:</p>
+          <ul style="padding-left: 2rem; margin-top: 1rem">
+            <li>
+              <strong>Multimodal AI:</strong> Integrate image analysis (e.g.,
+              automated radiograph interpretation) to provide richer feedback
+            </li>
+            <li>
+              <strong>Adaptive Difficulty:</strong> Dynamically adjust scenario
+              complexity based on student performance
+            </li>
+            <li>
+              <strong>Collaborative Scenarios:</strong> Enable team-based
+              simulations where multiple students collaborate on a case
+            </li>
+            <li>
+              <strong>Integration with LMS:</strong> Connect with existing
+              Learning Management Systems (Moodle, Canvas) for seamless
+              deployment
+            </li>
+            <li>
+              <strong>Multilingual Support:</strong> Expand beyond Turkish to
+              support international dental schools
+            </li>
+          </ul>
+
+          <div class="highlight-box" style="margin-top: 2rem">
+            <strong>Conclusion:</strong> DentAI demonstrates that AI can be
+            applied responsibly in medical education when designed with safety,
+            transparency, and pedagogical rigor. By combining cutting-edge
+            technology with evidence-based instructional design, this project
+            sets a new standard for competency-based assessment in healthcare
+            education. We believe DentAI has the potential to transform not only
+            dental education but also medical, nursing, and allied health
+            training programs worldwide.
+          </div>
+
+          <p
+            style="
+              margin-top: 2rem;
+              text-align: center;
+              font-style: italic;
+              color: var(--accent-blue);
+            "
+          >
+            This research project was conducted with the goal of advancing
+            educational technology and improving clinical competency assessment.
+            We are grateful to our supervisor, Dr. Nazlı Tokatlı, for her
+            guidance and to our institution for supporting this work.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
