@@ -9,7 +9,7 @@
 ## 1. Existing Quiz Infrastructure Extension Strategy
 
 **Current State:**
-The existing quiz system reads MCQs from a static file (`data/mcq_questions.json`). Student answers are graded in memory, and only a high-level summary is saved to the database in the `ExamResult` table (`details_json` holds the breakdown). 
+The existing quiz system reads MCQs from a static file (`data/question_bank/mcq_questions.json`). Student answers are graded in memory, and only a high-level summary is saved to the database in the `ExamResult` table (`details_json` holds the breakdown). 
 
 **Extension Strategy (Option A):**
 We will **extend the existing infrastructure** rather than building a parallel system. 
@@ -115,6 +115,6 @@ To prevent data leakage, the API response models (Pydantic schemas) will strictl
 **Note: No code or migration implementation is allowed in Sprint 8A. These are notes for Sprint 8B.**
 
 1. **Schema Creation:** Alembic will generate the new `questions`, `quiz_attempts`, and `quiz_answers` tables.
-2. **Data Seeding:** A startup script will read `data/mcq_questions.json`, map the JSON fields to the new `Question` schema (extracting tags, topics, options, and the correct option), and `INSERT` them into the database.
+2. **Data Seeding:** A startup script will read `data/question_bank/mcq_questions.json`, map the JSON fields to the new `Question` schema (extracting tags, topics, options, and the correct option), and `INSERT` them into the database.
 3. **Legacy Data Migration:** Existing `ExamResult` rows will remain for historical archive, or a script will convert them into `QuizAttempt` headers with a generic "legacy" state. The UI will pull from `QuizAttempt` going forward.
 4. **Safety Verification:** The migration must verify that the `correct_option` is stripped from all existing JSON structures and moved securely to the protected DB column.
