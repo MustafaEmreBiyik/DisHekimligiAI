@@ -2,13 +2,16 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Home, User, BarChart2, BookOpen, LogOut, Menu, X, Activity, FileQuestion } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  const [menuState, setMenuState] = useState({ pathname, isOpen: false });
+  const isOpen = menuState.pathname === pathname ? menuState.isOpen : false;
+  const openMenu = () => setMenuState({ pathname, isOpen: true });
+  const closeMenu = () => setMenuState({ pathname, isOpen: false });
 
   const navLinks = [
     { href: "/dashboard", icon: <Home size={20} />, label: "Home" },
@@ -17,11 +20,6 @@ export default function Sidebar() {
     { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
     { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
   ];
-
-  // Close sidebar on route change for mobile
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
 
   // Optionally add logout logic here
   const handleLogout = () => {
@@ -32,7 +30,7 @@ export default function Sidebar() {
     <>
       <button 
         className={styles.mobileToggle} 
-        onClick={() => setIsOpen(true)}
+        onClick={openMenu}
         aria-label="Open Menu"
       >
         <Menu size={24} />
@@ -41,7 +39,7 @@ export default function Sidebar() {
       <div 
         className={styles.overlay} 
         data-open={isOpen} 
-        onClick={() => setIsOpen(false)} 
+        onClick={closeMenu} 
       />
 
       <aside className={styles.sidebarContainer} data-open={isOpen}>
@@ -52,7 +50,7 @@ export default function Sidebar() {
           <div className={styles.logoText}>DentAI</div>
           <button 
             className={styles.mobileClose} 
-            onClick={() => setIsOpen(false)}
+            onClick={closeMenu}
             aria-label="Close Menu"
           >
             <X size={20} />
@@ -66,6 +64,7 @@ export default function Sidebar() {
               <Link 
                 key={link.href} 
                 href={link.href}
+                onClick={closeMenu}
                 className={styles.navItem}
                 data-active={isActive}
               >

@@ -26,7 +26,7 @@ import {
 } from "recharts";
 import styles from "./Statistics.module.css";
 import { useAuth } from "@/context/AuthContext";
-import { userAPI } from "@/lib/api";
+import { getApiErrorMessage, userAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const PIE_COLORS = ["#667eea", "#f093fb", "#4facfe", "#43e97b", "#f6ad55", "#fc8181"];
@@ -144,9 +144,9 @@ export default function StatisticsPage() {
         recommendation: data.recommendation ?? "",
         reasoning_pattern: data.reasoning_pattern ?? null,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load stats:", err);
-      setError("İstatistikler yüklenirken bir hata oluştu.");
+      setError(getApiErrorMessage(err, 'Istatistikler yuklenirken bir hata olustu.'));
     } finally {
       setIsLoading(false);
     }
