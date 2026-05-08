@@ -1,0 +1,24 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded by docker-compose and overrides settings in docker-compose.yml
+# Use this for development-specific configurations
+
+services:
+  backend:
+    # Enable hot reload in development
+    environment:
+      - DEVELOPMENT_MODE=true
+    volumes:
+      # Mount source code for hot reload (overrides production mounts)
+      - ../dentai/app:/app/app
+      - ../dentai/db:/app/db
+      - ../dentai/alembic:/app/alembic
+      - ../dentai/scripts:/app/scripts
+    profiles:
+      - dev
+
+  frontend:
+    # Use development profile with HMR
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    profiles:
+      - dev

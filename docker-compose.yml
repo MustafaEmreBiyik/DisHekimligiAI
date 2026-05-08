@@ -1,0 +1,115 @@
+services:
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: dentai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///db/runtime/dentai_app.db}
+      - DENTAI_SECRET_KEY=${DENTAI_SECRET_KEY:-your-secret-key-change-in-production}
+      - DENTAI_ACCESS_TOKEN_EXPIRE_MINUTES=${DENTAI_ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
+    volumes:
+      # Hot reload for development (commented out for production)
+      # Uncomment in docker-compose.override.yml
+      - ./dentai/app:/app/app
+      - ./dentai/db:/app/db
+      - ./dentai/alembic:/app/alembic
+      - ./dentai/scripts:/app/scripts
+      - dentai_db_volume:/app/db/runtime
+    networks:
+      - dentai-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - dev
+      - prod
+
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
+    container_name: dentai-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000}
+    networks:
+      - dentai-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - dev
+      - prod
+
+  # PostgreSQL Database (optional, commented out by default)
+  postgres:
+    image: postgres:15-alpine
+    container_name: dentai-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-dentai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dentai_password}
+      - POSTGRES_DB=${POSTGRES_DB:-dentai_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dentai-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dentai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - postgres
+      - postgres-dev
+
+  # Adminer for database management (optional, for development)
+  adminer:
+    image: adminer:latest
+    container_name: dentai-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    networks:
+      - dentai-network
+    depends_on:
+      - postgres
+    profiles:
+      - postgres
+      - postgres-dev
+
+networks:
+  dentai-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  dentai_db_volume:
+    driver: local
