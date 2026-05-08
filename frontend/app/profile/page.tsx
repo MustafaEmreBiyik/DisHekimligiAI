@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 interface UserInfo {
   student_id: string;
   name: string;
-  email?: string;
+  email?: string | null;
 }
 
 interface UserStats {

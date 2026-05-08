@@ -1,7 +1,7 @@
 # DENTAI ORCHESTRATOR LOG
 > Bu dosya her Orchestrator oturumuna başlarken yapıştırılmalıdır.
 > Her Completion Block sonrası güncel halini buraya kaydet.
-> Son güncelleme: 2026-04-28
+> Son güncelleme: 2026-05-01
 
 ---
 
@@ -209,7 +209,7 @@ Failures: NONE
 [2026-04-03] [DECISION-059] MEDIUM — Catalog source-of-truth ayrışması tespit edildi:
               admin is_active güncelliyor ama runtime halen JSON üzerinden çalışıyor.
               Breaking change riski düşük. Admin publish akışının olgunlaşmasıyla
-              çözülmeli. Backlog'a alındı.
+              çözülmeli. Backlog'a alındı. → RESOLVED by S7-T3 (DECISION-071).
 [2026-04-03] [DECISION-060] Sprint 6 closure APPROVED — AGENT-7 onayladı.
               44 test geçiyor, 4 deselected. Proje deployment'a hazır.
 [2026-04-27] [DECISION-061] Sprint 7 TASK-1 (Secure Quiz API Rebuild) AGENT-2 tarafından tamamlandı.
@@ -238,6 +238,111 @@ Failures: NONE
               Pending strict audit due to test count anomaly (65 vs 66)
               and potential DB-fallback security risks.
               S7-T4-VERIFY assigned to AGENT-7.
+[2026-05-01] [DECISION-070] S7-T4-VERIFY APPROVED by AGENT-5.
+              Test count anomaly resolved (untracked local file). DB-first boundary
+              verified as secure. S7-T3 conditionally closed pending the addition of
+              a regression test for inactive case session creation (Option A).
+[2026-05-01] [DECISION-071] S7-T3-FIX-A completed by AGENT-2.
+              Regression test added: test_new_session_blocked_for_inactive_db_case.
+              S7-T3 is now FULLY CLOSED. Baseline restored: 66 passed, 4 deselected.
+              DECISION-059 (catalog source-of-truth ayrışması) is resolved.
+[2026-05-01] [DECISION-072] Sprint 7 formally CLOSED and APPROVED.
+              AGENT-7 S7-T5-CLOSURE audit passed. All security boundaries,
+              DB runtime behaviors, inactive-case handling, and test baselines verified.
+              Final baseline: 66 passed, 4 deselected.
+[2026-05-06] [DECISION-073] Sprint 8A — Oral Pathology Learning System Design activated.
+              Design-only sprint. No implementation, no migrations, no coding.
+              Sprint 8 (Deployment Hardening) deferred to Sprint 8B-INFRA.
+              5 agents + orchestrator. 6 tasks across 5 phases.
+[2026-05-06] [DECISION-074] Quiz system extension strategy: Option A (extend existing).
+              Default is to extend the secured quiz/question infrastructure.
+              Do NOT build a parallel system — risk of duplicating quiz logic
+              and reintroducing answer-key leakage or scoring inconsistency.
+              Option B (new parallel system) only if AGENT-2 feasibility review
+              proves existing quiz infra cannot support MCQ + open-ended +
+              case-linked questions + instructor grading + tagging + analytics.
+[2026-05-06] [DECISION-075] Grading notifications: DEFERRED.
+              MVP uses polling/manual refresh only. Notifications (websocket,
+              email, push) are a future enhancement, not Sprint 8A/8B scope.
+[2026-05-06] [DECISION-076] (D1) Theory module: standalone but linked from case
+              pre/post-session. Not embedded inside the case flow.
+[2026-05-06] [DECISION-077] (D2) Separate study mode and assessment mode.
+              Study = browsable, formative. Assessment = timed, scored, submitted.
+[2026-05-06] [DECISION-078] (D3) Minimum MVP question bank: 6 MCQ + 6 OE.
+              Target if feasible: 12 MCQ + 6 OE.
+[2026-05-06] [DECISION-079] (D4) [REVIEW_NEEDED] cases block open-ended question
+              linking. A case must pass faculty/domain expert review before it
+              can be linked to open-ended questions.
+[2026-05-06] [DECISION-080] (D5) Bloom level tagging is MANDATORY but lightweight.
+              Minimum: Remember / Understand / Apply / Analyse per question.
+              Full Bloom taxonomy not required in MVP.
+[2026-05-06] [DECISION-081] S8A-T1 DONE. Product brief delivered by AGENT-1.
+              Deliverable: mdfiles/S8A_PRODUCT_BRIEF.md
+              S8A-T2 UNBLOCKED — AGENT-4 assigned for clinical taxonomy.
+[2026-05-06] [DECISION-082] S8A-T2 DONE. Clinical content taxonomy delivered by AGENT-4.
+              Deliverable: mdfiles/S8A_TAXONOMY.md. 4 major categories, 5 competency areas,
+              difficulty/Bloom/safety tags defined.
+              S8A-T3 (AGENT-2) and S8A-T4 (AGENT-3) are UNBLOCKED and running in parallel.
+[2026-05-07] [DECISION-083] S8A-T4 DONE. UX workflow review delivered by AGENT-3.
+              Deliverable: mdfiles/S8A_UX_WORKFLOW_REVIEW.md.
+              CRITICAL FINDING: /medgemma exposes internal validator details and JSON
+              without auth. Must be removed from production or placed behind an
+              admin/dev guard before Sprint 8B deployment.
+              S8A-T5 (AGENT-7) remains BLOCKED on S8A-T3 but MUST include /medgemma
+              in the final S8A safety review.
+[2026-05-07] [DECISION-084] S8A-T3 DONE. Data model feasibility delivered by AGENT-2.
+              Deliverable: mdfiles/S8A_DATA_MODEL.md. 
+              Approved with minor revisions: grading_status added, QuestionCaseMapping 
+              table used for multiple mappings, and authoring field exposure reworded.
+              S8A-T5 (AGENT-7) is UNBLOCKED.
+[2026-05-07] [DECISION-085] S8A-T5 DONE ✅ APPROVED. Safety review delivered by AGENT-7.
+              All S8A design boundaries approved. 
+              CRITICAL: /medgemma remediation scheduled as S8B-T0 (blocking prerequisite).
+              Sprint 8B safety gates (S8B-GATE-1 to 4) defined.
+              S8A-T6 (Sprint 8B Task Gen) UNBLOCKED and EXECUTED.
+[2026-05-07] [DECISION-086] S8B-T0 DONE ✅ APPROVED. Option A executed.
+              The /medgemma route has been completely removed from production
+              and the frontend codebase. Sidebar link and README entry removed.
+              S8B-T1 (Database Migration) is now UNBLOCKED.
+[2026-05-07] [DECISION-087] S8B-GATE-1 VERIFIED. AGENT-7 approved S8B-T0.
+              Audit confirmed /medgemma route is fully removed. The TS fix in
+              profile/page.tsx was a safe type adjustment (email?: string | null)
+              with no behavioral changes. S8B-T1 unblocked.
+[2026-05-07] [DECISION-088] S8B-T1 DONE. Database migration delivered by AGENT-2.
+              Added SQLAlchemy schema for Oral Pathology learning system 
+              (Question, QuestionCaseMapping, QuizAttempt, QuizAnswer) and Enums.
+              Legacy ExamResult preserved. Migration `48d32c8e65ec` applied successfully.
+              Tests passed (68 passed, 4 deselected).
+              S8B-T2 is now UNBLOCKED and assigned to AGENT-2.
+[2026-05-07] [DECISION-089] S8B-T1-VERIFY DONE ✅ APPROVED. AGENT-5 verified schema.
+              Verified models, enums, migration, and relations. No student API exposure.
+              Test count discrepancy noted: AGENT-2 reported 68/4, AGENT-5 reports 65/4.
+              Accepted 65 passed, 4 deselected as the authoritative baseline for S8B-T2.
+[2026-05-07] [DECISION-090] S8B-T2 DONE ✅ APPROVED. Backend API delivered by AGENT-2.
+              AGENT-7 performed S8B-GATE-2 and S8B-GATE-3 audit:
+              - S8B-GATE-2 VERIFIED: Student GET endpoints explicitly exclude protected keys.
+              - S8B-GATE-3 VERIFIED: Instructor score/feedback masked until PUBLISHED.
+              Prior quiz hardening protections in `test_quiz_hardening_b7.py` preserved.
+              Baseline updated to 69 passed, 4 deselected.
+[2026-05-07] [DECISION-091] S8B-T2 FORMALLY CLOSED. Findings logged to backlog.
+              MEDIUM: Split StudentQuestionFeedback and InstructorQuestionFeedback schemas.
+              LOW: Replace datetime.utcnow with timezone-aware datetime.now(datetime.UTC).
+              S8B-T3 is UNBLOCKED and assigned to AGENT-3.
+[2026-05-07] [DECISION-092] S8B-T3 DONE ✅ APPROVED. Frontend API delivered by AGENT-3.
+              AGENT-7 performed S8B-GATE-4 audit:
+              - S8B-GATE-4 VERIFIED: Assessment UI explicitly excludes theory hints, 
+                difficulty tags, Bloom levels, and competency tags. The UI renders
+                only safe StudentQuestion fields. 
+              S8B-T4 (Final Safety Audit) is UNBLOCKED and assigned to AGENT-7.
+[2026-05-07] [DECISION-093] S8B-T3 FORMALLY CLOSED.
+              Follow-up hardening item added to backlog: Server-side instructor score 
+              range validation (`instructor_score <= max_score`).
+[2026-05-07] [DECISION-094] S8B-T4 DONE ✅ APPROVED. Final Sprint 8B Safety Audit.
+              - All S8B-GATEs (1, 2, 3, 4) have passed successfully.
+              - Final Baseline: 69 passed, 4 deselected, 0 failures.
+              - `[REVIEW_NEEDED]` cases are correctly blocked/unmapped via schema design.
+              - No regression of Sprint 7 DB-first source-of-truth logic.
+              Sprint 8B is formally CLOSED. DENTAI Oral Pathology Learning System MVP is Ready.
 ```
 
 ---
@@ -246,50 +351,69 @@ Failures: NONE
 
 ```
 ═══════════════════════════════════════════
-DENTAI AGENT STATUS — Sprint: 7 🔄 IN PROGRESS
+DENTAI AGENT STATUS — Sprint: 8A 🔄 IN PROGRESS (Design Only)
 ═══════════════════════════════════════════
 
-Current priority sprint: Secure Assessment + DB Runtime Unification
-- S7-T1 tamamlandı: secure server-evaluated quiz flow
-- S7-T1-FIX-A tamamlandı: semantic leakage remediation (_safe_feedback static)
-- S7-T2-REAUDIT tamamlandı: AGENT-7 APPROVED
-- S7-T3 tamamlandı: Runtime DB Unification (AGENT-2)
-- Aktif gate: S7-T4-VERIFY AGENT-7 audit (zorunlu)
-- Son doğrulama: quiz hardening 13 passed, default 65 passed / 4 deselected (WARNING: Test count anomaly)
+Sprint 8A: Oral Pathology Learning System Design
+- S8A-T1: Product scope & learning objectives (AGENT-1) — DONE ✅
+- S8A-T2: Clinical content taxonomy (AGENT-4) — DONE ✅
+- S8A-T3: Data model feasibility (AGENT-2) — DONE ✅
+- S8A-T4: UX workflow review (AGENT-3) — DONE ✅
+- S8A-T5: Safety review (AGENT-7) — DONE ✅
+- S8A-T6: Sprint 8B task generation (ORCHESTRATOR) — DONE ✅
+- Sprint 8A closure: APPROVED — 2026-05-07
+- Ready to begin Sprint 8B Implementation.
 
-| Agent   | Task ID           | Status       |
-|---------|------------------|--------------|
-| AGENT-2 | SPRINT-1-TASK-2  | DONE         |
-| AGENT-2 | SPRINT-1-TASK-5  | DONE         |
-| AGENT-2 | SPRINT-2-TASK-1  | DONE         |
-| AGENT-2 | SPRINT-3-TASK-1  | DONE         |
-| AGENT-2 | SPRINT-4-TASK-1  | DONE         |
-| AGENT-2 | SPRINT-4-TASK-3  | DONE         |
-| AGENT-2 | SPRINT-5-TASK-1  | DONE         |
-| AGENT-2 | SPRINT-6-TASK-1  | DONE         |
-| AGENT-2 | S7-T1            | DONE         |
-| AGENT-3 | SPRINT-3-TASK-2  | DONE         |
-| AGENT-3 | SPRINT-5-TASK-2  | DONE         |
-| AGENT-3 | SPRINT-6-TASK-2  | DONE         |
-| AGENT-5 | SPRINT-1-TASK-1  | DONE         |
-| AGENT-6 | SPRINT-4-TASK-4  | DONE         |
-| AGENT-7 | SPRINT-1-TASK-4A | DONE         |
-| AGENT-7 | SPRINT-1-TASK-4B | DONE ✅ APPROVED |
-| AGENT-7 | SPRINT-4-TASK-2  | DONE ✅ APPROVED |
-| AGENT-7 | SPRINT-4-TASK-3  | DONE ✅ APPROVED |
-| AGENT-7 | SPRINT-6-TASK-3  | DONE ✅ APPROVED |
-| AGENT-7 | S7-T2            | PARTIAL (semantic leakage risk) |
-| AGENT-7 | S7-T2-REAUDIT    | DONE ✅ APPROVED |
-| AGENT-2 | S7-T3            | DONE (PENDING AUDIT) |
-| AGENT-7 | S7-T4-VERIFY     | ASSIGNED (AUDIT GATE) |
+| Agent       | Task ID    | Status                |
+|-------------|-----------|------------------------|
+| AGENT-1     | S8A-T1    | DONE ✅                |
+| AGENT-4     | S8A-T2    | DONE ✅                |
+| AGENT-2     | S8A-T3    | DONE ✅                |
+| AGENT-3     | S8A-T4    | DONE ✅                |
+| AGENT-7     | S8A-T5    | DONE ✅                |
+| ORCHESTRATOR| S8A-T6    | DONE ✅                |
 ═══════════════════════════════════════════
+
+```
+═══════════════════════════════════════════
+DENTAI AGENT STATUS — Sprint: 8B 🔄 CLOSED
+═══════════════════════════════════════════
+
+Sprint 8B: Oral Pathology Learning System Implementation ✅ DONE — APPROVED
+- S8B-T0: /medgemma remediation (AGENT-2/3) — DONE ✅
+- S8B-T1: Database Migration (AGENT-2) — DONE ✅
+- S8B-T2: Backend API (AGENT-2) — DONE ✅
+- S8B-T3: Frontend Theory/Assessment (AGENT-3) — DONE ✅
+- S8B-T4: Final Safety Audit (AGENT-7) — DONE ✅
+- Sprint 8B closure: APPROVED — 2026-05-07
+
+| Agent       | Task ID    | Status                |
+|-------------|-----------|------------------------|
+| AGENT-3     | S8B-T0    | DONE ✅                |
+| AGENT-7     | S8B-GATE-1| DONE ✅ VERIFIED       |
+| AGENT-2     | S8B-T1    | DONE ✅                |
+| AGENT-5     | S8B-T1-VERIFY | DONE ✅ VERIFIED   |
+| AGENT-2     | S8B-T2    | DONE ✅                |
+| AGENT-7     | S8B-GATE-2| DONE ✅ VERIFIED       |
+| AGENT-7     | S8B-GATE-3| DONE ✅ VERIFIED       |
+| AGENT-3     | S8B-T3    | DONE ✅                |
+| AGENT-7     | S8B-GATE-4| DONE ✅ VERIFIED       |
+| AGENT-7     | S8B-T4    | DONE ✅                |
+═══════════════════════════════════════════
+```
+
+--- Previous Sprint (7) Status ---
+
+Sprint 7: Secure Assessment + DB Runtime Unification ✅ DONE — APPROVED
+- Final baseline: 66 passed, 4 deselected
+- Closure date: 2026-05-01
 ```
 
 ---
 
-## PROJE TAMAMLANDI ✅ — 2026-04-03
+## PROJE TAMAMLANDI ✅ — 2026-05-01
 
-**Tüm 6 sprint tamamlandı. Proje deployment'a hazır.**
+**Tüm 7 sprint tamamlandı. Proje deployment'a hazır.**
 
 | Sprint | Kapsam | Test Sonucu |
 |--------|--------|-------------|
@@ -299,12 +423,13 @@ Current priority sprint: Secure Assessment + DB Runtime Unification
 | Sprint 4 | Coach + MedGemma + Injection | 37 passed |
 | Sprint 5 | Instructor portal | 37+ passed |
 | Sprint 6 | Admin portal | 44 passed |
+| Sprint 7 | Secure Assessment + DB Runtime Unification | 66 passed |
 
 **Açık backlog (deployment blocker değil):**
 - Token revocation / jti blacklist (HIGH)
-- Catalog source-of-truth ayrışması (MEDIUM)
+- ~~Catalog source-of-truth ayrışması (MEDIUM)~~ → RESOLVED (S7-T3)
 - utcnow deprecation fix (MEDIUM)
-- Quiz answer key ifşası (MEDIUM)
+- ~~Quiz answer key ifşası (MEDIUM)~~ → RESOLVED (S7-T1)
 - İç hata detayı sızıntısı (MEDIUM)
 - Audit log tamper-evidence (MEDIUM)
 - CORS origin allowlist (LOW)
@@ -450,6 +575,78 @@ DEPENDENCY NOTICE / WARNINGS:
 - [WARNING] Default baseline test count decreased from 66 to 65.
 - [WARNING] Security fixtures modified to inject allow_json_fallback=True.
 - Verification required to ensure production DB-first behavior is not weakened.
+```
+
+### AGENT-5 — S7-T4-VERIFY (DONE — APPROVED)
+
+```
+Status: DONE
+Verdict: APPROVED
+Deliverable: Independent verification of S7-T3 DB Unification.
+
+FINDINGS:
+- Test Count Anomaly: Resolved. The previous count of 66 included an untracked local test file. The current 65 passed, 4 deselected is the correct new baseline. No tests were deleted or weakened.
+- allow_json_fallback=True: Safe. Fixture changes align test setup only and do not mask production DB-first behavior.
+- DB-First Boundary: Verified. JSON fallback is strictly opt-in/empty-catalog only.
+- Existing Sessions: Verified. Inactive-case sessions can be resumed.
+- Non-blocking Issue (MEDIUM): Missing direct regression test proving new session creation for inactive DB cases is blocked.
+
+DECISION:
+- S7-T3 is verified but conditionally closed pending S7-T3-FIX-A (adding the missing regression test).
+```
+
+### AGENT-7 — S7-T5-CLOSURE (DONE — APPROVED)
+
+```
+Status: DONE
+Verdict: APPROVED
+Deliverable: Sprint 7 formal closure audit.
+
+CLOSURE CHECKLIST (ALL PASS):
+- Quiz payload safety: No correct_option, raw explanation, answer_key,
+  evaluator metadata, or raw validator output exposed in student-facing
+  quiz payloads.
+- DB runtime source-of-truth: JSON fallback gated behind explicit opt-in
+  and empty DB catalog only.
+- Inactive cases excluded from student runtime.
+- New sessions for inactive cases are blocked (HTTP 404).
+- Existing sessions for deactivated cases are preserved.
+- AGENT-5 and AGENT-6 findings resolved or non-blocking.
+- Full default test suite passes.
+
+FINAL BASELINE:
+- pytest -q → 66 passed, 4 deselected, 0 failures
+
+VERDICT:
+- Sprint 7 formally CLEAR for closure.
+```
+
+### AGENT-2 — S7-T3-FIX-A INACTIVE CASE REGRESSION TEST (DONE)
+
+```
+Status: DONE
+Deliverable: Regression test proving new session creation for inactive DB cases is blocked.
+
+FILES CHANGED:
+- tests/api/test_cases_sprint7_db_runtime.py
+
+TEST ADDED:
+- test_new_session_blocked_for_inactive_db_case
+  - Seeds an inactive, non-archived CaseDefinition
+  - Verifies no existing StudentSession
+  - Calls POST /api/cases/{case_id}/start
+  - Asserts inactive case is rejected with HTTP 404
+  - Verifies no StudentSession created as side effect
+
+RUNTIME CODE CHANGES: NONE
+
+VALIDATION:
+- test_cases_sprint7_db_runtime.py: 4 passed
+- Default pytest: 66 passed, 4 deselected, 0 failed
+
+BASELINE UPDATE:
+- New default baseline: 66 passed, 4 deselected
+- S7-T3 is now FULLY CLOSED. DECISION-059 backlog item resolved.
 ```
 
 ### AGENT-6 — S7-SAFETY-REVIEW (DONE)
