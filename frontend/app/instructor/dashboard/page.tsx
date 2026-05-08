@@ -34,7 +34,7 @@ function SafetyFlagsList({ flags }: { flags: InstructorSafetyFlag[] }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">Güvenlik İhlalleri</h2>
+        <h2 className="text-xl font-bold text-slate-900">Guvenlik Ihlalleri</h2>
         <span className="text-xs font-medium text-slate-500">Son 10 kritik ihlal</span>
       </div>
 
@@ -103,26 +103,34 @@ export default function InstructorDashboardPage() {
     <InstructorRouteGuard>
       <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-7xl space-y-8">
-          <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Eğitmen Paneli</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Egitmen Paneli</h1>
               <p className="mt-2 text-sm text-slate-600">
-                Öğrenci risk durumları, kritik güvenlik ihlalleri ve yetkinlik özetleri
+                Ogrenci risk durumlari, kritik guvenlik ihlalleri ve yetkinlik ozetleri
               </p>
             </div>
-            <Link
-              href="/instructor/grading"
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm"
-            >
-              Değerlendirme Kuyruğu
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/instructor/questions"
+                className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100"
+              >
+                Acik Uclu Soru Ekle
+              </Link>
+              <Link
+                href="/instructor/grading"
+                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              >
+                Degerlendirme Kuyrugu
+              </Link>
+            </div>
           </header>
 
           {isLoading && (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3 text-slate-600">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-                <span className="text-sm font-medium">Panel verileri yükleniyor...</span>
+                <span className="text-sm font-medium">Panel verileri yukleniyor...</span>
               </div>
             </section>
           )}
@@ -130,7 +138,7 @@ export default function InstructorDashboardPage() {
           {!isLoading && showStudentsSection && overview && (
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">Öğrenci Listesi</h2>
+                <h2 className="text-xl font-bold text-slate-900">Ogrenci Listesi</h2>
                 <span className="text-xs font-medium text-slate-500">
                   Toplam: {overview.assigned_students.length}
                 </span>
@@ -155,7 +163,7 @@ export default function InstructorDashboardPage() {
 
                     <div className="mt-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Zayıf Yetkinlikler
+                        Zayif Yetkinlikler
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {student.weak_competencies.length > 0 ? (
@@ -168,7 +176,7 @@ export default function InstructorDashboardPage() {
                             </span>
                           ))
                         ) : (
-                          <span className="text-xs text-slate-500">Belirgin zayıf alan yok</span>
+                          <span className="text-xs text-slate-500">Belirgin zayif alan yok</span>
                         )}
                       </div>
                     </div>
@@ -189,15 +197,15 @@ export default function InstructorDashboardPage() {
 
           {!isLoading && showCompetencySection && overview && (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-xl font-bold text-slate-900">Yetkinlik Özet Tablosu</h2>
+              <h2 className="mb-4 text-xl font-bold text-slate-900">Yetkinlik Ozet Tablosu</h2>
 
               <div className="overflow-x-auto">
                 <table className="min-w-full border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
-                      <th className="px-3 py-2">Yetkinlik Alanı</th>
+                      <th className="px-3 py-2">Yetkinlik Alani</th>
                       <th className="px-3 py-2">Ortalama Puan</th>
-                      <th className="px-3 py-2">Etkilenen Öğrenci</th>
+                      <th className="px-3 py-2">Etkilenen Ogrenci</th>
                     </tr>
                   </thead>
                   <tbody>

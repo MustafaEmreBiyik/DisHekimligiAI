@@ -342,6 +342,44 @@ export interface GradeSubmission {
   publish: boolean;
 }
 
+export interface InstructorQuestionBankItem {
+  question_id: string;
+  question_type: string;
+  question_text: string;
+  topic_id: string;
+  competency_areas: string[];
+  bloom_level: string;
+  difficulty: string;
+  safety_category: string;
+  rubric_guide?: string | null;
+  model_answer_outline?: string | null;
+  instructor_explanation?: string | null;
+  options: string[];
+  correct_option?: string | null;
+  max_score: number;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface InstructorQuestionCreatePayload {
+  question_type: string;
+  question_id?: string;
+  question_text: string;
+  topic_id: string;
+  competency_areas: string[];
+  bloom_level: string;
+  difficulty: string;
+  safety_category: string;
+  rubric_guide?: string;
+  model_answer_outline?: string;
+  instructor_explanation?: string;
+  options?: string[];
+  correct_option?: string;
+  max_score: number;
+  is_active?: boolean;
+}
+
 /**
  * Instructor API
  */
@@ -383,6 +421,19 @@ export const instructorAPI = {
 
   submitGrade: async (answerId: number, payload: GradeSubmission): Promise<void> => {
     await apiClient.post(`/api/quiz/instructor/grade/${answerId}`, payload);
+  },
+
+  getQuestionBank: async (questionType?: string): Promise<InstructorQuestionBankItem[]> => {
+    const suffix = questionType ? `?question_type=${encodeURIComponent(questionType)}` : "";
+    const response = await apiClient.get(`/api/quiz/instructor/questions${suffix}`);
+    return response.data as InstructorQuestionBankItem[];
+  },
+
+  createQuestion: async (
+    payload: InstructorQuestionCreatePayload,
+  ): Promise<InstructorQuestionBankItem> => {
+    const response = await apiClient.post("/api/quiz/instructor/questions", payload);
+    return response.data as InstructorQuestionBankItem;
   },
 };
 

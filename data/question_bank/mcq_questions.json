@@ -1,0 +1,173 @@
+{
+  "oral_pathology": [
+    {
+      "id": "olp_01",
+      "question": "Bukkal mukozada 'beyaz ve ağsı (balık ağı)' görünümündeki lezyon için en olası tanı nedir?",
+      "options": ["Oral Liken Planus", "Psödomembranöz Kandidiyazis", "Lökoplaki", "Friksiyonel Keratoz"],
+      "correct_option": "Oral Liken Planus",
+      "explanation": "Beyaz ve ağsı (retiküler) yapı Liken Planus'un tipik özelliğidir (Wickham striae)."
+    },
+    {
+      "id": "olp_02",
+      "question": "Beyaz bir lezyonun 'Kandidiyazis' mi yoksa 'Lökoplaki' mi olduğunu anlamak için Semih Hoca'nın önerdiği pratik yöntem nedir?",
+      "options": ["Sıyrılıp sıyrılmadığını kontrol etmek", "Biyopsi almak", "Kan tahlili yapmak", "Antibiyotik vermek"],
+      "correct_option": "Sıyrılıp sıyrılmadığını kontrol etmek",
+      "explanation": "Sıyrılabilen beyazlık Mantar (Kandidiyazis), sıyrılmayan beyazlık Keratin artışıdır (Lökoplaki/Nasır)."
+    }
+  ],
+  "infectious_diseases": [
+    {
+      "id": "inf_01",
+      "question": "Viral kökenli lezyonlarda (Örn: Primer Herpes) yapılması kesinlikle YANLIŞ olan uygulama hangisidir?",
+      "options": ["Antibiyotik reçete etmek", "Sıvı alımını teşvik etmek", "Ateş düşürücü vermek", "İzolasyon önermek"],
+      "correct_option": "Antibiyotik reçete etmek",
+      "explanation": "Viral lezyonlarda antibiyotik VERİLMEMELİDİR, bakteriyel enfeksiyon değildir."
+    },
+    {
+      "id": "inf_02",
+      "question": "Ağız tabanında ve dilde görülen 'Aft' ile 'Herpes' lezyonlarını ayıran temel klinik fark nedir?",
+      "options": ["Aft hareketli mukozada, Herpes keratinize diş etinde (gingiva) görülür", "Aft sadece çocuklarda görülür", "Herpes ağrı yapmaz", "Aft antibiyotikle geçer"],
+      "correct_option": "Aft hareketli mukozada, Herpes keratinize diş etinde (gingiva) görülür",
+      "explanation": "Aft diş etinde olmaz, Herpes olur. Aft hareketli mukozada görülür."
+    }
+  ],
+  "traumatic": [
+    {
+      "id": "trauma_01",
+      "question": "Dil kenarında sürekli tekrarlayan aft ve diş izleri (indentasyon) görülen hastada öncelikli yaklaşım ne olmalıdır?",
+      "options": ["Etkeni (Stres/Diş Sıkma) araştırmak", "Hemen kortikosteroid başlamak", "Biyopsi almak", "Antibiyotik vermek"],
+      "correct_option": "Etkeni (Stres/Diş Sıkma) araştırmak",
+      "explanation": "Sadece semptom (Aft) tedavi edilmemeli, etken (Travma/Stres/Parafonksiyon) ortadan kaldırılmalıdır."
+    }
+  ],
+  "diagnostic_hierarchy": [
+    {
+      "id": "diag_01",
+      "question": "55 yaşında erkek hasta rutin kontrol için başvuruyor. Dilin sağ lateral kenarında 2x3 cm boyutlarında, derimsi (leathery), beyaz ve silinmeyen bir plak fark ediyorsunuz. Sorulduğunda hasta 'çok fazla sigara içmediğini' ve bölgenin 'acımadığını' belirtiyor. Tanısal Hiyerarşiye (Diagnostic Hierarchy) göre, kesin tanıdan önceki en kritik sonraki adım nedir?",
+      "options": [
+        "Skuamöz Hücreli Karsinomu ekarte etmek için derhal eksizyonel biyopsi yapmak.",
+        "Kandidiyazisi ekarte etmek için 2 haftalık topikal Nistatin reçete etmek.",
+        "Tütün/alkol alışkanlıkları için kapsamlı bir 'çapraz sorgu' yapmak ve olası mekanik irritanları ortadan kaldırdıktan sonra 2 haftalık takibe almak.",
+        "Yüksek riskli displastik alanları değerlendirmek için Toluidin Mavisi uygulamak."
+      ],
+      "correct_option": "Tütün/alkol alışkanlıkları için kapsamlı bir 'çapraz sorgu' yapmak ve olası mekanik irritanları ortadan kaldırdıktan sonra 2 haftalık takibe almak.",
+      "explanation": "Tanısal Hiyerarşi: İnvaziv bir biyopsi yapmadan önce irritanları ortadan kaldırın ve çapraz sorgu ile gerçek risk faktörlerini belirleyin."
+    },
+    {
+      "id": "diag_02",
+      "question": "Bir hasta dilinin yan tarafında 1 haftadır var olan ağrılı, pürüzlü bir ülserle başvuruyor. Ülserin hemen yanındaki 46 numaralı dişte kırık ve keskin bir tüberkül var. Öğrencinin ilk içgüdüsü biyopsi yapmaktır. Bu durum Tanısal Hiyerarşi (Diagnostic Hierarchy) kuralını neden ihlal eder?",
+      "options": [
+        "Biyopsiler sadece çift sayılı günlerde yapılmalıdır.",
+        "'Önce Etiyoloji' prensibi; keskin tüberkülün düzeltilmesini ve 'Travmatik Ülser'in iyileşip iyileşmediğini görmek için hastanın 10-14 gün sonra yeniden değerlendirilmesini gerektirir.",
+        "Maligniteler hiçbir zaman ağrı ile belirti vermez.",
+        "1 haftalık bir süre travmatik ülser için çok uzundur."
+      ],
+      "correct_option": "'Önce Etiyoloji' prensibi; keskin tüberkülün düzeltilmesini ve 'Travmatik Ülser'in iyileşip iyileşmediğini görmek için hastanın 10-14 gün sonra yeniden değerlendirilmesini gerektirir.",
+      "explanation": "Tanısal Hiyerarşi: Bıçağı elinize almadan önce nedeni ortadan kaldırın (Remove the cause before the knife) kuralı gereği önce travma etkeni giderilmelidir."
+    }
+  ],
+  "mechanism_based_reasoning": [
+    {
+      "id": "mech_01",
+      "question": "Alt vestibülde 'Tütün Kesesi Keratozu' (Dumansız Tütün Keratozu) ile başvuran bir hastada, mukozadaki 'dalgalı' veya 'kumsaldaki kum' (sand-on-a-beach) görünümünün birincil nedeni aşağıdakilerden hangisidir?",
+      "options": [
+        "Yüksek pH'lı tütün katkı maddelerine bağlı akut kimyasal yanık.",
+        "Tütün paketinin (quid) fiziksel varlığına bağlı olarak dokuların gevşemesi (flaksidite) ve kronik olarak gerilmesi.",
+        "İnsan papilloma virüsünün (HPV) tetiklediği hiperkeratoz ve akantoz.",
+        "Minör tükürük bezi kanallarının koagülatif nekrozu."
+      ],
+      "correct_option": "Tütün paketinin (quid) fiziksel varlığına bağlı olarak dokuların gevşemesi (flaksidite) ve kronik olarak gerilmesi.",
+      "explanation": "Mekanizma: Doku görünümü sadece kimyasal tahrişten değil, dokunun tütün kitlesi tarafından kronik olarak gerilmesinden (flaksidite) kaynaklanır."
+    },
+    {
+      "id": "mech_02",
+      "question": "45 yaşında bir hasta, ağız tabanında 'gelip giden' ve özellikle yemek yeme sırasında boyutu artan bir şişlikle başvuruyor. Bu klinik davranış (mekanizma) en çok hangisinin karakteristiğidir?",
+      "options": [
+        "Ranula (Mukus ekstravazasyonu).",
+        "Kanalı tıkayan Sialolitiazis (Tükürük bezi taşı).",
+        "Sublingual bezin Pleomorfik Adenomu.",
+        "Sjӧgren Sendromu."
+      ],
+      "correct_option": "Kanalı tıkayan Sialolitiazis (Tükürük bezi taşı).",
+      "explanation": "Mekanizma: Yemek sırasında tükürük akışının artmasıyla şişliğin büyümesi mekanik obstrüksiyona (tıkanıklığa) işaret eder."
+    }
+  ],
+  "unreliable_narrator": [
+    {
+      "id": "unrel_01",
+      "question": "Bir hastanın lokalize odontojenik enfeksiyonu için antibiyotiğe ihtiyacı vardır. Tıbbi anamnez sırasında hasta, daha önce penisilin aldıktan sonra bir kez 'midesinin bozulmuş olabileceğini' belirtiyor. Bir Başhekim (Sistem Yöneticisi) olarak bu riski nasıl sınıflandırırsınız?",
+      "options": [
+        "'Penisilin Alerjisi' olarak kaydetmek ve derhal Klindamisin reçete etmek.",
+        "'Mide bulantısı'nın bir alerji değil yan etki olduğunu varsayarak bu yorumu göz ardı etmek ve Amoksisilin reçete etmek.",
+        "İlaç seçmeden önce, Tip I Aşırı Duyarlılık reaksiyonu ile gastrointestinal yan etkiyi ayırt etmek için hastanın öyküsüne yönelik detaylı bir 'niyet analizi (intent analysis)' yapmak.",
+        "Herhangi bir diş tedavisinden önce deri prik (skin prick) testi istemek."
+      ],
+      "correct_option": "İlaç seçmeden önce, Tip I Aşırı Duyarlılık reaksiyonu ile gastrointestinal yan etkiyi ayırt etmek için hastanın öyküsüne yönelik detaylı bir 'niyet analizi (intent analysis)' yapmak.",
+      "explanation": "Senaryo Teorisi (Script Theory): Alerji ile intoleransı (yan etkiyi) ayırt etmek için doğru niyetle derinlemesine sorgulama yapılmalıdır."
+    },
+    {
+      "id": "unrel_02",
+      "question": "Bir anne, 6 yaşındaki çocuğunu yumuşak damakta çok sayıda 'morluk' ve peteşi ile getiriyor. Anne, çocuğun 'bir oyuncağın üzerine düştüğünü' iddia ediyor. Kademeli Bilgi Sunumu (Progressive Disclosure) kullanan bir klinisyen olarak, morlukların sert ve yumuşak damak birleşim yerinde olduğunu fark ediyorsunuz. Hangi 'Çapraz Sorgu (Cross-Examination)' yapılmalıdır?",
+      "options": [
+        "Çocuğun şiddetli bir şekilde öksürüp öksürmediğini veya kusup kusmadığını sormak (Valsalva kaynaklı peteşi).",
+        "Daha fazla soru sormadan derhal sosyal hizmetlere bildirmek.",
+        "K Vitamini takviyesi reçete etmek.",
+        "Bunun bir primer herpetik gingivostomatit olduğunu varsaymak."
+      ],
+      "correct_option": "Çocuğun şiddetli bir şekilde öksürüp öksürmediğini veya kusup kusmadığını sormak (Valsalva kaynaklı peteşi).",
+      "explanation": "Güvenilmez Anlatıcı: Travma hikayesi ile fiziksel bulgular çeliştiğinde, gerçek mekanizmayı (örn. Valsalva manevrası) ortaya çıkaracak spesifik çapraz sorular sorulmalıdır."
+    }
+  ],
+  "immunologic_and_systemic": [
+    {
+      "id": "immuno_01",
+      "question": "48 yaşında kadın hasta 'diş etlerinde ağrı' şikayetiyle başvuruyor. Klinik muayenede, yapışık diş etinde diffüz eritem ve epitelin soyulduğu alanlar (Nikolsky bulgusu pozitif) görülüyor. Mekanizma Odaklı Akıl Yürütme (Mechanism-Based Reasoning) prensibini izleyerek, Müköz Membran Pemfigoidi ile Pemfigus Vulgaris'i ayırt etmek için hangi tetkik şarttır?",
+      "options": [
+        "Sadece H&E boyaması için tek bir biyopsi alınması.",
+        "Direkt İmmünofloresan (DIF) için perilezyonel biyopsi alınması.",
+        "Herpes Simpleks Virüsünü saptamak için PCR sürüntüsü alınması.",
+        "B12 Vitamini ve Ferritin seviyeleri için kan testi yapılması."
+      ],
+      "correct_option": "Direkt İmmünofloresan (DIF) için perilezyonel biyopsi alınması.",
+      "explanation": "Mekanizma Odaklı: Vezikülobüllöz hastalıkların kesin ayrımı ve mekanizmanın tespiti için altın standart Direkt İmmünofloresan'dır (DIF)."
+    },
+    {
+      "id": "immuno_02",
+      "question": "22 yaşında bir öğrenci tekrarlayan minör aftöz ülserlerle başvuruyor. Sadece topikal bir steroid reçete etmek (Semptomatik Kapanış/Premature Closure) yerine, DENTAI felsefesi etiyolojinin araştırılmasını gerektirir. Bu mekanizmayı tetikleme ihtimali en yüksek olan 'Gizli Geçmiş (Hidden History)' faktörü hangisidir?",
+      "options": [
+        "Kronik güneşe maruz kalma.",
+        "Sodyum Lauril Sülfat (SLS) içeren diş macunu kullanımı veya teşhis edilmemiş Çölyak hastalığı.",
+        "Ara sıra sigara kullanımı.",
+        "Florürlü suyun fazla tüketilmesi."
+      ],
+      "correct_option": "Sodyum Lauril Sülfat (SLS) içeren diş macunu kullanımı veya teşhis edilmemiş Çölyak hastalığı.",
+      "explanation": "Mekanizma: Sadece lezyonu baskılamak yerine, sistemik veya lokal tetikleyicileri (SLS, Çölyak vb.) belirlemek gerekir."
+    }
+  ],
+  "neoplastic_and_tumors": [
+    {
+      "id": "neo_01",
+      "question": "Ağız tabanında iyi sınırları olan, asemptomatik, kırmızı kadifemsi bir yama (Eritroplaki) tespit ettiniz. 'Güvenilmez anlatıcı' (unreliable narrator) olan hasta alkol kullanımını reddediyor ancak nefesinde etanol kokusu alıyorsunuz. Eritroplaki neden Lökoplakiye göre 'klinik olarak daha acil' kabul edilir?",
+      "options": [
+        "Candida albicans ile enfekte olma olasılığının daha yüksek olması.",
+        "Keratin tabakasının olmaması (kırmızılık), genellikle epitelin olgunlaşmasını çoktan kaybettiğini ve vakaların %90'ında yüksek dereceli displazi veya in situ karsinom olduğunu göstermesi.",
+        "Lökoplakiye kıyasla tipik olarak daha ağrılı olması.",
+        "Travmaya karşı gelişen akut enflamatuar bir yanıtı temsil etmesi."
+      ],
+      "correct_option": "Keratin tabakasının olmaması (kırmızılık), genellikle epitelin olgunlaşmasını çoktan kaybettiğini ve vakaların %90'ında yüksek dereceli displazi veya in situ karsinom olduğunu göstermesi.",
+      "explanation": "Tanısal Aciliyet: Eritroplakideki kırmızılık, epitelin bozulduğunun işaretidir ve displastik riskin istatistiksel ve mekanik olarak çok daha yüksek olduğunun göstergesidir."
+    },
+    {
+      "id": "neo_02",
+      "question": "30 yaşındaki bir hastanın arka mandibulasında 'çok odacıklı bir radyolüsensi' (sabun köpüğü görünümü) görüyorsunuz. Hasta, şişliğin ne zamandır orada olduğu konusunda kaçamak cevaplar veriyor. Hangi bulgu, Odontojenik Keratokist'ten (OKC) ziyade Ameloblastomaya daha güçlü bir şekilde işaret eder?",
+      "options": [
+        "Kortikal plaklarda belirgin genişleme (ekspansiyon) ve kök rezorpsiyonu.",
+        "Minimal genişleme ile daha çok ön-arka (anteroposterior) yönde büyüme.",
+        "Sadece gömülü bir 20 yaş dişi ile ilişkili olması.",
+        "'Güneş ışını' (sunray) tarzı kemik spiküllerinin varlığı."
+      ],
+      "correct_option": "Kortikal plaklarda belirgin genişleme (ekspansiyon) ve kök rezorpsiyonu.",
+      "explanation": "Örtük Bilgi (Tacit Knowledge): Ameloblastomlar klinik olarak 'agresif ve genişleyici (ekspansif)' karakterdeyken, OKC'ler korteksi dışa doğru genişletmeden önce kemik içinde 'gizlice (stealthy)' büyüme eğilimindedir."
+    }
+  ]
+}
