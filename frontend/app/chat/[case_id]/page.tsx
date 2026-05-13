@@ -390,8 +390,8 @@ export default function ChatPage() {
 
           {/* Helper Text */}
           <p className="text-xs text-gray-500 mt-2 text-center">
-            💡 İpucu: Eylemlerinizi detaylı yazın (ör: "Oral mukoza muayenesi
-            yapıyorum" veya "Hastanın tıbbi geçmişini sorguluyorum")
+            💡 İpucu: Eylemlerinizi detaylı yazın (ör:Oral mukoza muayenesi
+            yapıyorum veya Hastanın tıbbi geçmişini sorguluyorum)
           </p>
         </div>
       </footer>
