@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import React, { useEffect, useEffectEvent, useState } from "react";
-=======
 import React, { useEffect, useState } from "react";
->>>>>>> origin/main
 import {
   User,
   GraduationCap,
@@ -13,10 +9,6 @@ import {
   Settings,
   Bell,
   Palette,
-<<<<<<< HEAD
-=======
-  History,
->>>>>>> origin/main
   AlertTriangle,
   Lock,
   ShieldAlert,
@@ -62,9 +54,6 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, router]);
 
-<<<<<<< HEAD
-  const loadData = useEffectEvent(async () => {
-=======
   useEffect(() => {
     if (user) {
       loadData();
@@ -72,7 +61,6 @@ export default function ProfilePage() {
   }, [user]);
 
   const loadData = async () => {
->>>>>>> origin/main
     setIsLoading(true);
     try {
       // Fetch user info and stats in parallel
@@ -101,17 +89,7 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
-<<<<<<< HEAD
-  });
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-=======
   };
->>>>>>> origin/main
 
   const handleFeatureAlert = () => {
     alert("Bu özellik yakında aktif olacak!");
@@ -293,16 +271,30 @@ export default function ProfilePage() {
             </div>
 
             <div className={styles.checkboxGroup}>
-              <input type="checkbox" className={styles.checkbox} checked disabled />
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked
+                disabled
+              />
               <span className={styles.checkboxLabel}>E-posta bildirimleri</span>
             </div>
             <div className={styles.checkboxGroup}>
-              <input type="checkbox" className={styles.checkbox} checked disabled />
-              <span className={styles.checkboxLabel}>Haftalık ilerleme raporu</span>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked
+                disabled
+              />
+              <span className={styles.checkboxLabel}>
+                Haftalık ilerleme raporu
+              </span>
             </div>
             <div className={styles.checkboxGroup}>
               <input type="checkbox" className={styles.checkbox} disabled />
-              <span className={styles.checkboxLabel}>Yeni vaka bildirimleri</span>
+              <span className={styles.checkboxLabel}>
+                Yeni vaka bildirimleri
+              </span>
             </div>
 
             <button className={styles.btnPrimary} onClick={handleFeatureAlert}>
@@ -378,12 +370,18 @@ export default function ProfilePage() {
             <span>Dikkat: Bu işlemler geri alınamaz!</span>
           </div>
 
-          <div className={styles.grid2} style={{ gap: "1rem", marginTop: "1rem" }}>
+          <div
+            className={styles.grid2}
+            style={{ gap: "1rem", marginTop: "1rem" }}
+          >
             <button className={styles.btnDanger} onClick={handleFeatureAlert}>
               <RefreshCcw size={18} />
               Tüm İlerlememi Sıfırla
             </button>
-            <button className={styles.btnDangerSolid} onClick={handleFeatureAlert}>
+            <button
+              className={styles.btnDangerSolid}
+              onClick={handleFeatureAlert}
+            >
               <Trash2 size={18} />
               Hesabımı Sil
             </button>
