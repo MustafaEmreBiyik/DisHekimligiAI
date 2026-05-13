@@ -5,14 +5,12 @@ on:
     branches:
       - main
       - develop
-      - betul
     tags:
       - "v*"
   pull_request:
     branches:
       - main
       - develop
-      - betul
 
 env:
   REGISTRY: ghcr.io
