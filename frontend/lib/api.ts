@@ -21,7 +21,6 @@ export interface AuthMeResponse {
   email?: string | null;
 }
 
-<<<<<<< HEAD
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<{ detail?: string }>(error)) {
     return error.response?.data?.detail ?? error.message ?? fallback;
@@ -33,9 +32,6 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 
   return fallback;
 }
-
-=======
->>>>>>> origin/main
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -60,7 +56,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor - Handle errors globally
@@ -75,9 +71,14 @@ apiClient.interceptors.response.use(
 
       if (status === 401) {
         // Unauthorized - clear all auth data and redirect to login
-        ["access_token", "user_id", "student_id", "name", "display_name", "role"].forEach(
-          (key) => localStorage.removeItem(key)
-        );
+        [
+          "access_token",
+          "user_id",
+          "student_id",
+          "name",
+          "display_name",
+          "role",
+        ].forEach((key) => localStorage.removeItem(key));
 
         // Only redirect if not already on login page
         if (
@@ -90,7 +91,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // ==================== API FUNCTIONS ====================
@@ -152,7 +153,7 @@ export const chatAPI = {
    */
   getHistory: async (student_id: string, case_id: string) => {
     const response = await apiClient.get(
-      `/api/chat/history/${student_id}/${case_id}`
+      `/api/chat/history/${student_id}/${case_id}`,
     );
     return response.data;
   },
@@ -407,14 +408,18 @@ export const instructorAPI = {
   getStudentDrilldown: async (
     studentId: string,
   ): Promise<InstructorStudentDrilldownResponse> => {
-    const response = await apiClient.get(`/api/instructor/students/${studentId}`);
+    const response = await apiClient.get(
+      `/api/instructor/students/${studentId}`,
+    );
     return response.data as InstructorStudentDrilldownResponse;
   },
 
   getSessionDetail: async (
     sessionId: string,
   ): Promise<InstructorSessionDetailResponse> => {
-    const response = await apiClient.get(`/api/instructor/sessions/${sessionId}`);
+    const response = await apiClient.get(
+      `/api/instructor/sessions/${sessionId}`,
+    );
     return response.data as InstructorSessionDetailResponse;
   },
 
@@ -434,20 +439,32 @@ export const instructorAPI = {
     return response.data as GradingQueueItem[];
   },
 
-  submitGrade: async (answerId: number, payload: GradeSubmission): Promise<void> => {
+  submitGrade: async (
+    answerId: number,
+    payload: GradeSubmission,
+  ): Promise<void> => {
     await apiClient.post(`/api/quiz/instructor/grade/${answerId}`, payload);
   },
 
-  getQuestionBank: async (questionType?: string): Promise<InstructorQuestionBankItem[]> => {
-    const suffix = questionType ? `?question_type=${encodeURIComponent(questionType)}` : "";
-    const response = await apiClient.get(`/api/quiz/instructor/questions${suffix}`);
+  getQuestionBank: async (
+    questionType?: string,
+  ): Promise<InstructorQuestionBankItem[]> => {
+    const suffix = questionType
+      ? `?question_type=${encodeURIComponent(questionType)}`
+      : "";
+    const response = await apiClient.get(
+      `/api/quiz/instructor/questions${suffix}`,
+    );
     return response.data as InstructorQuestionBankItem[];
   },
 
   createQuestion: async (
     payload: InstructorQuestionCreatePayload,
   ): Promise<InstructorQuestionBankItem> => {
-    const response = await apiClient.post("/api/quiz/instructor/questions", payload);
+    const response = await apiClient.post(
+      "/api/quiz/instructor/questions",
+      payload,
+    );
     return response.data as InstructorQuestionBankItem;
   },
 };
@@ -563,7 +580,9 @@ export const adminAPI = {
     return response.data as AdminUsersResponse;
   },
 
-  createUser: async (payload: AdminUserCreatePayload): Promise<AdminUserItem> => {
+  createUser: async (
+    payload: AdminUserCreatePayload,
+  ): Promise<AdminUserItem> => {
     const response = await apiClient.post("/api/admin/users", payload);
     return response.data as AdminUserItem;
   },
@@ -581,7 +600,9 @@ export const adminAPI = {
     return response.data as AdminCasesResponse;
   },
 
-  createCase: async (payload: AdminCaseCreatePayload): Promise<AdminCaseItem> => {
+  createCase: async (
+    payload: AdminCaseCreatePayload,
+  ): Promise<AdminCaseItem> => {
     const response = await apiClient.post("/api/admin/cases", payload);
     return response.data as AdminCaseItem;
   },
@@ -628,115 +649,132 @@ export const adminAPI = {
  * Feedback API
  */
 export const feedbackAPI = {
-    /**
-     * Submit feedback after case completion
-     */
-    submitFeedback: async (session_id: number, case_id: string, rating: number, comment?: string) => {
-        const response = await apiClient.post('/api/feedback/submit', {
-            session_id,
-            case_id,
-            rating,
-            comment,
-        });
-        return response.data;
-    },
+  /**
+   * Submit feedback after case completion
+   */
+  submitFeedback: async (
+    session_id: number,
+    case_id: string,
+    rating: number,
+    comment?: string,
+  ) => {
+    const response = await apiClient.post("/api/feedback/submit", {
+      session_id,
+      case_id,
+      rating,
+      comment,
+    });
+    return response.data;
+  },
 };
 
 /**
  * Analytics API
  */
 export const analyticsAPI = {
-    /**
-     * Download actions CSV
-     */
-    downloadActionsCSV: () => {
-        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/actions`, '_blank');
-    },
+  /**
+   * Download actions CSV
+   */
+  downloadActionsCSV: () => {
+    window.open(
+      `${apiClient.defaults.baseURL}/api/analytics/export/actions`,
+      "_blank",
+    );
+  },
 
-    /**
-     * Download feedback CSV
-     */
-    downloadFeedbackCSV: () => {
-        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/feedback`, '_blank');
-    },
+  /**
+   * Download feedback CSV
+   */
+  downloadFeedbackCSV: () => {
+    window.open(
+      `${apiClient.defaults.baseURL}/api/analytics/export/feedback`,
+      "_blank",
+    );
+  },
 
-    /**
-     * Download sessions CSV
-     */
-    downloadSessionsCSV: () => {
-        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/sessions`, '_blank');
-    },
+  /**
+   * Download sessions CSV
+   */
+  downloadSessionsCSV: () => {
+    window.open(
+      `${apiClient.defaults.baseURL}/api/analytics/export/sessions`,
+      "_blank",
+    );
+  },
 };
 
 /**
  * User / Student Stats API
  */
 export const userAPI = {
-    /**
-     * Get comprehensive stats for the authenticated student
-     */
-    getStats: async () => {
-        const response = await apiClient.get('/api/analytics/student-stats');
-        return response.data;
-    },
+  /**
+   * Get comprehensive stats for the authenticated student
+   */
+  getStats: async () => {
+    const response = await apiClient.get("/api/analytics/student-stats");
+    return response.data;
+  },
 };
 
 // ==================== QUIZ TYPES (student-safe) ====================
 
 /** Student-safe question — no answer keys, no explanation. */
 export interface QuizQuestion {
-    id: string;
-    topic: string;
-    question: string;
-    options: string[];
-    question_type?: string;
-    difficulty?: string;
-    bloom_level?: string;
+  id: string;
+  topic: string;
+  question: string;
+  options: string[];
+  question_type?: string;
+  difficulty?: string;
+  bloom_level?: string;
 }
 
 /** Per-question result after server-side grading — student-safe feedback only. */
 export interface QuizQuestionResult {
-    id: string;
-    topic: string;
-    question: string;
-    selected_option: string | null;
-    is_correct: boolean | null;
-    feedback: string | null;
-    question_type?: string;
-    grading_status?: string;
-    instructor_score?: number | null;
-    instructor_feedback?: string | null;
+  id: string;
+  topic: string;
+  question: string;
+  selected_option: string | null;
+  is_correct: boolean | null;
+  feedback: string | null;
+  question_type?: string;
+  grading_status?: string;
+  instructor_score?: number | null;
+  instructor_feedback?: string | null;
 }
 
 /** POST /api/quiz/submit response — student-safe. */
 export interface QuizSubmitResponse {
-    attempt_id: number;
-    score: number | null;
-    total: number;
-    percentage: number | null;
-    overall_status?: string;
-    results: QuizQuestionResult[];
+  attempt_id: number;
+  score: number | null;
+  total: number;
+  percentage: number | null;
+  overall_status?: string;
+  results: QuizQuestionResult[];
 }
 
 /**
  * Quiz API
  */
 export const quizAPI = {
-    getQuestions: async (topic?: string): Promise<QuizQuestion[]> => {
-        const params = topic && topic !== 'Tümü' ? `?topic=${encodeURIComponent(topic)}` : '';
-        const response = await apiClient.get(`/api/quiz/questions${params}`);
-        return response.data as QuizQuestion[];
-    },
+  getQuestions: async (topic?: string): Promise<QuizQuestion[]> => {
+    const params =
+      topic && topic !== "Tümü" ? `?topic=${encodeURIComponent(topic)}` : "";
+    const response = await apiClient.get(`/api/quiz/questions${params}`);
+    return response.data as QuizQuestion[];
+  },
 
-    getTopics: async (): Promise<string[]> => {
-        const response = await apiClient.get('/api/quiz/topics');
-        return response.data as string[];
-    },
+  getTopics: async (): Promise<string[]> => {
+    const response = await apiClient.get("/api/quiz/topics");
+    return response.data as string[];
+  },
 
-    submitAnswers: async (answers: Record<string, string>): Promise<QuizSubmitResponse> => {
-        const response = await apiClient.post('/api/quiz/submit', { answers });
-        return response.data as QuizSubmitResponse;
-    },
+  submitAnswers: async (
+    answers: Record<string, string>,
+  ): Promise<QuizSubmitResponse> => {
+    const response = await apiClient.post("/api/quiz/submit", { answers });
+    return response.data as QuizSubmitResponse;
+  },
 };
 
 export default apiClient;
