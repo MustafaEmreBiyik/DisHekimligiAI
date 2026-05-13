@@ -52,7 +52,7 @@ COPY backend/assets/ ./assets/
 COPY backend/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Create database directory
 RUN mkdir -p db/runtime
