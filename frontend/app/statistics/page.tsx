@@ -179,7 +179,7 @@ export default function StatisticsPage() {
     } catch (err: unknown) {
       console.error("Failed to load stats:", err);
       setError(
-        getApiErrorMessage(err, "Istatistikler yuklenirken bir hata olustu."),
+        getApiErrorMessage(err, "İstatistikler yüklenirken bir hata oluştu."),
       );
     } finally {
       setIsLoading(false);
