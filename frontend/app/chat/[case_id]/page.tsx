@@ -114,7 +114,7 @@ export default function ChatPage() {
     } catch (err: unknown) {
       console.error("Chat error:", err);
       setError(
-        getApiErrorMessage(err, "Mesaj gonderilemedi. Lutfen tekrar deneyin."),
+        getApiErrorMessage(err, "Mesaj gönderilemedi. Lütfen tekrar deneyin."),
       );
 
       // Add error message to chat
@@ -159,7 +159,7 @@ export default function ChatPage() {
       alert(
         getApiErrorMessage(
           err,
-          "Geri bildirim gonderilemedi. Lutfen tekrar deneyin.",
+          "Geri bildirim gönderilemedi. Lütfen tekrar deneyin.",
         ),
       );
     } finally {
