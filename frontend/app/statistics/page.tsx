@@ -26,14 +26,17 @@ import {
 } from "recharts";
 import styles from "./Statistics.module.css";
 import { useAuth } from "@/context/AuthContext";
-<<<<<<< HEAD
 import { getApiErrorMessage, userAPI } from "@/lib/api";
-=======
-import { userAPI } from "@/lib/api";
->>>>>>> origin/main
 import { useRouter } from "next/navigation";
 
-const PIE_COLORS = ["#667eea", "#f093fb", "#4facfe", "#43e97b", "#f6ad55", "#fc8181"];
+const PIE_COLORS = [
+  "#667eea",
+  "#f093fb",
+  "#4facfe",
+  "#43e97b",
+  "#f6ad55",
+  "#fc8181",
+];
 
 interface StatsData {
   total_sessions: number;
@@ -49,7 +52,12 @@ interface StatsData {
     outcome: string;
   }>;
   trend_data: Array<{ actionIndex: number; cumulative: number }>;
-  action_type_stats: Array<{ type: string; usage: number; total: number; mean: number }>;
+  action_type_stats: Array<{
+    type: string;
+    usage: number;
+    total: number;
+    mean: number;
+  }>;
   pie_data: Array<{ name: string; value: number }>;
   histogram_data: Array<{ scoreRange: string; count: number }>;
   recommendation: string;
@@ -88,16 +96,36 @@ const EMPTY_STATS: StatsData = {
 
 function getReasoningPatternUI(pattern: string) {
   if (pattern === "HYPOTHESIS_DRIVEN_INQUIRY") {
-    return { label: "Hypothesis-Driven Inquiry", bg: "#f0fff4", color: "#276749", border: "#9ae6b4" };
+    return {
+      label: "Hypothesis-Driven Inquiry",
+      bg: "#f0fff4",
+      color: "#276749",
+      border: "#9ae6b4",
+    };
   }
   if (pattern === "DATA_DRIVEN_EXPLORATION") {
-    return { label: "Data-Driven Exploration", bg: "#fffbea", color: "#975a16", border: "#f6e05e" };
+    return {
+      label: "Data-Driven Exploration",
+      bg: "#fffbea",
+      color: "#975a16",
+      border: "#f6e05e",
+    };
   }
   if (pattern === "FAILED_HYPOTHESIS_REVISION") {
-    return { label: "Failed Hypothesis Revision", bg: "#fff5f5", color: "#c53030", border: "#feb2b2" };
+    return {
+      label: "Failed Hypothesis Revision",
+      bg: "#fff5f5",
+      color: "#c53030",
+      border: "#feb2b2",
+    };
   }
   if (pattern === "PREMATURE_DIAGNOSTIC_CLOSURE") {
-    return { label: "Premature Diagnostic Closure", bg: "#fff5f5", color: "#c53030", border: "#feb2b2" };
+    return {
+      label: "Premature Diagnostic Closure",
+      bg: "#fff5f5",
+      color: "#c53030",
+      border: "#feb2b2",
+    };
   }
   return { label: pattern, bg: "#edf2f7", color: "#4a5568", border: "#cbd5e0" };
 }
@@ -148,15 +176,11 @@ export default function StatisticsPage() {
         recommendation: data.recommendation ?? "",
         reasoning_pattern: data.reasoning_pattern ?? null,
       });
-<<<<<<< HEAD
     } catch (err: unknown) {
       console.error("Failed to load stats:", err);
-      setError(getApiErrorMessage(err, 'Istatistikler yuklenirken bir hata olustu.'));
-=======
-    } catch (err: any) {
-      console.error("Failed to load stats:", err);
-      setError("İstatistikler yüklenirken bir hata oluştu.");
->>>>>>> origin/main
+      setError(
+        getApiErrorMessage(err, "İstatistikler yüklenirken bir hata oluştu."),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -203,11 +227,15 @@ export default function StatisticsPage() {
             gap: "0.75rem",
           }}
         >
-          <span style={{ color: "#4a5568", fontWeight: 700 }}>Reasoning Pattern:</span>
+          <span style={{ color: "#4a5568", fontWeight: 700 }}>
+            Reasoning Pattern:
+          </span>
           <span
             style={{
-              background: getReasoningPatternUI(stats.reasoning_pattern.pattern).bg,
-              color: getReasoningPatternUI(stats.reasoning_pattern.pattern).color,
+              background: getReasoningPatternUI(stats.reasoning_pattern.pattern)
+                .bg,
+              color: getReasoningPatternUI(stats.reasoning_pattern.pattern)
+                .color,
               border: `1px solid ${getReasoningPatternUI(stats.reasoning_pattern.pattern).border}`,
               borderRadius: "999px",
               padding: "0.2rem 0.7rem",
@@ -341,7 +369,7 @@ export default function StatisticsPage() {
                         name?: string;
                         percent?: number;
                       }) =>
-                        `${name || ""} ${(((percent || 0) * 100).toFixed(0))}%`
+                        `${name || ""} ${((percent || 0) * 100).toFixed(0)}%`
                       }
                       labelLine={false}
                     >
@@ -430,7 +458,14 @@ export default function StatisticsPage() {
             <tbody>
               {stats.action_history.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "#718096", padding: "1.5rem" }}>
+                  <td
+                    colSpan={5}
+                    style={{
+                      textAlign: "center",
+                      color: "#718096",
+                      padding: "1.5rem",
+                    }}
+                  >
                     Henüz eylem geçmişi yok
                   </td>
                 </tr>
@@ -446,11 +481,13 @@ export default function StatisticsPage() {
                     <td>
                       <span
                         className={`${styles.tag} ${
-                          item.outcome === "success" || item.outcome === "Başarılı"
+                          item.outcome === "success" ||
+                          item.outcome === "Başarılı"
                             ? styles.tagSuccess
-                            : item.outcome === "partial" || item.outcome === "Kısmi"
-                            ? styles.tagWarning
-                            : styles.tagInfo
+                            : item.outcome === "partial" ||
+                                item.outcome === "Kısmi"
+                              ? styles.tagWarning
+                              : styles.tagInfo
                         }`}
                       >
                         {item.outcome}
@@ -483,7 +520,14 @@ export default function StatisticsPage() {
             <tbody>
               {stats.action_type_stats.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", color: "#718096", padding: "1.5rem" }}>
+                  <td
+                    colSpan={4}
+                    style={{
+                      textAlign: "center",
+                      color: "#718096",
+                      padding: "1.5rem",
+                    }}
+                  >
                     Henüz veri yok
                   </td>
                 </tr>
@@ -502,8 +546,8 @@ export default function StatisticsPage() {
                             stat.mean >= 9
                               ? "#276749"
                               : stat.mean >= 7
-                              ? "#c05621"
-                              : "#e53e3e",
+                                ? "#c05621"
+                                : "#e53e3e",
                           fontWeight: 700,
                         }}
                       >
