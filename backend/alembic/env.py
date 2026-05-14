@@ -8,7 +8,7 @@ from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
 
-from db.database import Base
+from db.database import Base, DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -29,7 +29,7 @@ DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_DB_PATH.as_posix()}"
 
 def get_database_url() -> str:
     """Resolve DB URL from environment with a SQLite fallback."""
-    return os.getenv("DENTAI_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL
+    return DATABASE_URL
 
 
 # Keep Alembic URL in sync with runtime DB URL.

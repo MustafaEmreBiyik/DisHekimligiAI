@@ -107,7 +107,43 @@ def upgrade() -> None:
         op.create_index("ix_feedback_logs_student_id", "feedback_logs", ["student_id"], unique=False)
         op.create_index("ix_feedback_logs_case_id", "feedback_logs", ["case_id"], unique=False)
     else:
+        columns = _get_columns(bind, "feedback_logs")
         indexes = _get_indexes(bind, "feedback_logs")
+
+        if "student_id" not in columns:
+            op.add_column("feedback_logs", sa.Column("student_id", sa.String(), nullable=True))
+        if "case_id" not in columns:
+            op.add_column("feedback_logs", sa.Column("case_id", sa.String(), nullable=True))
+        if "submitted_at" not in columns:
+            op.add_column("feedback_logs", sa.Column("submitted_at", sa.DateTime(), nullable=True))
+
+        columns = _get_columns(bind, "feedback_logs")
+        if "timestamp" in columns and "submitted_at" in columns:
+            op.execute(
+                sa.text(
+                    "UPDATE feedback_logs "
+                    "SET submitted_at = COALESCE(submitted_at, timestamp)"
+                )
+            )
+        if "session_id" in columns and "student_id" in columns:
+            op.execute(
+                sa.text(
+                    "UPDATE feedback_logs AS f "
+                    "SET student_id = s.student_id "
+                    "FROM student_sessions AS s "
+                    "WHERE f.session_id = s.id AND f.student_id IS NULL"
+                )
+            )
+        if "session_id" in columns and "case_id" in columns:
+            op.execute(
+                sa.text(
+                    "UPDATE feedback_logs AS f "
+                    "SET case_id = s.case_id "
+                    "FROM student_sessions AS s "
+                    "WHERE f.session_id = s.id AND f.case_id IS NULL"
+                )
+            )
+
         if "ix_feedback_logs_student_id" not in indexes:
             op.create_index("ix_feedback_logs_student_id", "feedback_logs", ["student_id"], unique=False)
         if "ix_feedback_logs_case_id" not in indexes:

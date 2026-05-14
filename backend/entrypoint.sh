@@ -26,7 +26,45 @@ fi
 export DATABASE_URL
 export DENTAI_DATABASE_URL
 
-echo "Database URL: $DATABASE_URL"
+redact_database_url() {
+    python - "$1" <<'PY'
+from urllib.parse import urlsplit, urlunsplit
+import sys
+
+url = sys.argv[1]
+parts = urlsplit(url)
+if parts.password is None:
+    print(url)
+    raise SystemExit(0)
+
+username = parts.username or ""
+host = parts.hostname or ""
+port = f":{parts.port}" if parts.port else ""
+userinfo = f"{username}:***" if username else "***"
+netloc = f"{userinfo}@{host}{port}"
+print(urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment)))
+PY
+}
+
+database_host() {
+    python - "$1" <<'PY'
+from urllib.parse import urlsplit
+import sys
+
+print(urlsplit(sys.argv[1]).hostname or "")
+PY
+}
+
+database_port() {
+    python - "$1" <<'PY'
+from urllib.parse import urlsplit
+import sys
+
+print(urlsplit(sys.argv[1]).port or 5432)
+PY
+}
+
+echo "Database URL: $(redact_database_url "$DATABASE_URL")"
 echo "Development Mode: $DEV_MODE"
 
 # Function to wait for database
@@ -34,17 +72,25 @@ wait_for_db() {
     echo "Waiting for database to be ready..."
     
     if [[ "$DATABASE_URL" == postgresql* ]]; then
-        # PostgreSQL connection string parsing
-        # Extract host and port from connection string
-        # Format: postgresql://user:password@host:port/database
-        
-        DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
-        DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-        DB_PORT=${DB_PORT:-5432}
-        
+        DB_HOST=$(database_host "$DATABASE_URL")
+        DB_PORT=$(database_port "$DATABASE_URL")
+
+        case "$DB_HOST" in
+            postgres|localhost|127.0.0.1)
+                SHOULD_WAIT_FOR_TCP=1
+                ;;
+            *)
+                SHOULD_WAIT_FOR_TCP=0
+                ;;
+        esac
+
+        if [ "$SHOULD_WAIT_FOR_TCP" != "1" ]; then
+            echo "Remote PostgreSQL host detected ($DB_HOST). Skipping raw TCP wait."
+            return 0
+        fi
+
         echo "Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
         
-        # Wait using nc (netcat) if available, otherwise just sleep
         for i in {1..30}; do
             if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
                 echo "PostgreSQL is up!"
@@ -63,13 +109,13 @@ wait_for_db() {
 # Wait for database
 wait_for_db
 
-# Initialize database if needed
-echo "Initializing database schema..."
-python scripts/init_db.py || true
-
 # Run Alembic migrations
 echo "Running database migrations..."
-alembic upgrade head || true
+alembic upgrade head
+
+# Validate runtime schema after migrations
+echo "Validating database schema..."
+python scripts/init_db.py
 
 echo "Starting FastAPI application..."
 echo "==============================="
