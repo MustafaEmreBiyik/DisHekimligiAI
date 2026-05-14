@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Home,
   User,
@@ -13,6 +13,7 @@ import {
   X,
   Activity,
   FileQuestion,
+  Microscope,
 } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
@@ -30,16 +31,16 @@ export default function Sidebar() {
     },
     { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
     {
+      href: "/oral-pathology",
+      icon: <Microscope size={20} />,
+      label: "Oral Pathology",
+    },
+    {
       href: "/quiz",
       icon: <FileQuestion size={20} />,
       label: "Klinik Bilgi Testi",
     },
   ];
-
-  // Close sidebar on route change for mobile
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
 
   // Optionally add logout logic here
   const handleLogout = () => {
