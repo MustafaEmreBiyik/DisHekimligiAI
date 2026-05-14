@@ -1,14 +1,14 @@
 """
 DentAI Database Setup
 =====================
-SQLAlchemy modelleri ve veritabanı konfigürasyonu.
-Streamlit uygulaması için SQLite kullanır.
+SQLAlchemy models and database configuration.
+Uses SQLite by default for local development.
 """
 
 import datetime
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlparse, urlsplit, urlunsplit
 from typing import Optional
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
@@ -18,24 +18,62 @@ from sqlalchemy import Boolean, Enum
 import enum
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-# ==================== VERİTABANI KONFIGÜRASYONU ====================
+# ==================== DATABASE CONFIGURATION ====================
 
-# SQLite veritabanı URL'i (proje kök dizininde oluşturulacak)
+# SQLite database URL (created under the project root)
 # Sprint 2: allow environment override for Alembic + runtime parity.
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = BACKEND_ROOT.parent
+
 DEFAULT_SQLITE_DB_PATH = PROJECT_ROOT / "db" / "runtime" / "dentai_app.db"
 DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_DB_PATH.as_posix()}"
-DATABASE_URL = os.getenv("DENTAI_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL
+RAW_DATABASE_URL = os.getenv("DENTAI_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL
 
-# Engine oluştur (Streamlit için check_same_thread=False kritik!)
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False  # True yaparsanız SQL sorgularını görebilirsiniz (debug için)
-)
 
-# Session factory (her veritabanı işlemi için yeni session)
+def _normalize_database_url(database_url: str) -> str:
+    """Normalize DB URLs so hosted Postgres works with raw .env secrets."""
+    if not database_url.startswith("postgresql"):
+        return database_url
+
+    parsed = urlsplit(database_url)
+    scheme = parsed.scheme if "+" in parsed.scheme else "postgresql+psycopg"
+    netloc = parsed.netloc
+
+    if "@" in netloc:
+        auth, host = netloc.rsplit("@", 1)
+        if ":" in auth:
+            username, password = auth.split(":", 1)
+            auth = f"{username}:{quote(unquote(password), safe='')}"
+        netloc = f"{auth}@{host}"
+
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+    query = dict(query_items)
+    if "sslmode" not in query and (parsed.hostname or "").endswith(".supabase.co"):
+        query_items.append(("sslmode", "require"))
+
+    return urlunsplit(
+        (
+            scheme,
+            netloc,
+            parsed.path,
+            urlencode(query_items),
+            parsed.fragment,
+        )
+    )
+
+
+DATABASE_URL = _normalize_database_url(RAW_DATABASE_URL)
+
+# Create the engine. SQLite needs check_same_thread=False.
+engine_kwargs = {"echo": False}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+elif DATABASE_URL.startswith("postgresql"):
+    engine_kwargs["pool_pre_ping"] = True
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
+
+# Session factory (new session per database operation)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Declarative Base (tüm modeller bundan türeyecek)
@@ -455,15 +493,42 @@ def _get_alembic_config() -> Config:
     return config
 
 
+def _connection_guidance_message(exc: Exception) -> Optional[str]:
+    """Return actionable guidance for known hosted Postgres connectivity failures."""
+    message = str(exc)
+    hostname = urlsplit(DATABASE_URL).hostname or ""
+
+    if not DATABASE_URL.startswith("postgresql"):
+        return None
+
+    is_supabase_direct_host = hostname.endswith(".supabase.co") and ".pooler.supabase.com" not in hostname
+    if is_supabase_direct_host and "Network is unreachable" in message:
+        return (
+            "Supabase direct connections resolve to IPv6 by default, and this Docker runtime "
+            f"cannot reach the resolved IPv6 address for {hostname}. "
+            "Use the Supabase Session pooler connection string from Dashboard > Connect "
+            "(host like `aws-0-<region>.pooler.supabase.com`, port `5432`) or enable the "
+            "Supabase IPv4 add-on for the direct `db.<project-ref>.supabase.co` hostname."
+        )
+
+    return None
+
+
 def _ensure_schema_is_current() -> None:
     """Fail fast when the runtime schema is not at Alembic head."""
     config = _get_alembic_config()
     script = ScriptDirectory.from_config(config)
     expected_heads = tuple(script.get_heads())
 
-    with engine.connect() as connection:
-        migration_context = MigrationContext.configure(connection)
-        current_heads = tuple(migration_context.get_current_heads())
+    try:
+        with engine.connect() as connection:
+            migration_context = MigrationContext.configure(connection)
+            current_heads = tuple(migration_context.get_current_heads())
+    except Exception as exc:
+        guidance = _connection_guidance_message(exc)
+        if guidance:
+            raise RuntimeError(guidance) from exc
+        raise
 
     if set(current_heads) == set(expected_heads):
         return
