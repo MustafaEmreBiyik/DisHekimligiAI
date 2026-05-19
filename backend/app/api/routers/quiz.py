@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 import unicodedata
+from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_context, AuthenticatedUser, get_db, require_roles
@@ -87,6 +88,25 @@ class GradeSubmission(BaseModel):
     instructor_score: int
     instructor_feedback: str
     publish: bool
+
+
+class AttemptSummary(BaseModel):
+    attempted: bool
+    last_score: Optional[float] = None
+    attempt_count: int
+
+
+class QuestionBankEntry(BaseModel):
+    """Student-safe question with attempt context. No answer keys exposed."""
+    question_id: str
+    question_text: str
+    question_type: str
+    topic_id: str
+    bloom_level: str
+    difficulty: str
+    max_score: int
+    options_json: Optional[List[str]] = None
+    attempt_summary: AttemptSummary
 
 
 class InstructorQuestionCreateRequest(BaseModel):
@@ -239,11 +259,27 @@ def _load_full_questions() -> List[dict]:
 # ── Student Endpoints ─────────────────────────────────────────────────────────
 
 @router.get("/questions", response_model=List[StudentQuestion], status_code=status.HTTP_200_OK)
-def get_questions(topic: Optional[str] = None, current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)), db: Session = Depends(get_db)):
+def get_questions(
+    topic: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    question_type: Optional[str] = None,
+    bloom_level: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
     db_questions = db.query(Question).filter(Question.is_active == True)
     if topic and topic != "Tümü":
         db_questions = db_questions.filter(Question.topic_id == topic)
-    
+    if difficulty:
+        db_questions = db_questions.filter(Question.difficulty == difficulty)
+    if question_type:
+        db_questions = db_questions.filter(Question.question_type == _normalize_question_type(question_type))
+    if bloom_level:
+        db_questions = db_questions.filter(Question.bloom_level == bloom_level)
+    if search:
+        db_questions = db_questions.filter(Question.question_text.ilike(f"%{search}%"))
+
     questions_list = db_questions.all()
     if questions_list:
         return [
@@ -517,10 +553,77 @@ def get_topics(current_user: AuthenticatedUser = Depends(require_roles(UserRole.
     db_topics = [r[0] for r in db.query(Question.topic_id).filter(Question.is_active == True).distinct().all()]
     if db_topics:
         return ["Tümü"] + sorted(db_topics)
-        
+
     questions = _load_full_questions()
     topics = sorted(set(q["topic"] for q in questions))
     return ["Tümü"] + topics
+
+
+@router.get("/student/question-bank", response_model=List[QuestionBankEntry], status_code=status.HTTP_200_OK)
+def get_student_question_bank(
+    topic: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    question_type: Optional[str] = None,
+    bloom_level: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    q_query = db.query(Question).filter(Question.is_active == True)
+    if topic and topic != "Tümü":
+        q_query = q_query.filter(Question.topic_id == topic)
+    if difficulty:
+        q_query = q_query.filter(Question.difficulty == difficulty)
+    if question_type:
+        q_query = q_query.filter(Question.question_type == _normalize_question_type(question_type))
+    if bloom_level:
+        q_query = q_query.filter(Question.bloom_level == bloom_level)
+    if search:
+        q_query = q_query.filter(Question.question_text.ilike(f"%{search}%"))
+
+    questions = q_query.all()
+
+    # Fetch all answers this student has submitted in one query.
+    user_answers = (
+        db.query(QuizAnswer)
+        .join(QuizAttempt)
+        .filter(QuizAttempt.user_id == current_user.user_id)
+        .all()
+    )
+
+    # Group by Question.id (integer PK) for O(1) lookup.
+    answer_map: Dict[int, List] = defaultdict(list)
+    for ans in user_answers:
+        answer_map[ans.question_id].append(ans)
+
+    result = []
+    for q in questions:
+        answers_for_q = answer_map.get(q.id, [])
+        attempted = len(answers_for_q) > 0
+
+        last_score = None
+        if attempted:
+            latest = max(answers_for_q, key=lambda a: a.id)
+            raw = latest.instructor_score if latest.instructor_score is not None else latest.auto_score
+            last_score = float(raw) if raw is not None else None
+
+        result.append(QuestionBankEntry(
+            question_id=q.question_id,
+            question_text=q.question_text,
+            question_type=q.question_type.value,
+            topic_id=q.topic_id,
+            bloom_level=q.bloom_level,
+            difficulty=q.difficulty,
+            max_score=q.max_score,
+            options_json=q.options_json,
+            attempt_summary=AttemptSummary(
+                attempted=attempted,
+                last_score=last_score,
+                attempt_count=len(answers_for_q),
+            ),
+        ))
+
+    return result
 
 
 # ── Instructor Endpoints ──────────────────────────────────────────────────────

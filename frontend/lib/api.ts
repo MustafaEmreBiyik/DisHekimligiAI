@@ -729,6 +729,32 @@ export interface QuizQuestion {
   bloom_level?: string;
 }
 
+export interface AttemptSummary {
+  attempted: boolean;
+  last_score: number | null;
+  attempt_count: number;
+}
+
+export interface QuestionBankEntry {
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  topic_id: string;
+  bloom_level: string;
+  difficulty: string;
+  max_score: number;
+  options_json: string[] | null;
+  attempt_summary: AttemptSummary;
+}
+
+export interface QuestionBankFilters {
+  topic?: string;
+  difficulty?: string;
+  question_type?: string;
+  bloom_level?: string;
+  search?: string;
+}
+
 /** Per-question result after server-side grading — student-safe feedback only. */
 export interface QuizQuestionResult {
   id: string;
@@ -774,6 +800,23 @@ export const quizAPI = {
   ): Promise<QuizSubmitResponse> => {
     const response = await apiClient.post("/api/quiz/submit", { answers });
     return response.data as QuizSubmitResponse;
+  },
+
+  getQuestionBank: async (
+    filters: QuestionBankFilters = {},
+  ): Promise<QuestionBankEntry[]> => {
+    const sp = new URLSearchParams();
+    if (filters.topic && filters.topic !== "Tümü")
+      sp.set("topic", filters.topic);
+    if (filters.difficulty) sp.set("difficulty", filters.difficulty);
+    if (filters.question_type) sp.set("question_type", filters.question_type);
+    if (filters.bloom_level) sp.set("bloom_level", filters.bloom_level);
+    if (filters.search) sp.set("search", filters.search);
+    const qs = sp.toString();
+    const response = await apiClient.get(
+      `/api/quiz/student/question-bank${qs ? `?${qs}` : ""}`,
+    );
+    return response.data as QuestionBankEntry[];
   },
 };
 
