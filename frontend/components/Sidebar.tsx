@@ -14,6 +14,7 @@ import {
   Activity,
   FileQuestion,
   Microscope,
+  Library,
 } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
@@ -39,6 +40,11 @@ export default function Sidebar() {
       href: "/quiz",
       icon: <FileQuestion size={20} />,
       label: "Klinik Bilgi Testi",
+    },
+    {
+      href: "/student/question-bank",
+      icon: <Library size={20} />,
+      label: "Soru Bankası",
     },
   ];
 
