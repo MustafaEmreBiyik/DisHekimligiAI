@@ -1,10 +1,20 @@
-<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache/
 .pytest_runtime/
 backend/.pytest_runtime/
+.pytest_local_tmp/
+.pytest_tmp/
+.pytest_tmp_auth/
+pytest_tmp/
+pytest_tmp_auth/
+pytest_root/
+pytest-cache-files-*/
+backend/pytest-cache-files-*/
 .coverage
 htmlcov/
 
@@ -13,79 +23,26 @@ htmlcov/
 venv/
 env/
 ENV/
+myenv/
 
 # Environment files
-=======
-# Byte-code
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtual Environments
-venv/
-myenv/
-.venv/
-env/
-
-# Environment variables
-# Sprint 1 security: never commit runtime secrets
->>>>>>> origin/main
 .env
 .env.*
 !.env.example
 
-<<<<<<< HEAD
 # Runtime databases
 db/runtime/
 backend/db/runtime/
-=======
-# IDE / Editor klasörleri
-.vscode/
-.idea/
-
-# Test ve kod kapsamı raporları
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Build ve dağıtım dosyaları
-build/
-dist/
-*.egg-info/
-
-# Log dosyaları
-*.log
-
-# Database files
 dentai_app.db
->>>>>>> origin/main
 *.db
 *.sqlite
 *.sqlite3
 
-<<<<<<< HEAD
 # Frontend artifacts
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/tsconfig.tsbuildinfo
-
-# IDE and OS
-.vscode/
-.idea/
-.claude/
-.DS_Store
-Thumbs.db
-
-# Legacy nested workspace retained temporarily as local backup state
-dentai/
-=======
-# HASSAS KULLANICI VERİLERİ - GitHub'a yüklenmesin!
-data/users.json
-app/data/users.json
-
-# Node.js / Next.js
 node_modules/
 .next/
 out/
@@ -95,22 +52,29 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 .pnpm-debug.log*
-
-# Next.js TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# OS Files
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# IDE and OS
+.vscode/
+.idea/
+.claude/
 .DS_Store
 Thumbs.db
 
-# MD klasörü
+# Sensitive local data
+data/users.json
+app/data/users.json
+
+# Local docs and legacy workspaces
 md/
-
-# Docs klasörü
 docs/
-
-# Claude agent workspace
-.claude/
-
->>>>>>> origin/main
+dentai/
