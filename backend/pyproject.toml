@@ -1,8 +1,10 @@
 [tool.pytest.ini_options]
+# Run from the backend/ directory:  python -m pytest tests/ -v
+# pythonpath = ["."] makes `app.*` and `db.*` imports work correctly.
 pythonpath = ["."]
 python_files = ["test_*.py"]
 testpaths = ["tests"]
-norecursedirs = [".git", ".venv", "venv", "frontend/node_modules"]
+norecursedirs = [".git", ".venv", "venv", "__pycache__", ".pytest_runtime"]
 addopts = "-ra --strict-markers -m \"not integration and not e2e\""
 markers = [
   "integration: Tests that validate cross-module integration behavior and are opt-in.",
