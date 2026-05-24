@@ -175,6 +175,38 @@ class CasePublishHistory(Base):
         )
 
 
+class RubricVersion(Base):
+    """
+    Rubric Version Snapshot (T-4B)
+    --------------------------------
+    Stores immutable snapshots of a question's rubric_guide and
+    model_answer_outline each time an instructor publishes a rubric change.
+    This lets us audit which rubric criteria were in effect when each
+    student answer was graded.
+    """
+
+    __tablename__ = "rubric_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)          # per-question counter (1, 2, 3 …)
+    rubric_guide = Column(Text, nullable=False)
+    model_answer_outline = Column(Text, nullable=False)
+    change_notes = Column(Text, nullable=True)          # optional instructor comment
+    created_by = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    # Relationships
+    question = relationship("Question", back_populates="rubric_versions")
+    answers_graded_with = relationship("QuizAnswer", back_populates="rubric_version_snapshot")
+
+    def __repr__(self):
+        return (
+            f"<RubricVersion(id={self.id}, question_id={self.question_id}, "
+            f"version={self.version}, created_by={self.created_by})>"
+        )
+
+
 class RecommendationSnapshot(Base):
     """Explainable recommendation records persisted for auditability."""
 
@@ -320,7 +352,9 @@ class Question(Base):
     bloom_level = Column(String, nullable=False)
     difficulty = Column(String, nullable=False)
     safety_category = Column(String, nullable=False)
-    
+    unit_id = Column(String, nullable=True, index=True)   # e.g. "unit_1_immune_mediated"
+    week_number = Column(Integer, nullable=True)           # e.g. 3
+
     # Protected authoring fields (never exposed to student API)
     options_json = Column(JSON, nullable=True)  # Used for MCQs
     correct_option = Column(String, nullable=True)
@@ -332,9 +366,13 @@ class Question(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+    # T-4B: tracks the current (latest) published rubric version for this question
+    current_rubric_version = Column(Integer, nullable=True, default=None)
+
     # Relationships
     case_mappings = relationship("QuestionCaseMapping", back_populates="question", cascade="all, delete-orphan")
     answers = relationship("QuizAnswer", back_populates="question", cascade="all, delete-orphan")
+    rubric_versions = relationship("RubricVersion", back_populates="question", cascade="all, delete-orphan", order_by="RubricVersion.version")
 
     def __repr__(self):
         return f"<Question(id={self.id}, type={self.question_type}, topic={self.topic_id})>"
@@ -400,9 +438,17 @@ class QuizAnswer(Base):
     grading_status = Column(Enum(GradingStatus), nullable=False, default=GradingStatus.PENDING)
     graded_by_id = Column(String, nullable=True)  # ID of instructor who graded
     graded_at = Column(DateTime, nullable=True)
+    # T-4A: AI draft scoring fields
+    ai_score_suggestion = Column(Float, nullable=True)   # LLM draft score (0–max_score)
+    ai_score_rationale  = Column(Text, nullable=True)    # LLM explanation
+    ai_scored_at        = Column(DateTime, nullable=True) # When AI scored
+
+    # T-4B: rubric version snapshot that was in effect when graded
+    rubric_version_id = Column(Integer, ForeignKey("rubric_versions.id"), nullable=True, index=True)
 
     attempt = relationship("QuizAttempt", back_populates="answers")
     question = relationship("Question", back_populates="answers")
+    rubric_version_snapshot = relationship("RubricVersion", back_populates="answers_graded_with")
 
     def __repr__(self):
         return f"<QuizAnswer(attempt_id={self.attempt_id}, question_id={self.question_id}, status={self.grading_status})>"
@@ -685,37 +731,17 @@ def get_student_detailed_history(user_id: str):
                         
                         # Only count if it's an ACTION (not general chat)
                         if interpreted_action and interpreted_action not in ["general_chat", "error"]:
-                            action_record = {
-                                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else "N/A",
-                                "case_id": metadata.get("case_id", session.case_id),
-                                "action": interpreted_action,
-                                "score": score,
-                                "outcome": outcome
-                            }
-                            action_history.append(action_record)
                             total_score += score
                             total_actions += 1
                             completed_cases.add(session.case_id)
-                    
-                    except Exception as e:
-                        print(f"Error parsing metadata: {e}")
-                        continue
-        
+                    except (json.JSONDecodeError, AttributeError, TypeError):
+                        pass
+
         return {
             "action_history": action_history,
             "total_score": total_score,
             "total_actions": total_actions,
-            "completed_cases": completed_cases
-        }
-    
-    except Exception as e:
-        print(f"Database error in get_student_detailed_history: {e}")
-        return {
-            "action_history": [],
-            "total_score": 0,
-            "total_actions": 0,
-            "completed_cases": set()
+            "completed_cases": completed_cases,
         }
     finally:
         db.close()
- 

@@ -10,11 +10,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-<<<<<<< HEAD
 import { chatAPI, feedbackAPI, getApiErrorMessage } from '@/lib/api';
-=======
-import { chatAPI, feedbackAPI } from '@/lib/api';
->>>>>>> origin/main
 import Link from 'next/link';
 
 interface Message {
@@ -115,15 +111,9 @@ export default function ChatPage() {
             // Update score (backend returns cumulative session score)
             setCurrentScore(response.score);
             
-<<<<<<< HEAD
         } catch (err: unknown) {
             console.error('Chat error:', err);
-            setError(getApiErrorMessage(err, 'Mesaj gonderilemedi. Lutfen tekrar deneyin.'));
-=======
-        } catch (err: any) {
-            console.error('Chat error:', err);
-            setError(err.response?.data?.detail || 'Mesaj gönderilemedi. Lütfen tekrar deneyin.');
->>>>>>> origin/main
+            setError(getApiErrorMessage(err, 'Mesaj gönderilemedi. Lütfen tekrar deneyin.'));
             
             // Add error message to chat
             const errorMessage: Message = {
@@ -163,15 +153,9 @@ export default function ChatPage() {
             alert('✅ Geri bildiriminiz başarıyla kaydedildi. Teşekkür ederiz!');
             router.push('/dashboard');
             
-<<<<<<< HEAD
         } catch (err: unknown) {
             console.error('Feedback error:', err);
-            alert(getApiErrorMessage(err, 'Geri bildirim gonderilemedi. Lutfen tekrar deneyin.'));
-=======
-        } catch (err: any) {
-            console.error('Feedback error:', err);
-            alert(err.response?.data?.detail || 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.');
->>>>>>> origin/main
+            alert(getApiErrorMessage(err, 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.'));
         } finally {
             setIsSubmittingFeedback(false);
         }
@@ -361,11 +345,7 @@ export default function ChatPage() {
                     
                     {/* Helper Text */}
                     <p className="text-xs text-gray-500 mt-2 text-center">
-<<<<<<< HEAD
-                        Ipucu: Eylemlerinizi detayli yazin (or: &quot;Oral mukoza muayenesi yapiyorum&quot; veya &quot;Hastanin tibbi gecmisini sorguluyorum&quot;)
-=======
                         💡 İpucu: Eylemlerinizi detaylı yazın (ör: "Oral mukoza muayenesi yapıyorum" veya "Hastanın tıbbi geçmişini sorguluyorum")
->>>>>>> origin/main
                     </p>
                 </div>
             </footer>
