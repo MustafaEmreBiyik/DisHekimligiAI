@@ -2,8 +2,19 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Home, User, BarChart2, BookOpen, LogOut, Menu, X, Activity, FileQuestion } from "lucide-react";
+import { useState } from "react";
+import {
+  Home,
+  User,
+  BarChart2,
+  BookOpen,
+  LogOut,
+  Menu,
+  X,
+  Activity,
+  FileQuestion,
+  Microscope,
+} from "lucide-react";
 import styles from "./Sidebar.module.css";
 
 export default function Sidebar() {
@@ -13,15 +24,24 @@ export default function Sidebar() {
   const navLinks = [
     { href: "/dashboard", icon: <Home size={20} />, label: "Home" },
     { href: "/profile", icon: <User size={20} />, label: "My Account" },
-    { href: "/statistics", icon: <BarChart2 size={20} />, label: "My Statistics" },
+    {
+      href: "/statistics",
+      icon: <BarChart2 size={20} />,
+      label: "My Statistics",
+    },
     { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
-    { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
+    {
+      href: "/oral-pathology",
+      icon: <Microscope size={20} />,
+      label: "Oral Pathology",
+    },
+    {
+      href: "/quiz",
+      icon: <FileQuestion size={20} />,
+      label: "Klinik Bilgi Testi",
+    },
   ];
 
-  // Close sidebar on route change for mobile
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
   // Optionally add logout logic here
   const handleLogout = () => {
     console.log("Logout triggered");
@@ -29,18 +49,18 @@ export default function Sidebar() {
 
   return (
     <>
-      <button 
-        className={styles.mobileToggle} 
+      <button
+        className={styles.mobileToggle}
         onClick={() => setIsOpen(true)}
         aria-label="Open Menu"
       >
         <Menu size={24} />
       </button>
 
-      <div 
-        className={styles.overlay} 
-        data-open={isOpen} 
-        onClick={() => setIsOpen(false)} 
+      <div
+        className={styles.overlay}
+        data-open={isOpen}
+        onClick={() => setIsOpen(false)}
       />
 
       <aside className={styles.sidebarContainer} data-open={isOpen}>
@@ -49,8 +69,8 @@ export default function Sidebar() {
             <Activity size={28} />
           </div>
           <div className={styles.logoText}>DentAI</div>
-          <button 
-            className={styles.mobileClose} 
+          <button
+            className={styles.mobileClose}
             onClick={() => setIsOpen(false)}
             aria-label="Close Menu"
           >
@@ -60,12 +80,13 @@ export default function Sidebar() {
 
         <nav className={styles.navMenu}>
           {navLinks.map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+            const isActive =
+              pathname === link.href || pathname.startsWith(link.href + "/");
             return (
-              <Link 
-                key={link.href} 
+              <Link
+                key={link.href}
                 href={link.href}
-
+                onClick={() => setIsOpen(false)}
                 className={styles.navItem}
                 data-active={isActive}
               >

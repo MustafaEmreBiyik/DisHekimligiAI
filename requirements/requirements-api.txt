@@ -14,3 +14,4 @@ passlib[bcrypt]>=1.7.4
 
 # Database migration
 alembic>=1.13.0
+psycopg[binary]>=3.2.0

@@ -1,8 +1,8 @@
 """
 Database Initialization Script
 ===============================
-Creates all required database tables if they don't exist.
-Run this script when setting up the project for the first time.
+Validates database connectivity and confirms the schema is at Alembic head.
+Run Alembic migrations before using this script against a fresh database.
 
 Usage:
     python scripts/init_db.py
@@ -24,7 +24,7 @@ import datetime
 
 
 def setup_database():
-    """Initialize database and create all tables"""
+    """Validate database readiness after migrations have been applied."""
     print("=" * 60)
     print("DATABASE INITIALIZATION")
     print("=" * 60)
@@ -39,12 +39,12 @@ def setup_database():
             print("\n🧹 Recreate requested: deleting existing db/runtime/dentai_app.db...")
             db_path.unlink()
 
-        # Create all tables
+        # Validate schema readiness
         print("\n📦 Creating database tables...")
         init_db()
         print("✅ Tables created successfully!")
         
-        # List created tables
+        # List expected tables
         print("\n📋 Created tables:")
         print("  - users")
         print("  - case_definitions")
@@ -63,7 +63,7 @@ def setup_database():
         finally:
             db.close()
 
-        # Verify schema includes state_json
+        # Verify schema includes state_json for local SQLite databases.
         if db_path.exists():
             try:
                 con = sqlite3.connect(str(db_path))

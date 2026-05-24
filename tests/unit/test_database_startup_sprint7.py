@@ -89,3 +89,35 @@ def test_ensure_schema_is_current_fails_fast_with_upgrade_guidance(monkeypatch):
 
     with pytest.raises(RuntimeError, match="alembic upgrade head"):
         database_module._ensure_schema_is_current()
+
+
+def test_normalize_database_url_encodes_postgres_password_and_adds_supabase_sslmode():
+    normalized = database_module._normalize_database_url(
+        "postgresql://postgres:NMVn*A%gCnq59Z3@db.example.supabase.co:5432/postgres"
+    )
+
+    assert normalized.startswith("postgresql+psycopg://")
+    assert "NMVn%2AA%25gCnq59Z3" in normalized
+    assert normalized.endswith("/postgres?sslmode=require")
+
+
+def test_normalize_database_url_leaves_sqlite_url_unchanged():
+    sqlite_url = "sqlite:///db/runtime/dentai_app.db"
+
+    assert database_module._normalize_database_url(sqlite_url) == sqlite_url
+
+
+def test_connection_guidance_message_flags_supabase_ipv6_direct_connection_issue(monkeypatch):
+    monkeypatch.setattr(
+        database_module,
+        "DATABASE_URL",
+        "postgresql+psycopg://postgres:secret@db.example.supabase.co:5432/postgres",
+    )
+
+    guidance = database_module._connection_guidance_message(
+        RuntimeError("connection to server failed: Network is unreachable")
+    )
+
+    assert guidance is not None
+    assert "Session pooler" in guidance
+    assert "IPv4 add-on" in guidance
