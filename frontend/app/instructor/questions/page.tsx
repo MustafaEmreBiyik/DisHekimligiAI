@@ -30,6 +30,8 @@ type QuestionFormState = {
   bloom_level: string;
   difficulty: string;
   safety_category: string;
+  unit_id: string;        // T-2A: ünite etiketi
+  week_number: string;    // T-2A: hafta numarası (string → int dönüşümü payload'da)
   rubric_guide: string;
   model_answer_outline: string;
   instructor_explanation: string;
@@ -51,6 +53,8 @@ const EMPTY_FORM: QuestionFormState = {
   bloom_level: "analyze",
   difficulty: "medium",
   safety_category: "low",
+  unit_id: "",
+  week_number: "",
   rubric_guide: "",
   model_answer_outline: "",
   instructor_explanation: "",
@@ -191,6 +195,8 @@ function buildPayload(mode: AuthoringMode, form: QuestionFormState): InstructorQ
     bloom_level: form.bloom_level,
     difficulty: form.difficulty,
     safety_category: form.safety_category,
+    unit_id: form.unit_id.trim() || undefined,                                    // T-2A
+    week_number: form.week_number ? parseInt(form.week_number, 10) : undefined,   // T-2A
     instructor_explanation: form.instructor_explanation.trim() || undefined,
     max_score: form.max_score,
     is_active: form.is_active,
@@ -547,6 +553,29 @@ export default function InstructorQuestionsPage() {
                 </label>
 
                 <label className="space-y-2 text-sm font-medium text-slate-700">
+                  <span>Ünite (isteğe bağlı)</span>
+                  <input
+                    value={form.unit_id}
+                    onChange={handleFieldChange("unit_id")}
+                    placeholder="Örn: unit_1_immune_mediated"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm font-medium text-slate-700">
+                  <span>Hafta (isteğe bağlı)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={form.week_number}
+                    onChange={handleFieldChange("week_number")}
+                    placeholder="Örn: 3"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm font-medium text-slate-700">
                   <span>Max Score</span>
                   <input
                     type="number"
@@ -765,29 +794,28 @@ export default function InstructorQuestionsPage() {
                         </div>
 
                         <h3 className="text-sm font-semibold text-slate-900">{question.question_text}</h3>
-                        <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-                          {question.question_id}
-                        </p>
 
-                        {question.question_type === "MCQ" ? (
-                          <div className="mt-3 space-y-2 text-sm text-slate-700">
-                            {question.options.map((option) => (
-                              <div
-                                key={`${question.question_id}-${option}`}
-                                className={`rounded-xl px-3 py-2 ${
-                                  option === question.correct_option
-                                    ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
-                                    : "border border-slate-200 bg-white"
-                                }`}
-                              >
-                                {option}
-                              </div>
-                            ))}
+                        <p className="mt-1 text-xs text-slate-400 font-mono">{question.question_id}</p>
+
+                        {/* T-2A: unit_id and week_number badges */}
+                        {(question.unit_id || question.week_number) && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {question.unit_id && (
+                              <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                                Ünite: {question.unit_id}
+                              </span>
+                            )}
+                            {question.week_number && (
+                              <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">
+                                Hafta {question.week_number}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <p className="mt-3 text-sm text-slate-600">
-                            <span className="font-semibold text-slate-800">Rubric:</span>{" "}
-                            {question.rubric_guide || "No rubric stored."}
+                        )}
+
+                        {question.rubric_guide && (
+                          <p className="mt-2 line-clamp-2 text-xs text-slate-500">
+                            <span className="font-semibold">Rubric:</span> {question.rubric_guide}
                           </p>
                         )}
                       </article>

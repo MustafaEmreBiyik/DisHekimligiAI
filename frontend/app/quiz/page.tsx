@@ -10,12 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import styles from "./Quiz.module.css";
-import {
-  quizAPI,
-  QuizQuestion,
-  QuizQuestionResult,
-  QuizSubmitResponse,
-} from "@/lib/api";
+import { quizAPI, QuizQuestion, QuizQuestionResult, QuizSubmitResponse } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +18,7 @@ export default function QuizPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
+  const isAssessmentMode = true; // S8B safety constraint: assessment mode defaults to safe.
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [topics, setTopics] = useState<string[]>(["Tümü"]);
   const [selectedTopic, setSelectedTopic] = useState<string>("Tümü");
@@ -31,12 +27,8 @@ export default function QuizPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   // Populated after server-side grading
-  const [gradeResults, setGradeResults] = useState<
-    Record<string, QuizQuestionResult>
-  >({});
-  const [serverScore, setServerScore] = useState<QuizSubmitResponse | null>(
-    null,
-  );
+  const [gradeResults, setGradeResults] = useState<Record<string, QuizQuestionResult>>({});
+  const [serverScore, setServerScore] = useState<QuizSubmitResponse | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -61,9 +53,7 @@ export default function QuizPage() {
       if (topicsData && Array.isArray(topicsData)) {
         setTopics(topicsData);
       } else {
-        const uniqueTopics = Array.from(
-          new Set(questionsData.map((q: QuizQuestion) => q.topic)),
-        ) as string[];
+        const uniqueTopics = Array.from(new Set(questionsData.map((q: QuizQuestion) => q.topic))) as string[];
         setTopics(["Tümü", ...uniqueTopics]);
       }
     } catch (err) {
@@ -102,12 +92,9 @@ export default function QuizPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const response: QuizSubmitResponse =
-        await quizAPI.submitAnswers(userAnswers);
+      const response: QuizSubmitResponse = await quizAPI.submitAnswers(userAnswers);
       const resultsMap: Record<string, QuizQuestionResult> = {};
-      response.results.forEach((r) => {
-        resultsMap[r.id] = r;
-      });
+      response.results.forEach((r) => { resultsMap[r.id] = r; });
       setGradeResults(resultsMap);
       setServerScore(response);
       setIsSubmitted(true);
@@ -195,11 +182,7 @@ export default function QuizPage() {
         <div style={{ textAlign: "center", padding: "3rem", color: "#718096" }}>
           <Search
             size={48}
-            style={{
-              opacity: 0.2,
-              marginBottom: "1rem",
-              display: "inline-block",
-            }}
+            style={{ opacity: 0.2, marginBottom: "1rem", display: "inline-block" }}
           />
           <h3>Bu konu için henüz soru eklenmedi.</h3>
         </div>
@@ -221,17 +204,10 @@ export default function QuizPage() {
                       <textarea
                         placeholder="Yanıtınızı buraya yazınız..."
                         value={selectedAnswer || ""}
-                        onChange={(e) =>
-                          handleSelectOption(q.id, e.target.value)
-                        }
+                        onChange={(e) => handleSelectOption(q.id, e.target.value)}
                         disabled={isSubmitted}
                         rows={4}
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
-                        }}
+                        style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
                       />
                     </div>
                   ) : (
@@ -243,12 +219,8 @@ export default function QuizPage() {
                         let isWrongOption = false;
 
                         if (isSubmitted && result) {
-                          isCorrectOption =
-                            option === result.selected_option &&
-                            result.is_correct === true;
-                          isWrongOption =
-                            option === result.selected_option &&
-                            result.is_correct === false;
+                          isCorrectOption = option === result.selected_option && result.is_correct === true;
+                          isWrongOption = option === result.selected_option && result.is_correct === false;
                         }
 
                         return (
@@ -277,37 +249,22 @@ export default function QuizPage() {
                   {/* FEEDBACK — only after server grading */}
                   {isSubmitted && result && (
                     <div className={styles.explanation}>
-                      <Info
-                        size={24}
-                        style={{ flexShrink: 0, marginTop: "2px" }}
-                      />
+                      <Info size={24} style={{ flexShrink: 0, marginTop: "2px" }} />
                       <div>
-                        {result.grading_status === "PENDING" ? (
+                        {result.grading_status === 'PENDING' ? (
                           <>
                             <strong>Durum:</strong>
-                            <p style={{ margin: "0.25rem 0 0 0" }}>
-                              Açık uçlu sorunuz eğitmen değerlendirmesi için
-                              sıraya alındı.
-                            </p>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>Açık uçlu sorunuz eğitmen değerlendirmesi için sıraya alındı.</p>
                           </>
-                        ) : result.grading_status === "PUBLISHED" &&
-                          q.question_type === "OPEN_ENDED" ? (
+                        ) : result.grading_status === 'PUBLISHED' && q.question_type === 'OPEN_ENDED' ? (
                           <>
-                            <strong>
-                              Eğitmen Geri Bildirimi (Puan:{" "}
-                              {result.instructor_score}):
-                            </strong>
-                            <p style={{ margin: "0.25rem 0 0 0" }}>
-                              {result.instructor_feedback ||
-                                "Geri bildirim girilmemiş."}
-                            </p>
+                            <strong>Eğitmen Geri Bildirimi (Puan: {result.instructor_score}):</strong>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>{result.instructor_feedback || "Geri bildirim girilmemiş."}</p>
                           </>
                         ) : (
                           <>
                             <strong>Geri Bildirim:</strong>
-                            <p style={{ margin: "0.25rem 0 0 0" }}>
-                              {result.feedback}
-                            </p>
+                            <p style={{ margin: "0.25rem 0 0 0" }}>{result.feedback}</p>
                           </>
                         )}
                       </div>
@@ -338,8 +295,8 @@ export default function QuizPage() {
               <div className={styles.resultsIcon}>{feedbackIcon}</div>
               <h2 className={styles.resultsTitle}>{feedbackLabel}</h2>
               <p className={styles.resultsDesc}>
-                {isPending
-                  ? "Testi tamamladınız. Açık uçlu sorularınızın değerlendirilmesi bittikten sonra toplam puanınız hesaplanacaktır."
+                {isPending 
+                  ? "Testi tamamladınız. Açık uçlu sorularınızın değerlendirilmesi bittikten sonra toplam puanınız hesaplanacaktır." 
                   : `Testi tamamladınız. Toplam ${totalCount} üzerinden performansınız aşağıda gösterilmektedir.`}
               </p>
 
