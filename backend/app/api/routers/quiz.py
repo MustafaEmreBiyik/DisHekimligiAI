@@ -17,6 +17,17 @@ import unicodedata
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_context, AuthenticatedUser, get_db, require_roles
+from app.services.composite_score_service import calculate_composite_score, CompositeScoreResult
+from app.services.topic_accuracy_service import get_topic_accuracy, TopicAccuracyResult
+from app.services.question_case_mapping_service import (
+    get_question_case_mappings,
+    create_mapping,
+    delete_mapping,
+    MappingQueryResult,
+    QuestionNotFoundError,
+    DuplicateMappingError,
+    MappingNotFoundError,
+)
 from db.database import ExamResult, UserRole, Question, QuestionType, QuizAttempt, QuizAnswer, GradingStatus
 
 logger = logging.getLogger(__name__)
@@ -98,6 +109,8 @@ class InstructorQuestionCreateRequest(BaseModel):
     bloom_level: str
     difficulty: str
     safety_category: str
+    unit_id: Optional[str] = None      # T-2A: Sprint-1 tagging — ünite
+    week_number: Optional[int] = None  # T-2A: Sprint-1 tagging — hafta
     rubric_guide: Optional[str] = None
     model_answer_outline: Optional[str] = None
     instructor_explanation: Optional[str] = None
@@ -108,6 +121,7 @@ class InstructorQuestionCreateRequest(BaseModel):
 
 
 class InstructorQuestionSummary(BaseModel):
+    id: int                          # T-4B: DB primary key
     question_id: str
     question_type: str
     question_text: str
@@ -116,6 +130,8 @@ class InstructorQuestionSummary(BaseModel):
     bloom_level: str
     difficulty: str
     safety_category: str
+    unit_id: Optional[str] = None      # T-2A
+    week_number: Optional[int] = None  # T-2A
     rubric_guide: Optional[str] = None
     model_answer_outline: Optional[str] = None
     instructor_explanation: Optional[str] = None
@@ -123,6 +139,7 @@ class InstructorQuestionSummary(BaseModel):
     correct_option: Optional[str] = None
     max_score: int
     is_active: bool
+    current_rubric_version: Optional[int] = None  # T-4B
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -159,6 +176,7 @@ def _slugify(value: str) -> str:
 
 def _question_to_summary(question: Question) -> InstructorQuestionSummary:
     return InstructorQuestionSummary(
+        id=question.id,                        # T-4B
         question_id=question.question_id,
         question_type=question.question_type.value,
         question_text=question.question_text,
@@ -167,6 +185,8 @@ def _question_to_summary(question: Question) -> InstructorQuestionSummary:
         bloom_level=question.bloom_level,
         difficulty=question.difficulty,
         safety_category=question.safety_category,
+        unit_id=getattr(question, "unit_id", None),      # T-2A
+        week_number=getattr(question, "week_number", None),  # T-2A
         rubric_guide=question.rubric_guide,
         model_answer_outline=question.model_answer_outline,
         instructor_explanation=question.instructor_explanation,
@@ -174,6 +194,7 @@ def _question_to_summary(question: Question) -> InstructorQuestionSummary:
         correct_option=question.correct_option,
         max_score=question.max_score,
         is_active=question.is_active,
+        current_rubric_version=getattr(question, 'current_rubric_version', None),  # T-4B
         created_at=question.created_at.isoformat() if question.created_at else None,
         updated_at=question.updated_at.isoformat() if question.updated_at else None,
     )
@@ -576,6 +597,83 @@ def submit_grade(answer_id: int, payload: GradeSubmission, current_user: Authent
     return {"status": "success"}
 
 
+# ── AI draft scoring endpoint (Sprint 4 — T-4A) ──────────────────────────────
+
+class AIScoringResponse(BaseModel):
+    answer_id: int
+    suggested_score: float
+    rationale: str
+    scored_at: str
+    max_score: int
+
+
+@router.post(
+    "/instructor/answers/{answer_id}/ai-score",
+    response_model=AIScoringResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Request AI draft score for an open-ended answer",
+    description=(
+        "Calls the LLM (HuggingFace Gemma) to generate a draft score for the "
+        "given open-ended quiz answer. The draft is stored as ai_score_suggestion "
+        "but never auto-promoted to instructor_score — the instructor must still "
+        "accept or override it via the normal grading endpoint. "
+        "Returns 404 if the answer does not exist, 400 if the question is MCQ, "
+        "422 if the LLM call fails or returns an invalid response."
+    ),
+)
+def request_ai_score_for_answer(
+    answer_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    from app.services.oe_scoring_service import OEScoringError, request_ai_score
+
+    ans = db.query(QuizAnswer).filter(QuizAnswer.id == answer_id).first()
+    if not ans:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer not found")
+
+    question = ans.question
+    if question.question_type != QuestionType.OPEN_ENDED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="AI scoring is only available for Open-Ended questions",
+        )
+    if not question.rubric_guide or not question.model_answer_outline:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Question is missing rubric_guide or model_answer_outline — cannot score",
+        )
+
+    try:
+        result = request_ai_score(
+            question_text=question.question_text,
+            rubric_guide=question.rubric_guide,
+            model_answer_outline=question.model_answer_outline,
+            student_response=ans.student_response_text,
+            max_score=question.max_score,
+        )
+    except OEScoringError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"AI scoring failed: {exc}",
+        )
+
+    # Persist the draft — never touch instructor_score or grading_status
+    ans.ai_score_suggestion = result.suggested_score
+    ans.ai_score_rationale = result.rationale
+    import datetime as _dt
+    ans.ai_scored_at = _dt.datetime.utcnow()
+    db.commit()
+
+    return AIScoringResponse(
+        answer_id=answer_id,
+        suggested_score=result.suggested_score,
+        rationale=result.rationale,
+        scored_at=result.scored_at,
+        max_score=question.max_score,
+    )
+
+
 @router.get(
     "/instructor/questions",
     response_model=List[InstructorQuestionSummary],
@@ -672,6 +770,8 @@ def create_instructor_open_ended_question(
         bloom_level=bloom_level,
         difficulty=difficulty,
         safety_category=safety_category,
+        unit_id=_normalize_text(payload.unit_id) or None,          # T-2A
+        week_number=payload.week_number,                            # T-2A
         options_json=options or None,
         correct_option=correct_option or None,
         instructor_explanation=instructor_explanation or None,
@@ -684,3 +784,540 @@ def create_instructor_open_ended_question(
     db.refresh(question)
 
     return _question_to_summary(question)
+
+
+# ── Composite score endpoint (Sprint 2 — T-2B) ───────────────────────────────
+
+class ComponentScoreResponse(BaseModel):
+    """API-safe representation of one score component."""
+    available: bool
+    earned: int
+    max_possible: int
+    pct: Optional[float]
+    design_weight: float
+    effective_weight: float
+
+
+class CompositeScoreResponse(BaseModel):
+    """
+    Weighted composite score for the authenticated student.
+
+    composite_pct is None when the student has no history across any component
+    (true cold start). A value of 0.0 means attempts exist but zero points
+    were earned.
+
+    Weights when all components are available:
+        MCQ          35 %
+        Open-ended   40 %
+        Case         25 %
+
+    When a component is unavailable its design weight is redistributed
+    proportionally across the remaining components.
+    """
+    mcq: ComponentScoreResponse
+    open_ended: ComponentScoreResponse
+    case: ComponentScoreResponse
+    composite_pct: Optional[float]
+    all_components_available: bool
+    computed_at: str
+
+
+def _result_to_response(result: CompositeScoreResult) -> CompositeScoreResponse:
+    def _comp(c):
+        return ComponentScoreResponse(
+            available=c.available,
+            earned=c.earned,
+            max_possible=c.max_possible,
+            pct=c.pct,
+            design_weight=c.design_weight,
+            effective_weight=c.effective_weight,
+        )
+    return CompositeScoreResponse(
+        mcq=_comp(result.mcq),
+        open_ended=_comp(result.open_ended),
+        case=_comp(result.case),
+        composite_pct=result.composite_pct,
+        all_components_available=result.all_components_available,
+        computed_at=result.computed_at,
+    )
+
+
+@router.get(
+    "/my-score",
+    response_model=CompositeScoreResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get my composite weighted score",
+    description=(
+        "Returns the student's weighted composite score across MCQ (35%), "
+        "open-ended (40%), and case simulation (25%) components. "
+        "Only published/graded records are counted. "
+        "Missing components are flagged as unavailable — composite_pct is None "
+        "only when the student has zero history across all components."
+    ),
+)
+def get_my_composite_score(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> CompositeScoreResponse:
+    result = calculate_composite_score(current_user.user_id, db)
+    return _result_to_response(result)
+
+
+# ── Topic accuracy endpoint (Sprint 2 — T-2C) ────────────────────────────────
+
+class TopicAccuracyItemResponse(BaseModel):
+    """Per-topic MCQ accuracy for one topic."""
+    topic_id: str
+    topic_label: str
+    earned: int
+    max_possible: int
+    pct: Optional[float]
+    answered_count: int
+    correct_count: int
+    is_weak: bool
+
+
+class TopicAccuracyResponse(BaseModel):
+    """
+    Per-topic MCQ accuracy breakdown for the authenticated student.
+
+    Topics are sorted weakest-first (lowest pct first) so the most
+    problematic areas appear at the top of the list.
+
+    has_any_data is False when the student has no published MCQ answers
+    yet (cold start). In that case, topics will be an empty list.
+    """
+    topics: List[TopicAccuracyItemResponse]
+    has_any_data: bool
+    computed_at: str
+
+
+def _topic_result_to_response(result: TopicAccuracyResult) -> TopicAccuracyResponse:
+    return TopicAccuracyResponse(
+        topics=[
+            TopicAccuracyItemResponse(
+                topic_id=t.topic_id,
+                topic_label=t.topic_label,
+                earned=t.earned,
+                max_possible=t.max_possible,
+                pct=t.pct,
+                answered_count=t.answered_count,
+                correct_count=t.correct_count,
+                is_weak=t.is_weak,
+            )
+            for t in result.topics
+        ],
+        has_any_data=result.has_any_data,
+        computed_at=result.computed_at,
+    )
+
+
+@router.get(
+    "/my-topic-accuracy",
+    response_model=TopicAccuracyResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get my per-topic MCQ accuracy",
+    description=(
+        "Returns the student's MCQ accuracy broken down by topic. "
+        "Only published answers are counted. "
+        "Topics are sorted weakest-first (lowest accuracy first). "
+        "A topic is marked weak when accuracy is below 60 %. "
+        "has_any_data is False when the student has no MCQ history yet."
+    ),
+)
+def get_my_topic_accuracy(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> TopicAccuracyResponse:
+    result = get_topic_accuracy(current_user.user_id, db)
+    return _topic_result_to_response(result)
+
+
+# ── Question-Case Mapping endpoint (Sprint 3 — T-3A) ─────────────────────────
+
+class QuestionCaseMappingItem(BaseModel):
+    """One theory-to-case link, enriched with question metadata."""
+    id: int
+    question_pk: int
+    question_id: str
+    question_type: str
+    topic_id: str
+    question_text: str
+    case_id: str
+    mapping_type: str
+    review_status: str
+
+
+class QuestionCaseMappingsResponse(BaseModel):
+    """
+    Theory-to-case mapping graph for the question bank.
+
+    Each item links one Question to one CaseDefinition.
+    The graph may be filtered by question_id, case_id, mapping_type,
+    or review_status via query parameters.
+
+    Accessible to instructors and admins only.
+    """
+    mappings: List[QuestionCaseMappingItem]
+    total: int
+    computed_at: str
+
+
+def _mapping_result_to_response(result: MappingQueryResult) -> QuestionCaseMappingsResponse:
+    return QuestionCaseMappingsResponse(
+        mappings=[
+            QuestionCaseMappingItem(
+                id=m.id,
+                question_pk=m.question_pk,
+                question_id=m.question_id,
+                question_type=m.question_type,
+                topic_id=m.topic_id,
+                question_text=m.question_text,
+                case_id=m.case_id,
+                mapping_type=m.mapping_type,
+                review_status=m.review_status,
+            )
+            for m in result.mappings
+        ],
+        total=result.total,
+        computed_at=result.computed_at,
+    )
+
+
+@router.get(
+    "/question-case-mappings",
+    response_model=QuestionCaseMappingsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List theory-to-case mappings",
+    description=(
+        "Returns all QuestionCaseMapping records joined with question metadata. "
+        "Supports optional filtering by question_id, case_id, mapping_type, "
+        "and review_status. Results are ordered by question_id then case_id. "
+        "Accessible to instructors and admins only."
+    ),
+)
+def get_question_case_mappings_endpoint(
+    question_id: Optional[str] = None,
+    case_id: Optional[str] = None,
+    mapping_type: Optional[str] = None,
+    review_status: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> QuestionCaseMappingsResponse:
+    try:
+        result = get_question_case_mappings(
+            db,
+            question_id=question_id,
+            case_id=case_id,
+            mapping_type=mapping_type,
+            review_status=review_status,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    return _mapping_result_to_response(result)
+
+
+# ── Write endpoints (T-3B) ────────────────────────────────────────────────────
+
+class CreateMappingRequest(BaseModel):
+    """Request body for creating a new theory-to-case mapping."""
+    question_id: str = Field(
+        ...,
+        description="String identifier from Question.question_id (e.g. 'oral_path_001').",
+    )
+    case_id: str = Field(
+        ...,
+        description="Case identifier string to link (e.g. 'case_pericoronitis_01').",
+    )
+    mapping_type: str = Field(
+        ...,
+        description="Relationship type. One of: theory_support, case_reinforcement, assessment_link.",
+    )
+    review_status: Optional[str] = Field(
+        default="unmapped",
+        description="Review status. One of: approved, blocked_review_needed, unmapped. Defaults to 'unmapped'.",
+    )
+
+
+def _record_to_item(record) -> QuestionCaseMappingItem:
+    return QuestionCaseMappingItem(
+        id=record.id,
+        question_pk=record.question_pk,
+        question_id=record.question_id,
+        question_type=record.question_type,
+        topic_id=record.topic_id,
+        question_text=record.question_text,
+        case_id=record.case_id,
+        mapping_type=record.mapping_type,
+        review_status=record.review_status,
+    )
+
+
+@router.post(
+    "/instructor/question-case-mappings",
+    response_model=QuestionCaseMappingItem,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a theory-to-case mapping",
+    description=(
+        "Links a question to a clinical case. "
+        "The question must already exist in the question bank. "
+        "Returns 404 when question_id is not found. "
+        "Returns 409 when the (question_id, case_id) pair already has a mapping. "
+        "Returns 422 when mapping_type or review_status is not a valid enum value."
+    ),
+)
+def create_question_case_mapping(
+    payload: CreateMappingRequest,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> QuestionCaseMappingItem:
+    try:
+        record = create_mapping(
+            db,
+            question_id=payload.question_id,
+            case_id=payload.case_id,
+            mapping_type=payload.mapping_type,
+            review_status=payload.review_status or "unmapped",
+        )
+    except QuestionNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except DuplicateMappingError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    return _record_to_item(record)
+
+
+@router.delete(
+    "/instructor/question-case-mappings/{mapping_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a theory-to-case mapping",
+    description=(
+        "Permanently removes the QuestionCaseMapping row with the given id. "
+        "Returns 404 when the mapping does not exist."
+    ),
+)
+def delete_question_case_mapping(
+    mapping_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    from app.services.question_case_mapping_service import (
+        MappingNotFoundError,
+        delete_mapping,
+    )
+    try:
+        delete_mapping(db, mapping_id=mapping_id)
+    except MappingNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+
+# ── Case Rubric endpoints (Sprint 3 — T-3C) ──────────────────────────────────
+
+from app.services.case_rubric_service import (
+    CaseNotFoundError,
+    CaseRubric,
+    DecisionPoint,
+    get_all_case_rubrics,
+    get_case_rubric,
+    list_available_case_ids,
+)
+
+
+class DecisionPointResponse(BaseModel):
+    target_action: str
+    score: int
+    rule_outcome: str
+    is_critical: bool
+    safety_category: Optional[str]
+    competency_tags: List[str]
+    rubric_level: str
+
+
+class CaseRubricResponse(BaseModel):
+    case_id: str
+    total_max_score: int
+    critical_count: int
+    positive_count: int
+    penalty_count: int
+    computed_at: str
+    decision_points: List[DecisionPointResponse]
+
+
+def _rubric_to_response(rubric: CaseRubric) -> CaseRubricResponse:
+    return CaseRubricResponse(
+        case_id=rubric.case_id,
+        total_max_score=rubric.total_max_score,
+        critical_count=rubric.critical_count,
+        positive_count=rubric.positive_count,
+        penalty_count=rubric.penalty_count,
+        computed_at=rubric.computed_at,
+        decision_points=[
+            DecisionPointResponse(
+                target_action=dp.target_action,
+                score=dp.score,
+                rule_outcome=dp.rule_outcome,
+                is_critical=dp.is_critical,
+                safety_category=dp.safety_category,
+                competency_tags=dp.competency_tags,
+                rubric_level=dp.rubric_level,
+            )
+            for dp in rubric.decision_points
+        ],
+    )
+
+
+@router.get(
+    "/case-rubrics",
+    response_model=List[CaseRubricResponse],
+    summary="List rubrics for all clinical cases",
+)
+def list_case_rubrics(
+    current_user: AuthenticatedUser = Depends(require_roles(
+        UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN
+    )),
+):
+    return [_rubric_to_response(r) for r in get_all_case_rubrics()]
+
+
+@router.get(
+    "/case-rubrics/{case_id}",
+    response_model=CaseRubricResponse,
+    summary="Get rubric for a single clinical case",
+)
+def get_single_case_rubric(
+    case_id: str,
+    current_user: AuthenticatedUser = Depends(require_roles(
+        UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN
+    )),
+):
+    try:
+        rubric = get_case_rubric(case_id)
+    except CaseNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _rubric_to_response(rubric)
+
+
+@router.get(
+    "/case-rubrics-index",
+    response_model=List[str],
+    summary="List all case IDs that have scoring rules",
+)
+def list_case_rubric_ids(
+    current_user: AuthenticatedUser = Depends(require_roles(
+        UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN
+    )),
+):
+    return list_available_case_ids()
+
+
+# =============================================================================
+# T-4B: Rubric Versioning Endpoints
+# =============================================================================
+
+from app.services.rubric_version_service import (
+    snapshot_rubric,
+    get_rubric_versions,
+    get_rubric_version,
+    RubricVersionError,
+    RubricVersionInfo,
+)
+
+
+class RubricSnapshotRequest(BaseModel):
+    """Payload for publishing a new rubric version."""
+    rubric_guide: str = Field(..., min_length=1, description="Updated rubric guide text.")
+    model_answer_outline: str = Field(..., min_length=1, description="Updated model answer outline.")
+    change_notes: Optional[str] = Field(None, description="Optional description of what changed.")
+
+
+class RubricVersionResponse(BaseModel):
+    """API-facing representation of a RubricVersion snapshot."""
+    id: int
+    question_id: int
+    version: int
+    rubric_guide: str
+    model_answer_outline: str
+    change_notes: Optional[str]
+    created_by: str
+    created_at: str
+
+
+def _rv_to_response(info: RubricVersionInfo) -> RubricVersionResponse:
+    return RubricVersionResponse(
+        id=info.id,
+        question_id=info.question_id,
+        version=info.version,
+        rubric_guide=info.rubric_guide,
+        model_answer_outline=info.model_answer_outline,
+        change_notes=info.change_notes,
+        created_by=info.created_by,
+        created_at=info.created_at,
+    )
+
+
+@router.post(
+    "/instructor/questions/{question_id}/rubric-snapshot",
+    response_model=RubricVersionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Publish a new rubric version snapshot for a question",
+)
+def publish_rubric_snapshot(
+    question_id: int,
+    payload: RubricSnapshotRequest,
+    db: Session = Depends(get_db),
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    """
+    Saves an immutable snapshot of the rubric for audit purposes and
+    updates the question's live rubric_guide and model_answer_outline.
+    """
+    try:
+        info = snapshot_rubric(
+            db,
+            question_id=question_id,
+            rubric_guide=payload.rubric_guide,
+            model_answer_outline=payload.model_answer_outline,
+            change_notes=payload.change_notes,
+            created_by=current_user.email,
+        )
+    except RubricVersionError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _rv_to_response(info)
+
+
+@router.get(
+    "/instructor/questions/{question_id}/rubric-versions",
+    response_model=List[RubricVersionResponse],
+    summary="List all rubric version snapshots for a question (newest first)",
+)
+def list_rubric_versions(
+    question_id: int,
+    db: Session = Depends(get_db),
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    try:
+        versions = get_rubric_versions(db, question_id=question_id)
+    except RubricVersionError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return [_rv_to_response(v) for v in versions]
+
+
+@router.get(
+    "/instructor/rubric-versions/{version_id}",
+    response_model=RubricVersionResponse,
+    summary="Get a single rubric version snapshot by ID",
+)
+def get_single_rubric_version(
+    version_id: int,
+    db: Session = Depends(get_db),
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    try:
+        info = get_rubric_version(db, version_id=version_id)
+    except RubricVersionError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _rv_to_response(info)
