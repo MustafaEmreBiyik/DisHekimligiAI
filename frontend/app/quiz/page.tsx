@@ -18,11 +18,7 @@ export default function QuizPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
-<<<<<<< HEAD
-=======
   const isAssessmentMode = true; // S8B safety constraint: assessment mode defaults to safe.
-
->>>>>>> origin/main
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [topics, setTopics] = useState<string[]>(["Tümü"]);
   const [selectedTopic, setSelectedTopic] = useState<string>("Tümü");

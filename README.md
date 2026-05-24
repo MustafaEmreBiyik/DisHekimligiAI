@@ -204,11 +204,7 @@ The backend is responsible for the parts of the system that need consistency, pe
 - generating analytics and CSV exports
 - exposing recommendation, instructor, and admin APIs
 
-<<<<<<< HEAD
-The FastAPI application wires these domains together through routers mounted in `backend/app/api/main.py`.
-=======
 The FastAPI application wires these domains together through routers mounted in `app/api/main.py`.
->>>>>>> origin/main
 
 ## Request lifecycle
 
@@ -279,11 +275,7 @@ This design is important because it lets the interface stay natural while keepin
 
 Rule evaluation is handled separately from AI interpretation. That separation is one of the stronger design decisions in the repository.
 
-<<<<<<< HEAD
-- scoring rules are loaded from `backend/data/scoring_rules.json`
-=======
 - scoring rules are loaded from `data/scoring_rules.json`
->>>>>>> origin/main
 - rules are matched by `case_id` and normalized action key
 - each matching rule can return score change, rule outcome, and state updates
 - unrecognized actions fall back to an unscored result rather than corrupting state
@@ -359,11 +351,7 @@ The current codebase expects several runtime configuration values:
 - `HUGGINGFACE_API_KEY` for MedGemma-related service availability checks
 - `DENTAI_SECRET_KEY` for JWT signing
 - `DENTAI_ACCESS_TOKEN_EXPIRE_MINUTES` for auth token lifetime
-<<<<<<< HEAD
 - `DATABASE_URL` for Docker/runtime configuration, with `DENTAI_DATABASE_URL` still accepted for compatibility
-=======
-- `DENTAI_DATABASE_URL` for database location override
->>>>>>> origin/main
 - `NEXT_PUBLIC_API_URL` for frontend-to-backend routing
 
 These are not optional in the same way. For example, JWT configuration is validated at API startup, while some AI-related services degrade more gracefully.
