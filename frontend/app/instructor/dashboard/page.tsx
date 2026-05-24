@@ -118,6 +118,24 @@ export default function InstructorDashboardPage() {
                 Acik Uclu Soru Ekle
               </Link>
               <Link
+                href="/instructor/mappings"
+                className="inline-flex items-center rounded-lg border border-violet-300 px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50"
+              >
+                Soru–Vaka Eslestirme
+              </Link>
+              <Link
+                href="/instructor/case-rubrics"
+                className="inline-flex items-center rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50"
+              >
+                Vaka Rubrikleri
+              </Link>
+              <Link
+                href="/instructor/rubric-history"
+                className="inline-flex items-center rounded-lg border border-violet-300 px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50"
+              >
+                Rubrik Versiyonlama
+              </Link>
+              <Link
                 href="/instructor/grading"
                 className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
               >

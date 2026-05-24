@@ -56,7 +56,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  },
+  }
 );
 
 // Response interceptor - Handle errors globally
@@ -71,14 +71,9 @@ apiClient.interceptors.response.use(
 
       if (status === 401) {
         // Unauthorized - clear all auth data and redirect to login
-        [
-          "access_token",
-          "user_id",
-          "student_id",
-          "name",
-          "display_name",
-          "role",
-        ].forEach((key) => localStorage.removeItem(key));
+        ["access_token", "user_id", "student_id", "name", "display_name", "role"].forEach(
+          (key) => localStorage.removeItem(key)
+        );
 
         // Only redirect if not already on login page
         if (
@@ -91,7 +86,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 // ==================== API FUNCTIONS ====================
@@ -153,7 +148,7 @@ export const chatAPI = {
    */
   getHistory: async (student_id: string, case_id: string) => {
     const response = await apiClient.get(
-      `/api/chat/history/${student_id}/${case_id}`,
+      `/api/chat/history/${student_id}/${case_id}`
     );
     return response.data;
   },
@@ -359,6 +354,7 @@ export interface GradeSubmission {
 }
 
 export interface InstructorQuestionBankItem {
+  id: number;                        // T-4B: DB primary key (for rubric versioning)
   question_id: string;
   question_type: string;
   question_text: string;
@@ -367,6 +363,8 @@ export interface InstructorQuestionBankItem {
   bloom_level: string;
   difficulty: string;
   safety_category: string;
+  unit_id?: string | null;           // T-2A
+  week_number?: number | null;       // T-2A
   rubric_guide?: string | null;
   model_answer_outline?: string | null;
   instructor_explanation?: string | null;
@@ -374,6 +372,7 @@ export interface InstructorQuestionBankItem {
   correct_option?: string | null;
   max_score: number;
   is_active: boolean;
+  current_rubric_version?: number | null; // T-4B: latest published rubric version
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -387,6 +386,8 @@ export interface InstructorQuestionCreatePayload {
   bloom_level: string;
   difficulty: string;
   safety_category: string;
+  unit_id?: string;          // T-2A
+  week_number?: number;      // T-2A
   rubric_guide?: string;
   model_answer_outline?: string;
   instructor_explanation?: string;
@@ -408,18 +409,14 @@ export const instructorAPI = {
   getStudentDrilldown: async (
     studentId: string,
   ): Promise<InstructorStudentDrilldownResponse> => {
-    const response = await apiClient.get(
-      `/api/instructor/students/${studentId}`,
-    );
+    const response = await apiClient.get(`/api/instructor/students/${studentId}`);
     return response.data as InstructorStudentDrilldownResponse;
   },
 
   getSessionDetail: async (
     sessionId: string,
   ): Promise<InstructorSessionDetailResponse> => {
-    const response = await apiClient.get(
-      `/api/instructor/sessions/${sessionId}`,
-    );
+    const response = await apiClient.get(`/api/instructor/sessions/${sessionId}`);
     return response.data as InstructorSessionDetailResponse;
   },
 
@@ -439,32 +436,20 @@ export const instructorAPI = {
     return response.data as GradingQueueItem[];
   },
 
-  submitGrade: async (
-    answerId: number,
-    payload: GradeSubmission,
-  ): Promise<void> => {
+  submitGrade: async (answerId: number, payload: GradeSubmission): Promise<void> => {
     await apiClient.post(`/api/quiz/instructor/grade/${answerId}`, payload);
   },
 
-  getQuestionBank: async (
-    questionType?: string,
-  ): Promise<InstructorQuestionBankItem[]> => {
-    const suffix = questionType
-      ? `?question_type=${encodeURIComponent(questionType)}`
-      : "";
-    const response = await apiClient.get(
-      `/api/quiz/instructor/questions${suffix}`,
-    );
+  getQuestionBank: async (questionType?: string): Promise<InstructorQuestionBankItem[]> => {
+    const suffix = questionType ? `?question_type=${encodeURIComponent(questionType)}` : "";
+    const response = await apiClient.get(`/api/quiz/instructor/questions${suffix}`);
     return response.data as InstructorQuestionBankItem[];
   },
 
   createQuestion: async (
     payload: InstructorQuestionCreatePayload,
   ): Promise<InstructorQuestionBankItem> => {
-    const response = await apiClient.post(
-      "/api/quiz/instructor/questions",
-      payload,
-    );
+    const response = await apiClient.post("/api/quiz/instructor/questions", payload);
     return response.data as InstructorQuestionBankItem;
   },
 };
@@ -580,9 +565,7 @@ export const adminAPI = {
     return response.data as AdminUsersResponse;
   },
 
-  createUser: async (
-    payload: AdminUserCreatePayload,
-  ): Promise<AdminUserItem> => {
+  createUser: async (payload: AdminUserCreatePayload): Promise<AdminUserItem> => {
     const response = await apiClient.post("/api/admin/users", payload);
     return response.data as AdminUserItem;
   },
@@ -600,9 +583,7 @@ export const adminAPI = {
     return response.data as AdminCasesResponse;
   },
 
-  createCase: async (
-    payload: AdminCaseCreatePayload,
-  ): Promise<AdminCaseItem> => {
+  createCase: async (payload: AdminCaseCreatePayload): Promise<AdminCaseItem> => {
     const response = await apiClient.post("/api/admin/cases", payload);
     return response.data as AdminCaseItem;
   },
@@ -649,84 +630,114 @@ export const adminAPI = {
  * Feedback API
  */
 export const feedbackAPI = {
-  /**
-   * Submit feedback after case completion
-   */
-  submitFeedback: async (
-    session_id: number,
-    case_id: string,
-    rating: number,
-    comment?: string,
-  ) => {
-    const response = await apiClient.post("/api/feedback/submit", {
-      session_id,
-      case_id,
-      rating,
-      comment,
-    });
-    return response.data;
-  },
+    /**
+     * Submit feedback after case completion
+     */
+    submitFeedback: async (session_id: number, case_id: string, rating: number, comment?: string) => {
+        const response = await apiClient.post('/api/feedback/submit', {
+            session_id,
+            case_id,
+            rating,
+            comment,
+        });
+        return response.data;
+    },
 };
 
 /**
  * Analytics API
  */
 export const analyticsAPI = {
-  /**
-   * Download actions CSV
-   */
-  downloadActionsCSV: () => {
-    window.open(
-      `${apiClient.defaults.baseURL}/api/analytics/export/actions`,
-      "_blank",
-    );
-  },
+    /**
+     * Download actions CSV
+     */
+    downloadActionsCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/actions`, '_blank');
+    },
 
-  /**
-   * Download feedback CSV
-   */
-  downloadFeedbackCSV: () => {
-    window.open(
-      `${apiClient.defaults.baseURL}/api/analytics/export/feedback`,
-      "_blank",
-    );
-  },
+    /**
+     * Download feedback CSV
+     */
+    downloadFeedbackCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/feedback`, '_blank');
+    },
 
-  /**
-   * Download sessions CSV
-   */
-  downloadSessionsCSV: () => {
-    window.open(
-      `${apiClient.defaults.baseURL}/api/analytics/export/sessions`,
-      "_blank",
-    );
-  },
+    /**
+     * Download sessions CSV
+     */
+    downloadSessionsCSV: () => {
+        window.open(`${apiClient.defaults.baseURL}/api/analytics/export/sessions`, '_blank');
+    },
 };
 
 /**
  * User / Student Stats API
  */
 export const userAPI = {
-  /**
-   * Get comprehensive stats for the authenticated student
-   */
-  getStats: async () => {
-    const response = await apiClient.get("/api/analytics/student-stats");
-    return response.data;
-  },
+    /**
+     * Get comprehensive stats for the authenticated student
+     */
+    getStats: async () => {
+        const response = await apiClient.get('/api/analytics/student-stats');
+        return response.data;
+    },
 };
 
 // ==================== QUIZ TYPES (student-safe) ====================
 
+// ── Composite score types (T-2B) ─────────────────────────────────────────────
+
+export interface ComponentScoreData {
+  available: boolean;
+  earned: number;
+  max_possible: number;
+  /** null = no published records yet (cold start); 0.0 = records exist but zero earned */
+  pct: number | null;
+  design_weight: number;
+  effective_weight: number;
+}
+
+export interface CompositeScoreData {
+  mcq: ComponentScoreData;
+  open_ended: ComponentScoreData;
+  case: ComponentScoreData;
+  /** null only when ALL three components are unavailable (true cold start) */
+  composite_pct: number | null;
+  all_components_available: boolean;
+  computed_at: string;
+}
+
+// ── Topic accuracy types (T-2C) ───────────────────────────────────────────────
+
+export interface TopicAccuracyItem {
+  topic_id: string;
+  topic_label: string;
+  earned: number;
+  max_possible: number;
+  /** null when max_possible == 0 (defensive; should not occur in practice) */
+  pct: number | null;
+  answered_count: number;
+  correct_count: number;
+  /** true when pct < 60% */
+  is_weak: boolean;
+}
+
+export interface TopicAccuracyData {
+  /** Sorted weakest-first */
+  topics: TopicAccuracyItem[];
+  has_any_data: boolean;
+  computed_at: string;
+}
+
 /** Student-safe question — no answer keys, no explanation. */
 export interface QuizQuestion {
-  id: string;
-  topic: string;
-  question: string;
-  options: string[];
-  question_type?: string;
-  difficulty?: string;
-  bloom_level?: string;
+    id: string;
+    topic: string;
+    question: string;
+    options: string[];
+    question_type?: string;
+    difficulty?: string;
+    bloom_level?: string;
 }
 
 export interface AttemptSummary {
@@ -757,49 +768,124 @@ export interface QuestionBankFilters {
 
 /** Per-question result after server-side grading — student-safe feedback only. */
 export interface QuizQuestionResult {
-  id: string;
-  topic: string;
-  question: string;
-  selected_option: string | null;
-  is_correct: boolean | null;
-  feedback: string | null;
-  question_type?: string;
-  grading_status?: string;
-  instructor_score?: number | null;
-  instructor_feedback?: string | null;
+    id: string;
+    topic: string;
+    question: string;
+    selected_option: string | null;
+    is_correct: boolean | null;
+    feedback: string | null;
+    question_type?: string;
+    grading_status?: string;
+    instructor_score?: number | null;
+    instructor_feedback?: string | null;
 }
 
 /** POST /api/quiz/submit response — student-safe. */
 export interface QuizSubmitResponse {
-  attempt_id: number;
-  score: number | null;
-  total: number;
-  percentage: number | null;
-  overall_status?: string;
-  results: QuizQuestionResult[];
+    attempt_id: number;
+    score: number | null;
+    total: number;
+    percentage: number | null;
+    overall_status?: string;
+    results: QuizQuestionResult[];
 }
 
 /**
  * Quiz API
  */
 export const quizAPI = {
-  getQuestions: async (topic?: string): Promise<QuizQuestion[]> => {
-    const params =
-      topic && topic !== "Tümü" ? `?topic=${encodeURIComponent(topic)}` : "";
-    const response = await apiClient.get(`/api/quiz/questions${params}`);
-    return response.data as QuizQuestion[];
+    getQuestions: async (topic?: string): Promise<QuizQuestion[]> => {
+        const params = topic && topic !== 'Tümü' ? `?topic=${encodeURIComponent(topic)}` : '';
+        const response = await apiClient.get(`/api/quiz/questions${params}`);
+        return response.data as QuizQuestion[];
+    },
+
+    getTopics: async (): Promise<string[]> => {
+        const response = await apiClient.get('/api/quiz/topics');
+        return response.data as string[];
+    },
+
+    submitAnswers: async (answers: Record<string, string>): Promise<QuizSubmitResponse> => {
+        const response = await apiClient.post('/api/quiz/submit', { answers });
+        return response.data as QuizSubmitResponse;
+    },
+
+    /** Get the student's weighted composite score across MCQ / OE / Case components. */
+    getMyScore: async (): Promise<CompositeScoreData> => {
+        const response = await apiClient.get('/api/quiz/my-score');
+        return response.data as CompositeScoreData;
+    },
+
+    /** Get the student's per-topic MCQ accuracy, sorted weakest-first. */
+    getMyTopicAccuracy: async (): Promise<TopicAccuracyData> => {
+        const response = await apiClient.get('/api/quiz/my-topic-accuracy');
+        return response.data as TopicAccuracyData;
+    },
+};
+
+// ==================== QUESTION-CASE MAPPING TYPES (T-3A / T-3B) ====================
+
+export type MappingType = "theory_support" | "case_reinforcement" | "assessment_link";
+export type MappingReviewStatus = "unmapped" | "approved" | "blocked_review_needed";
+
+export interface QuestionCaseMappingItem {
+  id: number;
+  question_pk: number;
+  question_id: string;
+  question_type: string;
+  topic_id: string;
+  question_text: string;
+  case_id: string;
+  mapping_type: MappingType;
+  review_status: MappingReviewStatus;
+}
+
+export interface QuestionCaseMappingsResponse {
+  mappings: QuestionCaseMappingItem[];
+  total: number;
+  computed_at: string;
+}
+
+export interface CreateMappingPayload {
+  question_id: string;
+  case_id: string;
+  mapping_type: MappingType;
+  review_status?: MappingReviewStatus;
+}
+
+export interface MappingFilters {
+  question_id?: string;
+  case_id?: string;
+  mapping_type?: MappingType | "";
+  review_status?: MappingReviewStatus | "";
+}
+
+/**
+ * Instructor-only: Question-Case Mapping API (T-3A read, T-3B write)
+ */
+export const mappingAPI = {
+  /** GET /api/quiz/question-case-mappings — instructor + admin only */
+  getMappings: async (filters?: MappingFilters): Promise<QuestionCaseMappingsResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.question_id?.trim()) params.set("question_id", filters.question_id.trim());
+    if (filters?.case_id?.trim()) params.set("case_id", filters.case_id.trim());
+    if (filters?.mapping_type) params.set("mapping_type", filters.mapping_type);
+    if (filters?.review_status) params.set("review_status", filters.review_status);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const response = await apiClient.get(`/api/quiz/question-case-mappings${suffix}`);
+    return response.data as QuestionCaseMappingsResponse;
   },
 
-  getTopics: async (): Promise<string[]> => {
-    const response = await apiClient.get("/api/quiz/topics");
-    return response.data as string[];
+  /** POST /api/quiz/instructor/question-case-mappings — returns 201 Created */
+  createMapping: async (payload: CreateMappingPayload): Promise<QuestionCaseMappingItem> => {
+    const response = await apiClient.post("/api/quiz/instructor/question-case-mappings", payload);
+    return response.data as QuestionCaseMappingItem;
   },
 
-  submitAnswers: async (
-    answers: Record<string, string>,
-  ): Promise<QuizSubmitResponse> => {
-    const response = await apiClient.post("/api/quiz/submit", { answers });
-    return response.data as QuizSubmitResponse;
+
+  /** DELETE /api/quiz/instructor/question-case-mappings/{id} — returns 204 No Content */
+  deleteMapping: async (mappingId: number): Promise<void> => {
+    await apiClient.delete(`/api/quiz/instructor/question-case-mappings/${mappingId}`);
   },
 
   getQuestionBank: async (
@@ -820,4 +906,80 @@ export const quizAPI = {
   },
 };
 
-export default apiClient;
+// ── Case Rubric API (T-3C) ────────────────────────────────────────────────
+
+export interface DecisionPoint {
+  target_action: string;
+  score: number;
+  rule_outcome: string;
+  is_critical: boolean;
+  safety_category: string | null;
+  competency_tags: string[];
+  rubric_level: "critical" | "standard" | "penalty";
+}
+
+export interface CaseRubric {
+  case_id: string;
+  total_max_score: number;
+  critical_count: number;
+  positive_count: number;
+  penalty_count: number;
+  computed_at: string;
+  decision_points: DecisionPoint[];
+}
+
+export const caseRubricAPI = {
+  getAllRubrics: async (): Promise<CaseRubric[]> => {
+    const response = await apiClient.get("/api/quiz/case-rubrics");
+    return response.data as CaseRubric[];
+  },
+  getRubric: async (caseId: string): Promise<CaseRubric> => {
+    const response = await apiClient.get(`/api/quiz/case-rubrics/${encodeURIComponent(caseId)}`);
+    return response.data as CaseRubric;
+  },
+  getCaseIds: async (): Promise<string[]> => {
+    const response = await apiClient.get("/api/quiz/case-rubrics-index");
+    return response.data as string[];
+  },
+};
+
+
+// -- Rubric Version API (T-4B) --
+
+export interface RubricVersionItem {
+  id: number;
+  question_id: number;
+  version: number;
+  rubric_guide: string;
+  model_answer_outline: string;
+  change_notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export const rubricVersionAPI = {
+  publishSnapshot: async (
+    questionId: number,
+    payload: { rubric_guide: string; model_answer_outline: string; change_notes?: string }
+  ): Promise<RubricVersionItem> => {
+    const response = await apiClient.post(
+      `/api/quiz/instructor/questions/${questionId}/rubric-snapshot`,
+      payload
+    );
+    return response.data as RubricVersionItem;
+  },
+
+  getVersions: async (questionId: number): Promise<RubricVersionItem[]> => {
+    const response = await apiClient.get(
+      `/api/quiz/instructor/questions/${questionId}/rubric-versions`
+    );
+    return response.data as RubricVersionItem[];
+  },
+
+  getVersion: async (versionId: number): Promise<RubricVersionItem> => {
+    const response = await apiClient.get(
+      `/api/quiz/instructor/rubric-versions/${versionId}`
+    );
+    return response.data as RubricVersionItem;
+  },
+};
