@@ -9,6 +9,7 @@ import {
   InstructorQuestionBankItem,
   InstructorQuestionCreatePayload,
 } from "@/lib/api";
+import { Download, Archive, CheckSquare } from "lucide-react";
 import {
   ArrowLeft,
   Copy,
@@ -227,6 +228,54 @@ export default function InstructorQuestionsPage() {
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === questions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(questions.map((q) => q.id)));
+    }
+  };
+
+  const handleBulkAction = async (action: string, value?: string) => {
+    if (selectedIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const result = await instructorAPI.bulkUpdateQuestions({ question_ids: Array.from(selectedIds), action, value });
+      setSuccessMessage(`${result.affected} soru güncellendi.`);
+      setSelectedIds(new Set());
+      const response = await instructorAPI.getQuestionBank(mode);
+      setQuestions(response);
+    } catch (error) {
+      setErrorMessage(readErrorMessage(error, "Toplu işlem başarısız."));
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleCSVExport = async () => {
+    try {
+      const blob = await instructorAPI.exportQuestionsCSV();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "questions_export.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMessage(readErrorMessage(error, "CSV dışa aktarma başarısız."));
+    }
+  };
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -757,10 +806,41 @@ export default function InstructorQuestionsPage() {
                       Recently authored items for the active panel.
                     </p>
                   </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {questions.length} items
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCSVExport}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                    >
+                      <Download size={14} /> CSV
+                    </button>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {questions.length} items
+                    </span>
+                  </div>
                 </div>
+
+                {selectedIds.size > 0 && (
+                  <div className="mb-4 flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-200 px-4 py-2.5">
+                    <CheckSquare size={16} className="text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">{selectedIds.size} seçili</span>
+                    <div className="ml-auto flex gap-2">
+                      <button
+                        onClick={() => handleBulkAction("archive")}
+                        disabled={bulkLoading}
+                        className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+                      >
+                        <Archive size={14} /> Arşivle
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction("activate")}
+                        disabled={bulkLoading}
+                        className="inline-flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200 disabled:opacity-50"
+                      >
+                        Aktifleştir
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {isLoading ? (
                   <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -772,13 +852,29 @@ export default function InstructorQuestionsPage() {
                     No {questionTypeLabel(mode).toLowerCase()} items yet.
                   </div>
                 ) : (
+                  <>
+                  <div className="mb-3 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === questions.length && questions.length > 0}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    <span className="text-xs text-slate-500">Tümünü Seç</span>
+                  </div>
                   <div className="space-y-4">
                     {questions.map((question) => (
                       <article
                         key={question.question_id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className={`rounded-2xl border p-4 ${selectedIds.has(question.id) ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-slate-50"}`}
                       >
                         <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(question.id)}
+                            onChange={() => toggleSelect(question.id)}
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
                           <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
                             {question.topic_id}
                           </span>
@@ -821,6 +917,7 @@ export default function InstructorQuestionsPage() {
                       </article>
                     ))}
                   </div>
+                  </>
                 )}
               </section>
             </div>

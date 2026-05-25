@@ -25,11 +25,8 @@ directly — no FastAPI test client required.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from db.database import (
-    Base,
     GradingStatus,
     Question,
     QuestionType,
@@ -41,19 +38,6 @@ from app.services.topic_accuracy_service import (
     _WEAK_THRESHOLD_PCT,
     get_topic_accuracy,
 )
-
-
-# ── Shared fixtures ──────────────────────────────────────────────────────────
-
-@pytest.fixture
-def db():
-    """Fresh in-memory SQLite session for each test."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
 
 
 # ── Seed helpers ─────────────────────────────────────────────────────────────

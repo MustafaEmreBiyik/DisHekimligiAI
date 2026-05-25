@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   BarChart2,
+  Download,
   Lightbulb,
   TrendingUp,
   PieChart,
@@ -259,11 +260,32 @@ export default function StatisticsPage() {
   return (
     <div className={styles.container}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className={styles.pageHeader}>
+      <div className={styles.pageHeader} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 className={styles.pageTitle}>
           <BarChart2 size={32} color="#0066cc" />
           Performans İstatistikleri
         </h1>
+        <button
+          onClick={async () => {
+            const token = localStorage.getItem("access_token");
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/quiz/my-report?format=pdf`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) return;
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "rapor.pdf";
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+        >
+          <Download size={16} />
+          PDF İndir
+        </button>
       </div>
 
       {/* ── Error banners ─────────────────────────────────────────────────── */}
