@@ -35,22 +35,11 @@ from db.database import (
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-# A topic is considered "weak" when the student's accuracy falls below this
-# threshold. Adjust here if the product decision changes.
-_WEAK_THRESHOLD_PCT: float = 60.0
+from app.constants import TOPIC_LABELS, WEAK_THRESHOLD_PCT
 
-# Sentinel used when a question carries an empty or missing topic_id.
+_WEAK_THRESHOLD_PCT: float = WEAK_THRESHOLD_PCT
 _UNTAGGED_TOPIC_ID: str = "untagged"
-
-# Human-readable display labels for known topic IDs.
-# Keys must match the topic_id values stored in Question.topic_id.
-# Any topic not listed here will display its topic_id as its own label.
-_TOPIC_LABELS: dict[str, str] = {
-    "oral_pathology": "Oral Patoloji",
-    "infectious_diseases": "Enfeksiyöz Hastalıklar",
-    "traumatic": "Travmatik Lezyonlar",
-    _UNTAGGED_TOPIC_ID: "Etiketlenmemiş",
-}
+_TOPIC_LABELS: dict[str, str] = TOPIC_LABELS
 
 
 # ── Data classes ───────────────────────────────────────────────────────────────
