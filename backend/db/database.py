@@ -446,9 +446,11 @@ class QuizAttempt(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, nullable=False, index=True)
-    session_id = Column(String, nullable=True)  # Optional link to curriculum session
+    session_id = Column(String, nullable=True)
+    schedule_id = Column(Integer, ForeignKey("exam_schedules.id"), nullable=True, index=True)
     total_score = Column(Integer, nullable=False, default=0)
     max_score = Column(Integer, nullable=False, default=0)
+    time_limit_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
@@ -484,12 +486,89 @@ class QuizAnswer(Base):
     # T-4B: rubric version snapshot that was in effect when graded
     rubric_version_id = Column(Integer, ForeignKey("rubric_versions.id"), nullable=True, index=True)
 
+    # T-8C: inter-rater (secondary instructor) fields
+    secondary_instructor_score = Column(Float, nullable=True)
+    secondary_instructor_id = Column(String, nullable=True)
+    secondary_graded_at = Column(DateTime, nullable=True)
+    inter_rater_delta = Column(Float, nullable=True)
+
     attempt = relationship("QuizAttempt", back_populates="answers")
     question = relationship("Question", back_populates="answers")
     rubric_version_snapshot = relationship("RubricVersion", back_populates="answers_graded_with")
 
     def __repr__(self):
         return f"<QuizAnswer(attempt_id={self.attempt_id}, question_id={self.question_id}, status={self.grading_status})>"
+
+
+class AIScoringLog(Base):
+    """Audit log for AI scoring attempts (T-6D)."""
+    __tablename__ = "ai_scoring_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False, index=True)
+    model_id = Column(String, nullable=False)
+    status = Column(String, nullable=False)  # "success" or "error"
+    error_message = Column(Text, nullable=True)
+    latency_ms = Column(Integer, nullable=False, default=0)
+    suggested_score = Column(Float, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f"<AIScoringLog(id={self.id}, answer_id={self.answer_id}, status={self.status})>"
+
+
+class Notification(Base):
+    """User notifications (T-7A)."""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    type = Column(String, nullable=False)  # "score_published", etc.
+    payload_json = Column(JSON, nullable=False, default=dict)
+    is_read = Column(Boolean, nullable=False, default=False, index=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f"<Notification(id={self.id}, user_id={self.user_id}, type={self.type}, is_read={self.is_read})>"
+
+
+class ExamSchedule(Base):
+    """Scheduled exam packages (T-8A)."""
+    __tablename__ = "exam_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    question_ids = Column(JSON, nullable=False, default=list)
+    opens_at = Column(DateTime, nullable=False)
+    closes_at = Column(DateTime, nullable=False)
+    time_limit_minutes = Column(Integer, nullable=True)
+    created_by = Column(String, nullable=False, index=True)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ExamSchedule(id={self.id}, title={self.title}, opens_at={self.opens_at})>"
+
+
+class MiniCase(Base):
+    """Lightweight clinical vignettes linked to theory questions (T-5B)."""
+    __tablename__ = "mini_cases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mini_case_id = Column(String, unique=True, nullable=False, index=True)
+    title = Column(String, nullable=False)
+    linked_topic_ids = Column(JSON, nullable=True)
+    clinical_vignette = Column(Text, nullable=False)
+    key_findings = Column(JSON, nullable=True)
+    question_ids = Column(JSON, nullable=True)
+    learning_objectives = Column(JSON, nullable=True)
+    difficulty = Column(String, nullable=False, default="medium")
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return f"<MiniCase(mini_case_id={self.mini_case_id}, title={self.title})>"
 
 
 # ==================== VERİTABANI FONKSİYONLARI ====================

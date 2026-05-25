@@ -5,6 +5,10 @@ import types
 from pathlib import Path
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from db.database import Base
 
 
 _DEFAULT_GEMINI_PAYLOAD = {
@@ -121,6 +125,17 @@ def mock_external_ai_sdks(monkeypatch):
     monkeypatch.setitem(sys.modules, "huggingface_hub", hf_module)
 
     return {"gemini": gemini_module, "huggingface": hf_module}
+
+
+@pytest.fixture
+def db():
+    """Shared in-memory SQLite session for unit tests."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
 
 
 @pytest.fixture
