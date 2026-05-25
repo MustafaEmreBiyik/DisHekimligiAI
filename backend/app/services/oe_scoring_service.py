@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -142,23 +143,37 @@ def _get_hf_client():
     return InferenceClient(token=api_key)
 
 
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 2.0
+
+
 def _call_llm(messages: list, *, model_id: str = "google/gemma-2-9b-it") -> str:
     client = _get_hf_client()
-    try:
-        response = client.chat.completions.create(
-            model=model_id,
-            messages=messages,
-            max_tokens=512,
-            temperature=0.2,
-        )
-        content = response.choices[0].message.content
-        if not content:
-            raise OEScoringError("LLM returned empty content")
-        return content
-    except OEScoringError:
-        raise
-    except Exception as exc:
-        raise OEScoringError(f"LLM call failed: {exc}") from exc
+    last_exc: Optional[Exception] = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                max_tokens=512,
+                temperature=0.2,
+            )
+            content = response.choices[0].message.content
+            if not content:
+                raise OEScoringError("LLM returned empty content")
+            return content
+        except OEScoringError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES - 1:
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "AI scoring attempt %d/%d failed (%s), retrying in %.1fs",
+                    attempt + 1, _MAX_RETRIES, exc, delay,
+                )
+                time.sleep(delay)
+    raise OEScoringError(f"LLM call failed after {_MAX_RETRIES} attempts: {last_exc}") from last_exc
 
 
 # ---------------------------------------------------------------------------
