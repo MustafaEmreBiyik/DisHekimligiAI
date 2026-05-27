@@ -352,6 +352,8 @@
 | **S9-F** Frontend test altyapısı kurulumu (Vitest + RTL, 5 smoke test) | High Impact / Low Effort | 1.5 gün |
 | **S9-G** Secrets management taşıması (.env → Vault/SSM) | Production Critical | 1.5 gün |
 | **S9-H** Disaster recovery: Postgres backup + restore drill | Production Critical | 1 gün |
+| **S9-I** `_STUDENT_STATES` in-memory dict → Redis/DB-backed session store (horizontal scale hazırlığı) | Production Critical | 2 gün |
+| **S9-J** Global `agent` singleton (`chat.py`) → per-request instantiation refaktörü | Production Critical | 1 gün |
 
 ---
 
@@ -370,9 +372,11 @@
 
 ---
 
-### Sprint 11 — "Research Infrastructure" (2.5 hafta)
+### Sprint 11 — "Research Infrastructure" (3 hafta)
 
 **Tema:** Yayın yapılabilir bir sistem altyapısı kurmak.
+
+> **Not:** A/B Testing Framework bu sprint'e alındı (önceki Mid-term M1). Veri toplanmaya başlamadan önce randomizasyon altyapısı kurulmazsa, toplanan verinin kontrollü olmadığı gerekçesiyle yayında kullanılması mümkün olmaz.
 
 | Görev | Kategori | Tahmin |
 |-------|----------|--------|
@@ -381,6 +385,7 @@
 | **S11-C** Anonymization & Export Pipeline (PII strip + k-anonymity) | Research Critical | 3 gün |
 | **S11-D** Per-Decision LLM Audit Trail (full request/response log) | Research + Production | 2 gün |
 | **S11-E** Longitudinal Learning Trajectory tracking (weekly snapshots) | Research Critical | 2 gün |
+| **S11-F** A/B Testing Framework — cohort split + outcome ölçümü + istatistiksel anlamlılık (`Experiment`, `ExperimentArm`, `UserExperimentAssignment` tabloları + feature flag service) | Research Critical | 4 gün |
 
 ---
 
@@ -403,6 +408,8 @@
 
 **Tema:** Sıradan bir LMS'ten "intelligent tutoring system"e geçiş.
 
+> **Gate Condition:** S13-A (IRT) ve S13-B (BKT) yalnızca her soru için ≥200 öğrenci cevabı biriktiğinde istatistiksel olarak anlamlıdır. Bu eşiğe ulaşılmadan sprint başlatılırsa kalibrasyon mock/yetersiz veriye oturur ve yayın değeri taşımaz. Sprint başlangıcından önce veri yeterliliği `SELECT question_id, COUNT(*) FROM student_answers GROUP BY question_id` sorgusuyla kontrol edilmeli; eşik sağlanmamışsa sprint ertelenip S13-C, S13-D, S13-E önce yapılabilir.
+
 | Görev | Kategori | Tahmin |
 |-------|----------|--------|
 | **S13-A** IRT calibration pipeline (`py-irt`, nightly batch) | Research Critical | 4 gün |
@@ -415,10 +422,9 @@
 
 ## D. MID-TERM ROADMAP (6–12 ay)
 
-### M1 — A/B Testing & Pedagogical Experiments Framework
+### ~~M1 — A/B Testing & Pedagogical Experiments Framework~~ → Sprint 11'e (S11-F) alındı
 
-**Süre:** 3 hafta
-**Çıktı:** Cohort'lara otomatik split + outcome ölçümü + istatistiksel anlamlılık. *Bu olmadan yayında "etkili" iddia edilemez.*
+*Cohort split + outcome ölçümü + istatistiksel anlamlılık, veri toplanmaya başlamadan önce kurulması gerektiğinden Mid-term'den çıkarılıp Sprint 11'e taşındı.*
 
 ### M2 — Script Concordance Test Modülü
 
@@ -507,7 +513,7 @@
 2. Inter-Rater Reliability Analytics (S11-B)
 3. Per-Decision LLM Audit Trail (S11-D)
 4. Anonymization & Export Pipeline (S11-C)
-5. A/B Testing Framework (M1)
+5. A/B Testing Framework (S11-F) ← Mid-term M1'den taşındı
 6. Longitudinal Learning Trajectory (S11-E)
 7. IRT Calibration (S13-A)
 8. Bayesian Knowledge Tracing (S13-B)
