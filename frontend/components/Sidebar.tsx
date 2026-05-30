@@ -25,6 +25,7 @@ import {
   Upload,
   Bell,
   Calendar,
+  Brain,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "./NotificationBell";
@@ -53,6 +54,7 @@ export default function Sidebar() {
     { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
     { href: "/student/question-bank", icon: <Library size={20} />, label: "Soru Bankası" },
     { href: "/student/history", icon: <History size={20} />, label: "Sınav Geçmişi" },
+    { href: "/student/review-schedule", icon: <Brain size={20} />, label: "Tekrar Programı" },
     { href: "/student/mini-cases", icon: <Stethoscope size={20} />, label: "Mini Vakalar" },
     { href: "/student/notifications", icon: <Bell size={20} />, label: "Bildirimler" },
     { href: "/student/calendar", icon: <Calendar size={20} />, label: "Sınav Takvimi" },
