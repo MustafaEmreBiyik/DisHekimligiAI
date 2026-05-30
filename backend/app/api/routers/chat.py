@@ -7,11 +7,13 @@ Reuses existing DentalEducationAgent from app/agent.py.
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List
 import os
 import json
 import logging
 import datetime
+import threading
+from typing import Optional
 
 from app.agent import DentalEducationAgent
 from app.assessment_engine import AssessmentEngine
@@ -30,6 +32,8 @@ from db.database import (
     CoachHint,
     ValidatorAuditLog,
     CaseDefinition,
+    QuestionCaseMapping,
+    Question,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,24 +43,44 @@ sessions_router = APIRouter()
 reasoning_classifier = ReasoningPatternClassifier()
 scenario_manager = ScenarioManager()
 
-# Initialize the agent (same as Streamlit version)
-try:
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    if not GEMINI_API_KEY:
-        logger.warning("⚠️ GEMINI_API_KEY not found in environment. Chat endpoint will fail.")
-        agent = None
-    else:
-        agent = DentalEducationAgent(
-            api_key=GEMINI_API_KEY,
-            model_name="models/gemini-2.5-flash-lite"
-        )
-        logger.info("✅ DentalEducationAgent initialized successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to initialize DentalEducationAgent: {e}")
-    agent = None
+# Per-API-key agent cache: supports key rotation without service restart.
+_agent_cache: dict[str, DentalEducationAgent] = {}
+_agent_lock = threading.Lock()
+
+
+def _get_or_create_agent() -> Optional[DentalEducationAgent]:
+    """Return a cached DentalEducationAgent, creating one per unique API key.
+
+    Supports key rotation: when GEMINI_API_KEY changes, a fresh agent is built
+    and cached under the new key without requiring a process restart.
+    """
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        logger.warning("GEMINI_API_KEY not configured — chat service unavailable")
+        return None
+    if api_key not in _agent_cache:
+        with _agent_lock:
+            if api_key not in _agent_cache:
+                try:
+                    _agent_cache[api_key] = DentalEducationAgent(
+                        api_key=api_key,
+                        model_name="models/gemini-2.5-flash-lite",
+                    )
+                    logger.info("DentalEducationAgent initialised (key rotation aware)")
+                except Exception as exc:
+                    logger.error("Failed to initialise DentalEducationAgent: %s", exc)
+                    return None
+    return _agent_cache.get(api_key)
 
 
 # ==================== REQUEST/RESPONSE MODELS ====================
+
+class ReinforcementQuestion(BaseModel):
+    """Linked theory question surfaced when student fails a case action. S10-A."""
+    question_id: str
+    topic_id: str
+    question_text: str
+
 
 class ChatRequest(BaseModel):
     """
@@ -85,6 +109,10 @@ class ChatResponse(BaseModel):
     final_feedback: Optional[str] = Field(None, description="Response text to show the student")
     state_updates: Dict[str, Any] = Field(default_factory=dict, description="Safe state updates")
     revealed_findings: List[str] = Field(default_factory=list, description="Newly revealed findings")
+    reinforcement_questions: List[ReinforcementQuestion] = Field(
+        default_factory=list,
+        description="Theory questions linked to this case, surfaced on failure (S10-A)",
+    )
 
     class Config:
         json_schema_extra = {
@@ -357,6 +385,33 @@ def _extract_coach_text(raw_text: str) -> str:
     return text
 
 
+def _get_reinforcement_questions(db, case_id: str, limit: int = 2) -> List[ReinforcementQuestion]:
+    """Return THEORY_SUPPORT mapped questions for this case. Used by S10-A."""
+    try:
+        mappings = (
+            db.query(QuestionCaseMapping)
+            .filter(
+                QuestionCaseMapping.case_id == case_id,
+                QuestionCaseMapping.mapping_type == "THEORY_SUPPORT",
+                QuestionCaseMapping.review_status == "APPROVED",
+            )
+            .limit(limit)
+            .all()
+        )
+        result = []
+        for m in mappings:
+            q = db.query(Question).filter(Question.id == m.question_id).first()
+            if q and q.is_active:
+                result.append(ReinforcementQuestion(
+                    question_id=q.question_id,
+                    topic_id=q.topic_id,
+                    question_text=q.question_text,
+                ))
+        return result
+    except Exception:
+        return []
+
+
 def _sanitize_coach_content(content: str, hint_level: str, case_meta: Dict[str, Any], revealed_findings: List[str]) -> str:
     cleaned = " ".join((content or "").split()).strip()
     if not cleaned:
@@ -411,27 +466,28 @@ def send_chat_message(
     The student sees only `response_text`. The `evaluation` object is for
     backend analytics and should NOT be displayed to students.
     """
+    agent = _get_or_create_agent()
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Chat service is unavailable. GEMINI_API_KEY not configured."
         )
-    
+
     db = SessionLocal()
     try:
         # STEP 1: Get or create session for this student + case
         session = get_or_create_session(db, current_user.user_id, request.case_id)
-        
+
         # STEP 2: Log student's message to database
         user_log = ChatLog(
             session_id=session.id,
             role='user',
             content=request.message,
-            metadata_json=None,  # User messages don't have metadata
+            metadata_json=None,
             timestamp=datetime.datetime.utcnow()
         )
         db.add(user_log)
-        
+
         # STEP 3: Process with AI agent
         result = agent.process_student_input(
             student_id=current_user.user_id,
@@ -564,7 +620,14 @@ def send_chat_message(
             case_id=result.get("case_id", request.case_id),
             is_case_finished=is_case_finished,
         )
-        
+
+        # S10-A: Surface reinforcement questions on failed/penalised actions.
+        reinforcement: List[ReinforcementQuestion] = []
+        action_meaningful = interpreted_action not in {"general_chat", "error", "unknown", ""}
+        action_failed = score < 0 or bool(silent_eval.get("reasoning_deviation", False))
+        if action_meaningful and action_failed:
+            reinforcement = _get_reinforcement_questions(db, request.case_id)
+
         # STEP 8: Return student-safe response payload
         return ChatResponse(
             session_id=session.id,
@@ -572,6 +635,7 @@ def send_chat_message(
             final_feedback=final_feedback,
             state_updates=safe_state_updates,
             revealed_findings=revealed_findings,
+            reinforcement_questions=reinforcement,
         )
     finally:
         db.close()
@@ -642,9 +706,10 @@ Return plain Turkish text only.
 """.strip()
 
         generated_content = ""
-        if agent and getattr(agent, "model", None):
+        _coach_agent = _get_or_create_agent()
+        if _coach_agent and getattr(_coach_agent, "model", None):
             try:
-                response = agent.model.generate_content(coach_prompt)
+                response = _coach_agent.model.generate_content(coach_prompt)
                 generated_content = _extract_coach_text(getattr(response, "text", ""))
             except Exception as exc:
                 logger.warning("Coach generation failed, fallback will be used: %s", exc)
@@ -753,12 +818,21 @@ def chat_service_status():
     """
     Check if chat service is operational.
     """
+    _status_agent = _get_or_create_agent()
     return {
         "service": "chat",
-        "status": "operational" if agent else "unavailable",
-        "agent_initialized": agent is not None,
-        "model": "gemini-2.5-flash-lite" if agent else None
+        "status": "operational" if _status_agent else "unavailable",
+        "agent_initialized": _status_agent is not None,
+        "model": "gemini-2.5-flash-lite" if _status_agent else None,
     }
+
+
+# Safety-critical actions that must be taken before any clinical procedure.
+_SAFETY_CRITICAL_ACTIONS: frozenset[str] = frozenset({
+    "ask_allergies",
+    "ask_medications",
+    "ask_medical_history",
+})
 
 
 @sessions_router.get(
@@ -808,6 +882,258 @@ def get_session_evaluation(
             case_id=session.case_id,
             current_score=session.current_score,
             evaluations=evaluations,
+        )
+    finally:
+        db.close()
+
+
+# ── S10-F: Diagnostic Reasoning Process Trace ────────────────────────────────
+
+class ProcessTraceEvent(BaseModel):
+    seq: int
+    role: str
+    timestamp: Optional[str] = None
+    content_preview: str
+    interpreted_action: Optional[str] = None
+    score: Optional[float] = None
+    reasoning_deviation: Optional[bool] = None
+    clinical_intent: Optional[str] = None
+
+
+class ProcessTraceResponse(BaseModel):
+    session_id: int
+    student_id: str
+    case_id: str
+    total_score: float
+    events: List[ProcessTraceEvent]
+    reasoning_pattern: Optional[Dict[str, Any]] = None
+    total_actions: int
+    deviation_count: int
+
+
+@sessions_router.get(
+    "/sessions/{session_id}/process-trace",
+    response_model=ProcessTraceResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Full diagnostic reasoning process trace for a session (instructor view)",
+)
+def get_session_process_trace(
+    session_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    db = SessionLocal()
+    try:
+        session = db.query(StudentSession).filter_by(id=session_id).first()
+        if not session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+
+        all_logs = (
+            db.query(ChatLog)
+            .filter_by(session_id=session_id)
+            .order_by(ChatLog.timestamp.asc(), ChatLog.id.asc())
+            .all()
+        )
+
+        events: List[ProcessTraceEvent] = []
+        reasoning_pattern: Optional[Dict[str, Any]] = None
+        deviation_count = 0
+        total_actions = 0
+
+        for seq, log in enumerate(all_logs, start=1):
+            metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+            interpreted_action = str(metadata.get("interpreted_action", "")).strip() or None
+            score = metadata.get("score")
+            score = float(score) if score is not None else None
+            silent_eval = metadata.get("silent_evaluation") or {}
+            deviation = bool(silent_eval.get("reasoning_deviation", False)) if isinstance(silent_eval, dict) else None
+
+            if interpreted_action and interpreted_action not in {"general_chat", "error", "unknown"}:
+                total_actions += 1
+                if deviation:
+                    deviation_count += 1
+
+            rp = metadata.get("reasoning_pattern")
+            if rp and isinstance(rp, dict):
+                reasoning_pattern = rp
+
+            events.append(ProcessTraceEvent(
+                seq=seq,
+                role=log.role,
+                timestamp=log.timestamp.isoformat() if log.timestamp else None,
+                content_preview=(log.content or "")[:120],
+                interpreted_action=interpreted_action,
+                score=score,
+                reasoning_deviation=deviation if log.role == "assistant" else None,
+                clinical_intent=str(metadata.get("clinical_intent", "")).strip() or None,
+            ))
+
+        return ProcessTraceResponse(
+            session_id=session.id,
+            student_id=session.student_id,
+            case_id=session.case_id,
+            total_score=float(session.current_score or 0.0),
+            events=events,
+            reasoning_pattern=reasoning_pattern,
+            total_actions=total_actions,
+            deviation_count=deviation_count,
+        )
+    finally:
+        db.close()
+
+
+# ── S10-D: Cognitive Load Profiling ──────────────────────────────────────────
+
+class CognitiveLoadResponse(BaseModel):
+    session_id: int
+    student_id: str
+    avg_response_time_ms: Optional[float] = None
+    hint_count: int
+    deviation_count: int
+    action_count: int
+    load_level: str
+    computed_at: str
+
+
+@sessions_router.get(
+    "/sessions/{session_id}/cognitive-load",
+    response_model=CognitiveLoadResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cognitive load profiling derived from session activity (S10-D)",
+)
+def get_session_cognitive_load(
+    session_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    db = SessionLocal()
+    try:
+        session = db.query(StudentSession).filter_by(id=session_id).first()
+        if not session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+
+        user_logs = (
+            db.query(ChatLog)
+            .filter_by(session_id=session_id, role="user")
+            .order_by(ChatLog.timestamp.asc())
+            .all()
+        )
+        assistant_logs = (
+            db.query(ChatLog)
+            .filter_by(session_id=session_id, role="assistant")
+            .order_by(ChatLog.timestamp.asc())
+            .all()
+        )
+
+        # Avg time between consecutive user messages (proxy for response latency)
+        response_times_ms: List[float] = []
+        for i in range(1, len(user_logs)):
+            prev = user_logs[i - 1].timestamp
+            curr = user_logs[i].timestamp
+            if prev and curr:
+                delta = (curr - prev).total_seconds() * 1000
+                if 0 < delta < 300_000:  # ignore gaps > 5 min (likely idle)
+                    response_times_ms.append(delta)
+
+        avg_rt = round(sum(response_times_ms) / len(response_times_ms), 1) if response_times_ms else None
+
+        hint_count = db.query(CoachHint).filter_by(session_id=session_id).count()
+
+        deviation_count = 0
+        action_count = 0
+        for log in assistant_logs:
+            metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+            action = str(metadata.get("interpreted_action", "")).strip()
+            if action and action not in {"general_chat", "error", "unknown"}:
+                action_count += 1
+                silent_eval = metadata.get("silent_evaluation") or {}
+                if isinstance(silent_eval, dict) and silent_eval.get("reasoning_deviation"):
+                    deviation_count += 1
+
+        # Heuristic load classification
+        load_score = 0
+        if avg_rt and avg_rt > 60_000:
+            load_score += 1
+        if hint_count >= 2:
+            load_score += 1
+        if action_count > 0 and deviation_count / action_count > 0.3:
+            load_score += 1
+
+        load_level = "low" if load_score == 0 else ("medium" if load_score == 1 else "high")
+
+        import datetime as _dt
+        return CognitiveLoadResponse(
+            session_id=session.id,
+            student_id=session.student_id,
+            avg_response_time_ms=avg_rt,
+            hint_count=hint_count,
+            deviation_count=deviation_count,
+            action_count=action_count,
+            load_level=load_level,
+            computed_at=_dt.datetime.utcnow().isoformat() + "Z",
+        )
+    finally:
+        db.close()
+
+
+# ── S10-E: Safety-Critical Action Reaction Time ───────────────────────────────
+
+class SafetyMetricsResponse(BaseModel):
+    session_id: int
+    student_id: str
+    case_id: str
+    safety_actions_taken: List[str]
+    safety_actions_missing: List[str]
+    first_safety_action_seconds: Optional[float] = None
+    all_safety_checks_done: bool
+    computed_at: str
+
+
+@sessions_router.get(
+    "/sessions/{session_id}/safety-metrics",
+    response_model=SafetyMetricsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Safety-critical action reaction time per session (S10-E)",
+)
+def get_session_safety_metrics(
+    session_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    db = SessionLocal()
+    try:
+        session = db.query(StudentSession).filter_by(id=session_id).first()
+        if not session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+
+        assistant_logs = (
+            db.query(ChatLog)
+            .filter_by(session_id=session_id, role="assistant")
+            .order_by(ChatLog.timestamp.asc(), ChatLog.id.asc())
+            .all()
+        )
+
+        taken: set[str] = set()
+        first_safety_seconds: Optional[float] = None
+
+        for log in assistant_logs:
+            metadata = log.metadata_json if isinstance(log.metadata_json, dict) else {}
+            action = str(metadata.get("interpreted_action", "")).strip()
+            if action in _SAFETY_CRITICAL_ACTIONS and action not in taken:
+                taken.add(action)
+                if first_safety_seconds is None and log.timestamp and session.start_time:
+                    delta = (log.timestamp - session.start_time).total_seconds()
+                    first_safety_seconds = round(delta, 1)
+
+        missing = sorted(_SAFETY_CRITICAL_ACTIONS - taken)
+
+        import datetime as _dt
+        return SafetyMetricsResponse(
+            session_id=session.id,
+            student_id=session.student_id,
+            case_id=session.case_id,
+            safety_actions_taken=sorted(taken),
+            safety_actions_missing=missing,
+            first_safety_action_seconds=first_safety_seconds,
+            all_safety_checks_done=len(missing) == 0,
+            computed_at=_dt.datetime.utcnow().isoformat() + "Z",
         )
     finally:
         db.close()
