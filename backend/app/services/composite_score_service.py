@@ -40,10 +40,12 @@ from db.database import (
 )
 
 # ── Design weights ──────────────────────────────────────────────────────────
-# Must sum to 1.0. Adjust here if the product decision changes.
-_MCQ_WEIGHT: float = 0.35
-_OE_WEIGHT: float = 0.40
-_CASE_WEIGHT: float = 0.25
+
+from app.constants import COMPOSITE_WEIGHTS
+
+_MCQ_WEIGHT: float = COMPOSITE_WEIGHTS["mcq"]
+_OE_WEIGHT: float = COMPOSITE_WEIGHTS["oe"]
+_CASE_WEIGHT: float = COMPOSITE_WEIGHTS["case"]
 
 assert abs(_MCQ_WEIGHT + _OE_WEIGHT + _CASE_WEIGHT - 1.0) < 1e-9, (
     "Design weights must sum to exactly 1.0"

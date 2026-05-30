@@ -8,11 +8,8 @@ from __future__ import annotations
 
 import datetime
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-# We import Base and the models we need after patching the engine
-from db.database import Base, Question, QuizAnswer, RubricVersion, QuizAttempt
+from db.database import Question, QuizAnswer, RubricVersion, QuizAttempt
 from db.database import QuestionType, GradingStatus
 
 from app.services.rubric_version_service import (
@@ -24,22 +21,6 @@ from app.services.rubric_version_service import (
     get_current_rubric_version_id,
     stamp_answer_rubric_version,
 )
-
-
-# ---------------------------------------------------------------------------
-# Test DB fixture
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="function")
-def db():
-    """Provide an isolated in-memory SQLite session for each test."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
-    Base.metadata.drop_all(bind=engine)
 
 
 # ---------------------------------------------------------------------------

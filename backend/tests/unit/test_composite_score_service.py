@@ -21,11 +21,8 @@ service function — no FastAPI test client required.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from db.database import (
-    Base,
     ExamResult,
     GradingStatus,
     Question,
@@ -39,23 +36,6 @@ from app.services.composite_score_service import (
     _CASE_WEIGHT,
     calculate_composite_score,
 )
-
-
-# ── Shared fixtures ──────────────────────────────────────────────────────────
-
-@pytest.fixture
-def db():
-    """Fresh in-memory SQLite session for each test."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
 
 
 # ── Helper factories ─────────────────────────────────────────────────────────

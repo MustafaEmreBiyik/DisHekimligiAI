@@ -14,37 +14,80 @@ import {
   Activity,
   FileQuestion,
   Microscope,
+  Library,
+  History,
+  Stethoscope,
+  ClipboardList,
+  PenTool,
+  Users,
+  LayoutDashboard,
+  FileBox,
+  Upload,
+  Bell,
+  Calendar,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import NotificationBell from "./NotificationBell";
 import styles from "./Sidebar.module.css";
+
+interface NavLink {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
 
-  const navLinks = [
+  const commonLinks: NavLink[] = [
     { href: "/dashboard", icon: <Home size={20} />, label: "Home" },
     { href: "/profile", icon: <User size={20} />, label: "My Account" },
-    {
-      href: "/statistics",
-      icon: <BarChart2 size={20} />,
-      label: "My Statistics",
-    },
-    { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
-    {
-      href: "/oral-pathology",
-      icon: <Microscope size={20} />,
-      label: "Oral Pathology",
-    },
-    {
-      href: "/quiz",
-      icon: <FileQuestion size={20} />,
-      label: "Klinik Bilgi Testi",
-    },
   ];
 
-  // Optionally add logout logic here
+  const studentLinks: NavLink[] = [
+    { href: "/statistics", icon: <BarChart2 size={20} />, label: "My Statistics" },
+    { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
+    { href: "/oral-pathology", icon: <Microscope size={20} />, label: "Oral Pathology" },
+    { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
+    { href: "/student/question-bank", icon: <Library size={20} />, label: "Soru Bankası" },
+    { href: "/student/history", icon: <History size={20} />, label: "Sınav Geçmişi" },
+    { href: "/student/mini-cases", icon: <Stethoscope size={20} />, label: "Mini Vakalar" },
+    { href: "/student/notifications", icon: <Bell size={20} />, label: "Bildirimler" },
+    { href: "/student/calendar", icon: <Calendar size={20} />, label: "Sınav Takvimi" },
+  ];
+
+  const instructorLinks: NavLink[] = [
+    { href: "/instructor/dashboard", icon: <LayoutDashboard size={20} />, label: "Instructor Panel" },
+    { href: "/instructor/questions", icon: <FileQuestion size={20} />, label: "Soru Yönetimi" },
+    { href: "/instructor/grading", icon: <PenTool size={20} />, label: "Puanlama" },
+    { href: "/instructor/mini-cases", icon: <Stethoscope size={20} />, label: "Mini Vakalar" },
+    { href: "/instructor/mappings", icon: <ClipboardList size={20} />, label: "Eşlemeler" },
+    { href: "/instructor/import", icon: <Upload size={20} />, label: "Soru İçe Aktar" },
+    { href: "/instructor/question-stats", icon: <BarChart2 size={20} />, label: "Soru İstatistikleri" },
+    { href: "/instructor/exam-schedules", icon: <Calendar size={20} />, label: "Sınav Takvimi" },
+  ];
+
+  const adminLinks: NavLink[] = [
+    { href: "/admin/dashboard", icon: <LayoutDashboard size={20} />, label: "Admin Panel" },
+    { href: "/admin/users", icon: <Users size={20} />, label: "Kullanıcılar" },
+    { href: "/admin/cases", icon: <FileBox size={20} />, label: "Vakalar" },
+  ];
+
+  let navLinks: NavLink[] = [...commonLinks];
+  const role = user?.role;
+
+  if (role === "student") {
+    navLinks = [...navLinks, ...studentLinks];
+  } else if (role === "instructor") {
+    navLinks = [...navLinks, ...studentLinks, ...instructorLinks];
+  } else if (role === "admin") {
+    navLinks = [...navLinks, ...studentLinks, ...instructorLinks, ...adminLinks];
+  }
+
   const handleLogout = () => {
-    console.log("Logout triggered");
+    logout();
   };
 
   return (
@@ -69,6 +112,7 @@ export default function Sidebar() {
             <Activity size={28} />
           </div>
           <div className={styles.logoText}>DentAI</div>
+          <NotificationBell />
           <button
             className={styles.mobileClose}
             onClick={() => setIsOpen(false)}

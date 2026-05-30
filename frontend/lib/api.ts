@@ -452,6 +452,16 @@ export const instructorAPI = {
     const response = await apiClient.post("/api/quiz/instructor/questions", payload);
     return response.data as InstructorQuestionBankItem;
   },
+
+  bulkUpdateQuestions: async (payload: { question_ids: number[]; action: string; value?: string }): Promise<{ affected: number; action: string }> => {
+    const response = await apiClient.patch("/api/quiz/instructor/questions/bulk", payload);
+    return response.data;
+  },
+
+  exportQuestionsCSV: async (): Promise<Blob> => {
+    const response = await apiClient.get("/api/quiz/instructor/questions/export", { responseType: "blob" });
+    return response.data as Blob;
+  },
 };
 
 export type ServiceHealthStatus = "ok" | "degraded" | "unavailable";
@@ -740,6 +750,32 @@ export interface QuizQuestion {
     bloom_level?: string;
 }
 
+export interface AttemptSummary {
+  attempted: boolean;
+  last_score: number | null;
+  attempt_count: number;
+}
+
+export interface QuestionBankEntry {
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  topic_id: string;
+  bloom_level: string;
+  difficulty: string;
+  max_score: number;
+  options_json: string[] | null;
+  attempt_summary: AttemptSummary;
+}
+
+export interface QuestionBankFilters {
+  topic?: string;
+  difficulty?: string;
+  question_type?: string;
+  bloom_level?: string;
+  search?: string;
+}
+
 /** Per-question result after server-side grading — student-safe feedback only. */
 export interface QuizQuestionResult {
     id: string;
@@ -752,6 +788,17 @@ export interface QuizQuestionResult {
     grading_status?: string;
     instructor_score?: number | null;
     instructor_feedback?: string | null;
+}
+
+/** Student quiz attempt list item (T-5D). */
+export interface AttemptListItem {
+    attempt_id: number;
+    created_at: string;
+    total_score: number;
+    max_score: number;
+    percentage: number | null;
+    question_count: number;
+    overall_status: string;
 }
 
 /** POST /api/quiz/submit response — student-safe. */
@@ -794,6 +841,31 @@ export const quizAPI = {
     getMyTopicAccuracy: async (): Promise<TopicAccuracyData> => {
         const response = await apiClient.get('/api/quiz/my-topic-accuracy');
         return response.data as TopicAccuracyData;
+    },
+
+    /** Get student question bank with filters. */
+    getQuestionBank: async (filters?: QuestionBankFilters): Promise<QuestionBankEntry[]> => {
+        const params = new URLSearchParams();
+        if (filters?.topic) params.set('topic', filters.topic);
+        if (filters?.difficulty) params.set('difficulty', filters.difficulty);
+        if (filters?.question_type) params.set('question_type', filters.question_type);
+        if (filters?.bloom_level) params.set('bloom_level', filters.bloom_level);
+        if (filters?.search) params.set('search', filters.search);
+        const qs = params.toString();
+        const response = await apiClient.get(`/api/quiz/student/question-bank${qs ? '?' + qs : ''}`);
+        return response.data as QuestionBankEntry[];
+    },
+
+    /** List all quiz attempts for the current student (T-5D). */
+    getMyAttempts: async (): Promise<AttemptListItem[]> => {
+        const response = await apiClient.get('/api/quiz/my-attempts');
+        return response.data as AttemptListItem[];
+    },
+
+    /** Get detail for a specific attempt (T-5D). */
+    getMyAttemptDetail: async (attemptId: number): Promise<QuizSubmitResponse> => {
+        const response = await apiClient.get(`/api/quiz/my-attempts/${attemptId}`);
+        return response.data as QuizSubmitResponse;
     },
 };
 
@@ -860,6 +932,23 @@ export const mappingAPI = {
   /** DELETE /api/quiz/instructor/question-case-mappings/{id} — returns 204 No Content */
   deleteMapping: async (mappingId: number): Promise<void> => {
     await apiClient.delete(`/api/quiz/instructor/question-case-mappings/${mappingId}`);
+  },
+
+  getQuestionBank: async (
+    filters: QuestionBankFilters = {},
+  ): Promise<QuestionBankEntry[]> => {
+    const sp = new URLSearchParams();
+    if (filters.topic && filters.topic !== "Tümü")
+      sp.set("topic", filters.topic);
+    if (filters.difficulty) sp.set("difficulty", filters.difficulty);
+    if (filters.question_type) sp.set("question_type", filters.question_type);
+    if (filters.bloom_level) sp.set("bloom_level", filters.bloom_level);
+    if (filters.search) sp.set("search", filters.search);
+    const qs = sp.toString();
+    const response = await apiClient.get(
+      `/api/quiz/student/question-bank${qs ? `?${qs}` : ""}`,
+    );
+    return response.data as QuestionBankEntry[];
   },
 };
 
@@ -938,5 +1027,65 @@ export const rubricVersionAPI = {
       `/api/quiz/instructor/rubric-versions/${versionId}`
     );
     return response.data as RubricVersionItem;
+  },
+};
+
+
+// -- Mini-Case API (T-5B) --
+
+export interface MiniCaseListItem {
+  id: number;
+  mini_case_id: string;
+  title: string;
+  difficulty: string;
+  linked_topic_ids: string[];
+  question_count: number;
+}
+
+export interface MiniCaseDetail {
+  id: number;
+  mini_case_id: string;
+  title: string;
+  clinical_vignette: string;
+  key_findings: string[];
+  question_ids: string[];
+  learning_objectives: string[];
+  linked_topic_ids: string[];
+  difficulty: string;
+}
+
+export const miniCaseAPI = {
+  getAll: async (): Promise<MiniCaseListItem[]> => {
+    const response = await apiClient.get('/api/mini-cases');
+    return response.data as MiniCaseListItem[];
+  },
+  getById: async (miniCaseId: string): Promise<MiniCaseDetail> => {
+    const response = await apiClient.get(`/api/mini-cases/${encodeURIComponent(miniCaseId)}`);
+    return response.data as MiniCaseDetail;
+  },
+};
+
+export interface NotificationItem {
+  id: number;
+  type: string;
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  created_at: string;
+}
+
+export const notificationAPI = {
+  getAll: async (unreadOnly = false): Promise<NotificationItem[]> => {
+    const response = await apiClient.get('/api/notifications', { params: { unread_only: unreadOnly } });
+    return response.data as NotificationItem[];
+  },
+  getUnreadCount: async (): Promise<number> => {
+    const response = await apiClient.get('/api/notifications/unread-count');
+    return (response.data as { count: number }).count;
+  },
+  markAsRead: async (id: number): Promise<void> => {
+    await apiClient.patch(`/api/notifications/${id}/read`);
+  },
+  markAllAsRead: async (): Promise<void> => {
+    await apiClient.patch('/api/notifications/read-all');
   },
 };

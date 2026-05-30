@@ -1,0 +1,122 @@
+[
+  {
+    "question_id": "Q-OLP-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Oral liken planusun klinik özelliklerini ve histopatolojik bulgularını açıklayınız.",
+    "topic_id": "oral_pathology",
+    "difficulty": "medium",
+    "bloom_level": "understand",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Wickham strialarından, ağ benzeri beyaz lezyonlardan, T-lenfosit infiltrasyonundan bahsetmeli.",
+    "model_answer_outline": "Klinik: bilateral, simetrik, retiküler beyaz lezyonlar. Histopatoloji: bazal hücre dejenerasyonu, band şeklinde lenfositik infiltrasyon."
+  },
+  {
+    "question_id": "Q-HSV-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Primer herpetik gingivostomatitin klinik seyrini ve tedavi yaklaşımını anlatınız.",
+    "topic_id": "infectious_diseases",
+    "difficulty": "medium",
+    "bloom_level": "apply",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "HSV-1 etiyolojisi, veziküler lezyonlar, ateş, tedavide asiklovir kullanımını belirtmeli.",
+    "model_answer_outline": "Etken HSV-1. Prodrom: ateş, halsizlik. Oral mukozada vezikül ve ülserler. Tedavi: asiklovir 200mg 5x/gün, destek tedavisi."
+  },
+  {
+    "question_id": "Q-BEH-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Behçet hastalığının oral bulgularını ve tanı kriterlerini tartışınız.",
+    "topic_id": "oral_pathology",
+    "difficulty": "hard",
+    "bloom_level": "analyze",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Rekürren aftöz ülserler, genital ülserler, göz tutulumu, paterji testi, ISG kriterleri.",
+    "model_answer_outline": "Major kriter: rekürren oral ülserasyon. Minör kriterler: genital ülser, göz lezyonları, deri lezyonları, paterji testi pozitifliği."
+  },
+  {
+    "question_id": "Q-PV-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Pemfigus vulgariste oral lezyonların özelliklerini ve ayırıcı tanısını yapınız.",
+    "topic_id": "oral_pathology",
+    "difficulty": "hard",
+    "bloom_level": "analyze",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Nikolsky belirtisi, intraepitelyal bül, akantoliz, DIF'te interselüler IgG birikimi.",
+    "model_answer_outline": "Oral: ağrılı erozyon ve ülserler, bül tabanı kanayan. Nikolsky (+). Histopatoloji: suprabazal akantoliz. DIF: interselüler IgG. Ayırıcı tanı: pemfigoid, eroziv liken planus."
+  },
+  {
+    "question_id": "Q-EM-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Eritema multiforme hastalığının etiyolojisini, klinik bulgularını ve tedavisini özetleyiniz.",
+    "topic_id": "oral_pathology",
+    "difficulty": "medium",
+    "bloom_level": "understand",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "HSV ilişkisi, hedef lezyonlar, dudakta hemorajik kabuklanma, destek tedavisi.",
+    "model_answer_outline": "Etiyoloji: HSV, ilaçlar. Klinik: hedef (target) lezyonlar, oral erozyon, dudakta kanama kabuğu. Tedavi: destek, kortikosteroid (ağır olgularda)."
+  },
+  {
+    "question_id": "Q-GT-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Coğrafi dil (lingua geografika) lezyonlarının klinik ve histopatolojik özelliklerini açıklayınız.",
+    "topic_id": "oral_pathology",
+    "difficulty": "easy",
+    "bloom_level": "remember",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Migratuar eritemli alanlar, filiform papil kaybı, santral atrofi, çevresel beyaz kenar.",
+    "model_answer_outline": "Klinik: dil dorsumunda eritemli, kenarları beyaz, göç eden düzensiz alanlar. Histopatoloji: filiform papillerin kaybı, nötrofil mikroabseleri, parakeratoz."
+  },
+  {
+    "question_id": "Q-LEUKO-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Oral lökoplakinin tanımını, risk faktörlerini ve malign transformasyon potansiyelini değerlendiriniz.",
+    "topic_id": "oral_pathology",
+    "difficulty": "hard",
+    "bloom_level": "evaluate",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "WHO tanımı, tütün/alkol, displazi derecesi, malign dönüşüm oranları (%1-18).",
+    "model_answer_outline": "Tanım: kazınamayan beyaz plak (WHO). Risk: tütün, alkol, HPV. Displazi arttıkça malign dönüşüm riski artar. Yıllık dönüşüm oranı ~%1-2."
+  },
+  {
+    "question_id": "Q-CANDIDA-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Oral kandidiyazisin klinik formlarını sınıflandırınız ve tedavi protokolünü açıklayınız.",
+    "topic_id": "infectious_diseases",
+    "difficulty": "medium",
+    "bloom_level": "apply",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Psödomembranöz, eritematöz, hiperplastik formlar, predispozan faktörler, antifungal tedavi.",
+    "model_answer_outline": "Formlar: psödomembranöz (pamukçuk), eritematöz (atrofik), hiperplastik. Predispozan: immünsüpresyon, antibiyotik, protez. Tedavi: nistatin, flukonazol."
+  },
+  {
+    "question_id": "Q-TRAUMA-001",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Travmatik ülserin klinik özelliklerini ve iyileşme sürecini tanımlayınız.",
+    "topic_id": "traumatic",
+    "difficulty": "easy",
+    "bloom_level": "remember",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "Mekanik/kimyasal/termal travma, düzensiz kenar, sarı fibrinöz taban, 7-14 günde iyileşme.",
+    "model_answer_outline": "Etiyoloji: protez, keskin diş, ısırma. Klinik: ağrılı, düzensiz kenarlı ülser, fibrinöz taban. İyileşme: travma kaynağı kaldırıldıktan sonra 7-14 gün."
+  },
+  {
+    "question_id": "Q-LICHEN-002",
+    "question_type": "OPEN_ENDED",
+    "question_text": "Oral liken planus ile likenoid reaksiyonun ayırıcı tanısını klinik ve histopatolojik olarak karşılaştırınız.",
+    "topic_id": "oral_pathology",
+    "difficulty": "hard",
+    "bloom_level": "evaluate",
+    "safety_category": "safe",
+    "max_score": 10,
+    "rubric_guide": "LP bilateral/simetrik, likenoid tek taraflı, ilişkili ilaç/materyal, histopatolojik farklar.",
+    "model_answer_outline": "OLP: bilateral simetrik, kronik seyir. Likenoid: tek taraflı, temporal ilaç/restorasyon ilişkisi. Histopatoloji: LP'de daha uniform band infiltrasyon, likenoid'de perivask. eosinofil."
+  }
+]
