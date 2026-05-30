@@ -135,12 +135,12 @@ export const chatAPI = {
   /**
    * Send a chat message (requires authentication)
    */
-  sendMessage: async (message: string, case_id: string) => {
+  sendMessage: async (message: string, case_id: string): Promise<ChatApiResponse> => {
     const response = await apiClient.post("/api/chat/send", {
       message,
       case_id,
     });
-    return response.data;
+    return response.data as ChatApiResponse;
   },
 
   /**
@@ -788,6 +788,7 @@ export interface QuizQuestionResult {
     grading_status?: string;
     instructor_score?: number | null;
     instructor_feedback?: string | null;
+    answer_id?: number | null;  // S10-B: for explanation lookup
 }
 
 /** Student quiz attempt list item (T-5D). */
@@ -1087,5 +1088,95 @@ export const notificationAPI = {
   },
   markAllAsRead: async (): Promise<void> => {
     await apiClient.patch('/api/notifications/read-all');
+  },
+};
+
+// ── S10-A: Reinforcement types ────────────────────────────────────────────────
+
+export interface ReinforcementQuestion {
+  question_id: string;
+  topic_id: string;
+  question_text: string;
+}
+
+export interface ChatApiResponse {
+  session_id: number | null;
+  ai_response: string;
+  final_feedback: string | null;
+  state_updates: Record<string, unknown>;
+  revealed_findings: string[];
+  reinforcement_questions: ReinforcementQuestion[];
+}
+
+// ── S10-B: "Why this score?" explanation types ────────────────────────────────
+
+export interface RubricVersionSnapshot {
+  version: number;
+  rubric_guide: string;
+  model_answer_outline: string;
+  created_at: string | null;
+}
+
+export interface AnswerExplanationResponse {
+  answer_id: number;
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  topic_id: string;
+  student_response: string;
+  auto_score: number | null;
+  instructor_score: number | null;
+  ai_score_suggestion: number | null;
+  ai_score_rationale: string | null;
+  max_score: number;
+  grading_status: string;
+  rubric_guide: string | null;
+  rubric_version_snapshot: RubricVersionSnapshot | null;
+}
+
+export const explanationAPI = {
+  getAnswerExplanation: async (
+    attemptId: number,
+    answerId: number
+  ): Promise<AnswerExplanationResponse> => {
+    const response = await apiClient.get(
+      `/api/quiz/my-attempts/${attemptId}/answers/${answerId}/explanation`
+    );
+    return response.data as AnswerExplanationResponse;
+  },
+};
+
+// ── S10-C: Spaced repetition review schedule ──────────────────────────────────
+
+export interface ReviewScheduleItem {
+  id: number;
+  question_id: string;
+  question_text: string;
+  topic_id: string;
+  due_date: string;
+  interval_days: number;
+  ease_factor: number;
+  repetitions: number;
+  last_reviewed_at: string | null;
+}
+
+export interface SubmitReviewResult {
+  id: number;
+  next_due_date: string;
+  next_interval_days: number;
+  repetitions: number;
+}
+
+export const reviewScheduleAPI = {
+  getDueItems: async (): Promise<ReviewScheduleItem[]> => {
+    const response = await apiClient.get('/api/quiz/my-review-schedule');
+    return response.data as ReviewScheduleItem[];
+  },
+  submitResult: async (itemId: number, rating: number): Promise<SubmitReviewResult> => {
+    const response = await apiClient.post(
+      `/api/quiz/my-review-schedule/${itemId}/result`,
+      { rating }
+    );
+    return response.data as SubmitReviewResult;
   },
 };

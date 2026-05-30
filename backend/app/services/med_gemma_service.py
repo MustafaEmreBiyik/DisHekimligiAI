@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 
 from app.services.llm_safety import detect_prompt_injection, sanitize_student_text
+from app.services.llm_tracker import record_llm_interaction
 
 logger = logging.getLogger(__name__)
 
@@ -217,44 +218,50 @@ Return ONLY JSON in this exact schema:
         last_error = ""
         attempts_made = 0
 
-        for attempt_index in range(max_attempts):
-            attempts_made = attempt_index + 1
-            try:
-                response = self.client.chat_completion(
-                    model=self.model_id,
-                    messages=messages,
-                    max_tokens=400,
-                    temperature=0.1,
-                    timeout=self.TIMEOUT_SECONDS,
-                )
-                raw_content = response.choices[0].message.content
-                content = self._extract_content(raw_content)
-                payload = json.loads(content)
-                normalized = self._normalize_output(payload)
-                response_time_ms = int((time.perf_counter() - started_at) * 1000)
-                normalized["audit"] = {
-                    "validator_used": "medgemma",
-                    "response_time_ms": response_time_ms,
-                    "error_message": None,
-                    "attempts": attempt_index + 1,
-                    "prompt_injection_detected": bool(active_scan.get("detected", False)),
-                }
-                return normalized
-            except Exception as exc:
-                last_error = str(exc)
-                logger.warning(
-                    "MedGemma validation attempt %s/%s failed: %s",
-                    attempt_index + 1,
-                    max_attempts,
-                    exc,
-                )
+        with record_llm_interaction(
+            provider="huggingface",
+            model_id=self.model_id,
+            call_type="validation",
+            session_id=None,  # session context not available at this layer
+        ):
+            for attempt_index in range(max_attempts):
+                attempts_made = attempt_index + 1
+                try:
+                    response = self.client.chat_completion(
+                        model=self.model_id,
+                        messages=messages,
+                        max_tokens=400,
+                        temperature=0.1,
+                        timeout=self.TIMEOUT_SECONDS,
+                    )
+                    raw_content = response.choices[0].message.content
+                    content = self._extract_content(raw_content)
+                    payload = json.loads(content)
+                    normalized = self._normalize_output(payload)
+                    response_time_ms = int((time.perf_counter() - started_at) * 1000)
+                    normalized["audit"] = {
+                        "validator_used": "medgemma",
+                        "response_time_ms": response_time_ms,
+                        "error_message": None,
+                        "attempts": attempt_index + 1,
+                        "prompt_injection_detected": bool(active_scan.get("detected", False)),
+                    }
+                    return normalized
+                except Exception as exc:
+                    last_error = str(exc)
+                    logger.warning(
+                        "MedGemma validation attempt %s/%s failed: %s",
+                        attempt_index + 1,
+                        max_attempts,
+                        exc,
+                    )
 
-                if last_error == "schema_violation":
-                    break
+                    if last_error == "schema_violation":
+                        break
 
-                if attempt_index < self.RETRY_COUNT:
-                    backoff = self.BACKOFF_BASE_SECONDS * (2 ** attempt_index)
-                    time.sleep(backoff)
+                    if attempt_index < self.RETRY_COUNT:
+                        backoff = self.BACKOFF_BASE_SECONDS * (2 ** attempt_index)
+                        time.sleep(backoff)
 
         fail_closed = self.build_fail_closed_result(last_error or "unknown_error")
         fail_closed["audit"] = {

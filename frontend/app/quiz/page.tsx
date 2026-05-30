@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import styles from "./Quiz.module.css";
-import { quizAPI, QuizQuestion, QuizQuestionResult, QuizSubmitResponse } from "@/lib/api";
+import { quizAPI, QuizQuestion, QuizQuestionResult, QuizSubmitResponse, explanationAPI, AnswerExplanationResponse } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +29,10 @@ export default function QuizPage() {
   // Populated after server-side grading
   const [gradeResults, setGradeResults] = useState<Record<string, QuizQuestionResult>>({});
   const [serverScore, setServerScore] = useState<QuizSubmitResponse | null>(null);
+  // S10-B: "Why this score?" explanation panel state
+  const [openExplanation, setOpenExplanation] = useState<string | null>(null);
+  const [explanationData, setExplanationData] = useState<Record<string, AnswerExplanationResponse>>({});
+  const [loadingExplanation, setLoadingExplanation] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -82,7 +86,27 @@ export default function QuizPage() {
     setIsSubmitted(false);
     setGradeResults({});
     setServerScore(null);
+    setOpenExplanation(null);
+    setExplanationData({});
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleToggleExplanation = async (questionId: string, answerId?: number | null) => {
+    if (openExplanation === questionId) {
+      setOpenExplanation(null);
+      return;
+    }
+    setOpenExplanation(questionId);
+    if (!answerId || explanationData[questionId] || !serverScore) return;
+    setLoadingExplanation(questionId);
+    try {
+      const data = await explanationAPI.getAnswerExplanation(serverScore.attempt_id, answerId);
+      setExplanationData((prev) => ({ ...prev, [questionId]: data }));
+    } catch {
+      // silent — explanation is non-critical
+    } finally {
+      setLoadingExplanation(null);
+    }
   };
 
   useEffect(() => {
@@ -268,6 +292,73 @@ export default function QuizPage() {
                           </>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* S10-B: "Why this score?" expandable panel */}
+                  {isSubmitted && result && result.answer_id && (
+                    <div style={{ marginTop: "0.75rem" }}>
+                      <button
+                        onClick={() => handleToggleExplanation(q.id, result.answer_id)}
+                        style={{
+                          background: "none",
+                          border: "1px solid #3182ce",
+                          borderRadius: "6px",
+                          color: "#3182ce",
+                          cursor: "pointer",
+                          fontSize: "0.82rem",
+                          padding: "4px 10px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Info size={14} />
+                        {openExplanation === q.id ? "Kapat" : "Neden bu puan?"}
+                      </button>
+
+                      {openExplanation === q.id && (
+                        <div
+                          style={{
+                            marginTop: "0.5rem",
+                            padding: "12px",
+                            background: "#ebf8ff",
+                            borderRadius: "8px",
+                            borderLeft: "3px solid #3182ce",
+                            fontSize: "0.88rem",
+                            lineHeight: "1.6",
+                          }}
+                        >
+                          {loadingExplanation === q.id ? (
+                            <p style={{ color: "#718096" }}>Yükleniyor...</p>
+                          ) : explanationData[q.id] ? (
+                            <>
+                              {explanationData[q.id].ai_score_rationale && (
+                                <div style={{ marginBottom: "0.5rem" }}>
+                                  <strong>AI Değerlendirmesi:</strong>
+                                  <p style={{ margin: "0.25rem 0 0" }}>{explanationData[q.id].ai_score_rationale}</p>
+                                </div>
+                              )}
+                              {explanationData[q.id].rubric_guide && (
+                                <div style={{ marginBottom: "0.5rem" }}>
+                                  <strong>Değerlendirme Kriteri:</strong>
+                                  <p style={{ margin: "0.25rem 0 0", whiteSpace: "pre-wrap" }}>{explanationData[q.id].rubric_guide}</p>
+                                </div>
+                              )}
+                              {explanationData[q.id].rubric_version_snapshot && (
+                                <p style={{ margin: "0.25rem 0 0", color: "#718096", fontSize: "0.78rem" }}>
+                                  Rubrik v{explanationData[q.id].rubric_version_snapshot!.version}
+                                </p>
+                              )}
+                              {!explanationData[q.id].ai_score_rationale && !explanationData[q.id].rubric_guide && (
+                                <p style={{ color: "#718096" }}>Bu soru için henüz açıklama mevcut değil.</p>
+                              )}
+                            </>
+                          ) : (
+                            <p style={{ color: "#718096" }}>Açıklama yüklenemedi.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
