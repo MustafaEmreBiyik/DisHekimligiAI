@@ -5,7 +5,7 @@ Serves MCQ and Open-Ended questions. S8B implementation.
 Answer keys and protected fields are strictly omitted.
 """
 
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 import json
@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 import unicodedata
+from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_context, AuthenticatedUser, get_db, require_roles
@@ -28,7 +29,7 @@ from app.services.question_case_mapping_service import (
     DuplicateMappingError,
     MappingNotFoundError,
 )
-from db.database import ExamResult, UserRole, Question, QuestionType, QuizAttempt, QuizAnswer, GradingStatus
+from db.database import ExamResult, UserRole, User, Question, QuestionType, QuizAttempt, QuizAnswer, GradingStatus, AIScoringLog, Notification
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,7 @@ router = APIRouter()
 
 QUESTIONS_FILE = Path(__file__).resolve().parents[3] / "data" / "question_bank" / "mcq_questions.json"
 
-TOPIC_MAP = {
-    "oral_pathology": "Oral Patoloji",
-    "infectious_diseases": "Enfeksiyöz Hastalıklar",
-    "traumatic": "Travmatik Lezyonlar",
-}
+from app.constants import TOPIC_LABELS as TOPIC_MAP
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
@@ -98,6 +95,25 @@ class GradeSubmission(BaseModel):
     instructor_score: int
     instructor_feedback: str
     publish: bool
+
+
+class AttemptSummary(BaseModel):
+    attempted: bool
+    last_score: Optional[float] = None
+    attempt_count: int
+
+
+class QuestionBankEntry(BaseModel):
+    """Student-safe question with attempt context. No answer keys exposed."""
+    question_id: str
+    question_text: str
+    question_type: str
+    topic_id: str
+    bloom_level: str
+    difficulty: str
+    max_score: int
+    options_json: Optional[List[str]] = None
+    attempt_summary: AttemptSummary
 
 
 class InstructorQuestionCreateRequest(BaseModel):
@@ -260,11 +276,27 @@ def _load_full_questions() -> List[dict]:
 # ── Student Endpoints ─────────────────────────────────────────────────────────
 
 @router.get("/questions", response_model=List[StudentQuestion], status_code=status.HTTP_200_OK)
-def get_questions(topic: Optional[str] = None, current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)), db: Session = Depends(get_db)):
+def get_questions(
+    topic: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    question_type: Optional[str] = None,
+    bloom_level: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
     db_questions = db.query(Question).filter(Question.is_active == True)
     if topic and topic != "Tümü":
         db_questions = db_questions.filter(Question.topic_id == topic)
-    
+    if difficulty:
+        db_questions = db_questions.filter(Question.difficulty == difficulty)
+    if question_type:
+        db_questions = db_questions.filter(Question.question_type == _normalize_question_type(question_type))
+    if bloom_level:
+        db_questions = db_questions.filter(Question.bloom_level == bloom_level)
+    if search:
+        db_questions = db_questions.filter(Question.question_text.ilike(f"%{search}%"))
+
     questions_list = db_questions.all()
     if questions_list:
         return [
@@ -533,15 +565,162 @@ def get_attempt(attempt_id: int, current_user: AuthenticatedUser = Depends(get_c
     )
 
 
+# ── Student Quiz History (T-5D) ──────────────────────────────────────────────
+
+class AttemptListItem(BaseModel):
+    attempt_id: int
+    created_at: str
+    total_score: int
+    max_score: int
+    percentage: Optional[int] = None
+    question_count: int
+    overall_status: str
+
+
+@router.get("/my-attempts", response_model=List[AttemptListItem], status_code=status.HTTP_200_OK)
+def list_my_attempts(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    attempts = (
+        db.query(QuizAttempt)
+        .filter(QuizAttempt.user_id == current_user.user_id)
+        .order_by(QuizAttempt.created_at.desc())
+        .all()
+    )
+    items: List[AttemptListItem] = []
+    for a in attempts:
+        has_pending = any(
+            ans.grading_status != GradingStatus.PUBLISHED for ans in a.answers
+        )
+        pct = round((a.total_score / a.max_score) * 100) if a.max_score > 0 and not has_pending else None
+        items.append(AttemptListItem(
+            attempt_id=a.id,
+            created_at=a.created_at.isoformat() + "Z" if a.created_at else "",
+            total_score=a.total_score,
+            max_score=a.max_score,
+            percentage=pct,
+            question_count=len(a.answers),
+            overall_status="PENDING" if has_pending else "PUBLISHED",
+        ))
+    return items
+
+
+@router.get("/my-attempts/{attempt_id}", response_model=SubmitResponse, status_code=status.HTTP_200_OK)
+def get_my_attempt_detail(
+    attempt_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    attempt = db.query(QuizAttempt).filter(QuizAttempt.id == attempt_id).first()
+    if not attempt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt not found")
+    if attempt.user_id != current_user.user_id:
+        raise _forbidden()
+
+    results = []
+    has_pending = False
+    for ans in attempt.answers:
+        q = ans.question
+        if ans.grading_status != GradingStatus.PUBLISHED:
+            has_pending = True
+        fb = QuestionFeedback(
+            id=q.question_id,
+            topic=q.topic_id,
+            question=q.question_text,
+            question_type=q.question_type.value,
+            selected_option=ans.student_response_text,
+            is_correct=None if q.question_type == QuestionType.OPEN_ENDED else (ans.auto_score > 0 if ans.auto_score is not None else False),
+            feedback=_safe_feedback(is_correct=(ans.auto_score > 0 if ans.auto_score is not None else False)) if q.question_type == QuestionType.MCQ else None,
+            grading_status=ans.grading_status.value,
+        )
+        if ans.grading_status == GradingStatus.PUBLISHED:
+            fb.instructor_score = ans.instructor_score
+            fb.instructor_feedback = ans.instructor_feedback
+        results.append(fb)
+
+    if has_pending:
+        return SubmitResponse(attempt_id=attempt.id, score=None, total=attempt.max_score, percentage=None, overall_status="PENDING", results=results)
+    perc = round((attempt.total_score / attempt.max_score) * 100) if attempt.max_score > 0 else 0
+    return SubmitResponse(attempt_id=attempt.id, score=attempt.total_score, total=attempt.max_score, percentage=perc, overall_status="PUBLISHED", results=results)
+
+
 @router.get("/topics", status_code=status.HTTP_200_OK)
 def get_topics(current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)), db: Session = Depends(get_db)):
     db_topics = [r[0] for r in db.query(Question.topic_id).filter(Question.is_active == True).distinct().all()]
     if db_topics:
         return ["Tümü"] + sorted(db_topics)
-        
+
     questions = _load_full_questions()
     topics = sorted(set(q["topic"] for q in questions))
     return ["Tümü"] + topics
+
+
+@router.get("/student/question-bank", response_model=List[QuestionBankEntry], status_code=status.HTTP_200_OK)
+def get_student_question_bank(
+    topic: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    question_type: Optional[str] = None,
+    bloom_level: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    q_query = db.query(Question).filter(Question.is_active == True)
+    if topic and topic != "Tümü":
+        q_query = q_query.filter(Question.topic_id == topic)
+    if difficulty:
+        q_query = q_query.filter(Question.difficulty == difficulty)
+    if question_type:
+        q_query = q_query.filter(Question.question_type == _normalize_question_type(question_type))
+    if bloom_level:
+        q_query = q_query.filter(Question.bloom_level == bloom_level)
+    if search:
+        q_query = q_query.filter(Question.question_text.ilike(f"%{search}%"))
+
+    questions = q_query.all()
+
+    # Fetch all answers this student has submitted in one query.
+    user_answers = (
+        db.query(QuizAnswer)
+        .join(QuizAttempt)
+        .filter(QuizAttempt.user_id == current_user.user_id)
+        .all()
+    )
+
+    # Group by Question.id (integer PK) for O(1) lookup.
+    answer_map: Dict[int, List] = defaultdict(list)
+    for ans in user_answers:
+        answer_map[ans.question_id].append(ans)
+
+    result = []
+    for q in questions:
+        answers_for_q = answer_map.get(q.id, [])
+        attempted = len(answers_for_q) > 0
+
+        last_score = None
+        if attempted:
+            latest = max(answers_for_q, key=lambda a: a.id)
+            raw = latest.instructor_score if latest.instructor_score is not None else latest.auto_score
+            last_score = float(raw) if raw is not None else None
+
+        result.append(QuestionBankEntry(
+            question_id=q.question_id,
+            question_text=q.question_text,
+            question_type=q.question_type.value,
+            topic_id=q.topic_id,
+            bloom_level=q.bloom_level,
+            difficulty=q.difficulty,
+            max_score=q.max_score,
+            options_json=q.options_json,
+            attempt_summary=AttemptSummary(
+                attempted=attempted,
+                last_score=last_score,
+                attempt_count=len(answers_for_q),
+            ),
+        ))
+
+    return result
 
 
 # ── Instructor Endpoints ──────────────────────────────────────────────────────
@@ -583,9 +762,26 @@ def submit_grade(answer_id: int, payload: GradeSubmission, current_user: Authent
         ans.grading_status = GradingStatus.PUBLISHED
     else:
         ans.grading_status = GradingStatus.GRADED
-        
+
     db.commit()
-    
+
+    # Create notification for the student when score is published
+    if payload.publish:
+        student_user_id = ans.attempt.user_id
+        notification = Notification(
+            user_id=student_user_id,
+            type="score_published",
+            payload_json={
+                "answer_id": ans.id,
+                "question_text": (ans.question.question_text or "")[:100],
+                "score": payload.instructor_score,
+                "max_score": ans.question.max_score,
+                "graded_by": current_user.display_name,
+            },
+        )
+        db.add(notification)
+        db.commit()
+
     # Update Attempt Score if all answers are PUBLISHED
     attempt = ans.attempt
     if all(a.grading_status == GradingStatus.PUBLISHED for a in attempt.answers):
@@ -593,7 +789,7 @@ def submit_grade(answer_id: int, payload: GradeSubmission, current_user: Authent
         attempt.total_score = total
         attempt.completed_at = datetime.utcnow()
         db.commit()
-        
+
     return {"status": "success"}
 
 
@@ -644,6 +840,8 @@ def request_ai_score_for_answer(
             detail="Question is missing rubric_guide or model_answer_outline — cannot score",
         )
 
+    import time as _time
+    _t0 = _time.monotonic()
     try:
         result = request_ai_score(
             question_text=question.question_text,
@@ -653,16 +851,31 @@ def request_ai_score_for_answer(
             max_score=question.max_score,
         )
     except OEScoringError as exc:
+        latency = int((_time.monotonic() - _t0) * 1000)
+        db.add(AIScoringLog(
+            answer_id=answer_id,
+            model_id="google/gemma-2-9b-it",
+            status="error",
+            error_message=str(exc),
+            latency_ms=latency,
+        ))
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"AI scoring failed: {exc}",
         )
 
-    # Persist the draft — never touch instructor_score or grading_status
+    latency = int((_time.monotonic() - _t0) * 1000)
     ans.ai_score_suggestion = result.suggested_score
     ans.ai_score_rationale = result.rationale
-    import datetime as _dt
-    ans.ai_scored_at = _dt.datetime.utcnow()
+    ans.ai_scored_at = datetime.utcnow()
+    db.add(AIScoringLog(
+        answer_id=answer_id,
+        model_id="google/gemma-2-9b-it",
+        status="success",
+        latency_ms=latency,
+        suggested_score=result.suggested_score,
+    ))
     db.commit()
 
     return AIScoringResponse(
@@ -1321,3 +1534,474 @@ def get_single_rubric_version(
     except RubricVersionError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     return _rv_to_response(info)
+
+
+# ── Bulk Question Actions (T-5C) ────────────────────────────────────────────
+
+class BulkQuestionActionRequest(BaseModel):
+    question_ids: List[int]
+    action: str = Field(..., pattern="^(archive|activate|update_unit|update_week)$")
+    value: Optional[str] = None
+
+
+class BulkActionResult(BaseModel):
+    affected: int
+    action: str
+
+
+@router.patch(
+    "/instructor/questions/bulk",
+    response_model=BulkActionResult,
+    status_code=status.HTTP_200_OK,
+)
+def bulk_update_questions(
+    body: BulkQuestionActionRequest,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    questions = db.query(Question).filter(Question.id.in_(body.question_ids)).all()
+    if not questions:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No questions found")
+
+    for q in questions:
+        if body.action == "archive":
+            q.is_archived = True
+            q.is_active = False
+        elif body.action == "activate":
+            q.is_archived = False
+            q.is_active = True
+        elif body.action == "update_unit":
+            q.unit_id = body.value
+        elif body.action == "update_week":
+            q.week_number = int(body.value) if body.value else None
+
+    db.commit()
+    return BulkActionResult(affected=len(questions), action=body.action)
+
+
+class ImportPreviewItem(BaseModel):
+    question_id: str
+    question_type: str
+    question_text: str
+    topic_id: str
+    difficulty: str
+    status: str
+
+
+class ImportResult(BaseModel):
+    added: int
+    updated: int
+    skipped: int
+    errors: List[str]
+    preview: List[ImportPreviewItem]
+
+
+@router.post(
+    "/instructor/import",
+    response_model=ImportResult,
+    status_code=status.HTTP_200_OK,
+)
+async def import_questions_endpoint(
+    file: UploadFile,
+    upsert: bool = False,
+    dry_run: bool = False,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    import csv
+    import io
+
+    content = await file.read()
+    text = content.decode("utf-8")
+
+    questions: List[dict] = []
+    filename = file.filename or ""
+    if filename.endswith(".csv"):
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            questions.append(dict(row))
+    else:
+        try:
+            parsed = json.loads(text)
+            if not isinstance(parsed, list):
+                return ImportResult(added=0, updated=0, skipped=0, errors=["JSON must be a top-level array"], preview=[])
+            questions = parsed
+        except json.JSONDecodeError as e:
+            return ImportResult(added=0, updated=0, skipped=0, errors=[f"Invalid JSON: {e}"], preview=[])
+
+    from scripts.import_questions import validate_question, REQUIRED_FIELDS
+
+    errors: List[str] = []
+    preview: List[ImportPreviewItem] = []
+    added = 0
+    updated = 0
+    skipped = 0
+
+    for q in questions:
+        qid = str(q.get("question_id", "")).strip()
+        errs = validate_question(q)
+        if errs:
+            for e in errs:
+                errors.append(f"{qid or '<missing>'}:  {e}")
+            preview.append(ImportPreviewItem(
+                question_id=qid or "<missing>",
+                question_type=str(q.get("question_type", "")),
+                question_text=str(q.get("question_text", ""))[:80],
+                topic_id=str(q.get("topic_id", "")),
+                difficulty=str(q.get("difficulty", "")),
+                status="error",
+            ))
+            continue
+
+        existing = db.query(Question).filter(Question.question_id == qid).first()
+        if existing and not upsert:
+            skipped += 1
+            preview.append(ImportPreviewItem(
+                question_id=qid, question_type=q["question_type"],
+                question_text=q["question_text"][:80], topic_id=q["topic_id"],
+                difficulty=q["difficulty"], status="skipped",
+            ))
+            continue
+
+        action = "updated" if existing else "added"
+        if existing:
+            updated += 1
+        else:
+            added += 1
+
+        if not dry_run:
+            from scripts.import_questions import _apply_question_fields
+            if existing:
+                _apply_question_fields(existing, q)
+            else:
+                model = Question(question_id=qid)
+                _apply_question_fields(model, q)
+                db.add(model)
+
+        preview.append(ImportPreviewItem(
+            question_id=qid, question_type=q["question_type"],
+            question_text=q["question_text"][:80], topic_id=q["topic_id"],
+            difficulty=q["difficulty"], status=action,
+        ))
+
+    if not dry_run and not errors:
+        db.commit()
+
+    return ImportResult(added=added, updated=updated, skipped=skipped, errors=errors, preview=preview)
+
+
+@router.get(
+    "/instructor/questions/export",
+    status_code=status.HTTP_200_OK,
+)
+def export_questions_csv(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    import csv
+    import io
+    from starlette.responses import StreamingResponse
+
+    questions = db.query(Question).filter(Question.is_active == True).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["question_id", "question_type", "topic_id", "difficulty", "bloom_level", "question_text", "max_score", "unit_id", "week_number"])
+    for q in questions:
+        writer.writerow([q.question_id, q.question_type.value, q.topic_id, q.difficulty, q.bloom_level, q.question_text, q.max_score, q.unit_id or "", q.week_number or ""])
+
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=questions_export.csv"},
+    )
+
+
+# ── T-7B: Instructor Grade Report Export ─────────────────────────────────────
+
+@router.get("/instructor/grade-report", status_code=status.HTTP_200_OK)
+def export_grade_report(
+    format: str = "csv",
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    import csv
+    import io
+    from starlette.responses import StreamingResponse
+
+    students = db.query(User).filter(User.role == UserRole.STUDENT, User.is_archived == False).all()
+
+    topic_ids = sorted(set(
+        t[0] for t in db.query(Question.topic_id).distinct().all()
+    ))
+
+    rows = []
+    for student in students:
+        attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == student.user_id).all()
+        attempt_ids = [a.id for a in attempts]
+        if not attempt_ids:
+            continue
+
+        answers = (
+            db.query(QuizAnswer)
+            .filter(QuizAnswer.attempt_id.in_(attempt_ids), QuizAnswer.grading_status == GradingStatus.PUBLISHED)
+            .all()
+        )
+        if not answers:
+            continue
+
+        topic_correct: dict = defaultdict(int)
+        topic_total: dict = defaultdict(int)
+        ai_scores = []
+        total_earned = 0
+        total_max = 0
+
+        for ans in answers:
+            q = ans.question
+            if not q:
+                continue
+            tid = q.topic_id
+            if q.question_type == QuestionType.MCQ:
+                topic_total[tid] = topic_total.get(tid, 0) + 1
+                if ans.auto_score and ans.auto_score > 0:
+                    topic_correct[tid] = topic_correct.get(tid, 0) + 1
+            score = ans.instructor_score if ans.instructor_score is not None else (ans.auto_score or 0)
+            total_earned += score
+            total_max += q.max_score
+            if ans.ai_score_suggestion is not None:
+                ai_scores.append(ans.ai_score_suggestion)
+
+        row = {
+            "user_id": student.user_id,
+            "display_name": student.display_name,
+        }
+        for tid in topic_ids:
+            tot = topic_total.get(tid, 0)
+            cor = topic_correct.get(tid, 0)
+            row[f"topic_{tid}_pct"] = round(cor / tot * 100, 1) if tot > 0 else ""
+
+        row["ai_score_avg"] = round(sum(ai_scores) / len(ai_scores), 2) if ai_scores else ""
+        row["total_earned"] = total_earned
+        row["total_max"] = total_max
+        row["final_pct"] = round(total_earned / total_max * 100, 1) if total_max > 0 else 0
+        rows.append(row)
+
+    if format == "xlsx":
+        try:
+            import openpyxl
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Grade Report"
+            if rows:
+                headers = list(rows[0].keys())
+                ws.append(headers)
+                for r in rows:
+                    ws.append([r.get(h, "") for h in headers])
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            return StreamingResponse(
+                buf,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=grade_report.xlsx"},
+            )
+        except ImportError:
+            pass
+
+    buf = io.StringIO()
+    if rows:
+        writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=grade_report.csv"},
+    )
+
+
+# ── T-7C: Student Personal PDF Report ────────────────────────────────────────
+
+@router.get("/my-report", status_code=status.HTTP_200_OK)
+def get_my_report(
+    format: str = "pdf",
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+):
+    import io
+    from starlette.responses import StreamingResponse
+    from fpdf import FPDF
+
+    attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == current_user.user_id).all()
+    attempt_ids = [a.id for a in attempts]
+
+    answers = (
+        db.query(QuizAnswer)
+        .filter(QuizAnswer.attempt_id.in_(attempt_ids), QuizAnswer.grading_status == GradingStatus.PUBLISHED)
+        .all()
+    ) if attempt_ids else []
+
+    topic_correct: dict = defaultdict(int)
+    topic_total: dict = defaultdict(int)
+    total_earned = 0
+    total_max = 0
+
+    for ans in answers:
+        q = ans.question
+        if not q:
+            continue
+        tid = q.topic_id
+        if q.question_type == QuestionType.MCQ:
+            topic_total[tid] = topic_total.get(tid, 0) + 1
+            if ans.auto_score and ans.auto_score > 0:
+                topic_correct[tid] = topic_correct.get(tid, 0) + 1
+        score = ans.instructor_score if ans.instructor_score is not None else (ans.auto_score or 0)
+        total_earned += score
+        total_max += q.max_score
+
+    final_pct = round(total_earned / total_max * 100, 1) if total_max > 0 else 0
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "DentAI - Kisisel Performans Raporu", ln=True, align="C")
+    pdf.ln(5)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"Ogrenci: {current_user.display_name} ({current_user.user_id})", ln=True)
+    pdf.cell(0, 8, f"Tarih: {datetime.utcnow().strftime('%Y-%m-%d')}", ln=True)
+    pdf.ln(5)
+
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 10, "Genel Ozet", ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"Toplam Puan: {total_earned} / {total_max}  ({final_pct}%)", ln=True)
+    pdf.cell(0, 8, f"Yanitlanan Soru Sayisi: {len(answers)}", ln=True)
+    pdf.ln(5)
+
+    if topic_total:
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 10, "Konu Bazli Dogruluk (MCQ)", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        for tid in sorted(topic_total.keys()):
+            tot = topic_total[tid]
+            cor = topic_correct.get(tid, 0)
+            pct = round(cor / tot * 100, 1) if tot > 0 else 0
+            label = TOPIC_MAP.get(tid, tid)
+            bar_len = int(pct / 5)
+            bar = "#" * bar_len + "." * (20 - bar_len)
+            pdf.cell(0, 7, f"  {label}: {cor}/{tot} ({pct}%)  [{bar}]", ln=True)
+        pdf.ln(3)
+
+    weak_topics = [
+        tid for tid, tot in topic_total.items()
+        if tot > 0 and (topic_correct.get(tid, 0) / tot) < 0.5
+    ]
+    strong_topics = [
+        tid for tid, tot in topic_total.items()
+        if tot > 0 and (topic_correct.get(tid, 0) / tot) >= 0.8
+    ]
+
+    if strong_topics:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 9, "Guclu Alanlar:", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        for tid in strong_topics:
+            pdf.cell(0, 7, f"  + {TOPIC_MAP.get(tid, tid)}", ln=True)
+        pdf.ln(2)
+
+    if weak_topics:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 9, "Gelistirilmesi Gereken Alanlar:", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        for tid in weak_topics:
+            pdf.cell(0, 7, f"  - {TOPIC_MAP.get(tid, tid)}", ln=True)
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=rapor_{current_user.user_id}.pdf"},
+    )
+
+
+# ── T-7D: Question Stats Dashboard ───────────────────────────────────────────
+
+class QuestionStatItem(BaseModel):
+    question_id: int
+    question_text_short: str
+    topic_id: str
+    difficulty: str
+    total_answers: int
+    correct_count: int
+    correct_pct: float
+    avg_ai_score: Optional[float] = None
+    avg_instructor_score: Optional[float] = None
+    ai_human_delta: Optional[float] = None
+
+
+@router.get(
+    "/instructor/question-stats",
+    response_model=List[QuestionStatItem],
+    status_code=status.HTTP_200_OK,
+)
+def get_question_stats(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    questions = db.query(Question).filter(Question.is_active == True).all()
+    result = []
+    for q in questions:
+        answers = db.query(QuizAnswer).filter(QuizAnswer.question_id == q.id).all()
+        if not answers:
+            continue
+        total = len(answers)
+        correct = 0
+        ai_scores = []
+        instructor_scores = []
+        for ans in answers:
+            if q.question_type == QuestionType.MCQ and ans.auto_score and ans.auto_score > 0:
+                correct += 1
+            if ans.ai_score_suggestion is not None:
+                ai_scores.append(ans.ai_score_suggestion)
+            if ans.instructor_score is not None:
+                instructor_scores.append(float(ans.instructor_score))
+
+        avg_ai = round(sum(ai_scores) / len(ai_scores), 2) if ai_scores else None
+        avg_ins = round(sum(instructor_scores) / len(instructor_scores), 2) if instructor_scores else None
+        delta = round(abs(avg_ai - avg_ins), 2) if avg_ai is not None and avg_ins is not None else None
+
+        result.append(QuestionStatItem(
+            question_id=q.id,
+            question_text_short=(q.question_text or "")[:80],
+            topic_id=q.topic_id,
+            difficulty=q.difficulty,
+            total_answers=total,
+            correct_count=correct,
+            correct_pct=round(correct / total * 100, 1) if total > 0 else 0,
+            avg_ai_score=avg_ai,
+            avg_instructor_score=avg_ins,
+            ai_human_delta=delta,
+        ))
+
+    result.sort(key=lambda x: x.correct_pct)
+    return result
+
+
+@router.get(
+    "/instructor/ai-vs-human-delta",
+    response_model=List[QuestionStatItem],
+    status_code=status.HTTP_200_OK,
+)
+def get_ai_vs_human_delta(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    all_stats = get_question_stats(current_user=current_user, db=db)
+    with_delta = [s for s in all_stats if s.ai_human_delta is not None]
+    with_delta.sort(key=lambda x: x.ai_human_delta or 0, reverse=True)
+    return with_delta[:10]

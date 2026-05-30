@@ -35,11 +35,8 @@ Covers exception types:
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from db.database import (
-    Base,
     MappingType,
     Question,
     QuestionCaseMapping,
@@ -54,18 +51,6 @@ from app.services.question_case_mapping_service import (
     MappingNotFoundError,
     QuestionNotFoundError,
 )
-
-
-# ── Fixtures ─────────────────────────────────────────────────────────────────
-
-@pytest.fixture
-def db():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
 
 
 def _make_question(

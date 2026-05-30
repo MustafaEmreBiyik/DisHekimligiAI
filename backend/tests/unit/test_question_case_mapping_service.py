@@ -29,11 +29,8 @@ All tests use an in-memory SQLite database.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from db.database import (
-    Base,
     MappingType,
     Question,
     QuestionCaseMapping,
@@ -41,18 +38,6 @@ from db.database import (
     ReviewStatus,
 )
 from app.services.question_case_mapping_service import get_question_case_mappings
-
-
-# ── Fixtures ─────────────────────────────────────────────────────────────────
-
-@pytest.fixture
-def db():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
 
 
 # ── Seed helpers ──────────────────────────────────────────────────────────────

@@ -1,0 +1,62 @@
+[
+  {
+    "mini_case_id": "mc_oral_lichen_001",
+    "linked_topic_ids": ["oral_pathology"],
+    "title": "Bilateral Retiküler Oral Lezyon",
+    "clinical_vignette": "52 yaşında kadın hasta, her iki yanak mukozasında ağ benzeri beyaz çizgilenme şikayetiyle başvurdu. Lezyonlar ağrısız, bilateral ve simetrik yerleşimli. Hastanın sistemik hastalık öyküsü bulunmuyor.",
+    "key_findings": ["Bilateral simetrik retiküler beyaz lezyonlar", "Wickham striaları", "Ağrısız, kronik seyir"],
+    "question_ids": ["Q-OLP-001", "Q-LICHEN-002"],
+    "learning_objectives": ["Oral liken planusun klinik formlarını tanıyabilme", "Likenoid reaksiyonla ayırıcı tanı yapabilme"],
+    "difficulty": "medium"
+  },
+  {
+    "mini_case_id": "mc_herpes_001",
+    "linked_topic_ids": ["infectious_diseases"],
+    "title": "Ateşli Çocukta Oral Veziküller",
+    "clinical_vignette": "4 yaşında erkek çocuk, 3 gündür devam eden ateş, huzursuzluk ve ağızda ağrılı yaralar şikayetiyle getirildi. Oral muayenede dil, damak ve gingivada çok sayıda küçük ülser saptandı. Gingiva eritemli ve ödemli.",
+    "key_findings": ["Yüksek ateş", "Yaygın oral ülserler", "Diffüz gingivit", "İlk atak"],
+    "question_ids": ["Q-HSV-001"],
+    "learning_objectives": ["Primer herpetik gingivostomatitin tanısını koyabilme", "Antiviral tedavi endikasyonlarını bilme"],
+    "difficulty": "easy"
+  },
+  {
+    "mini_case_id": "mc_behcet_001",
+    "linked_topic_ids": ["oral_pathology"],
+    "title": "Tekrarlayan Oral ve Genital Ülserler",
+    "clinical_vignette": "28 yaşında erkek hasta, son 2 yılda tekrarlayan ağız yaraları, genital ülserler ve göz kızarıklığı şikayetiyle başvurdu. Paterji testi pozitif olarak değerlendirildi.",
+    "key_findings": ["Rekürren oral aftöz ülserler", "Genital ülserler", "Üveit", "Paterji pozitifliği"],
+    "question_ids": ["Q-BEH-001"],
+    "learning_objectives": ["Behçet hastalığının tanı kriterlerini sıralayabilme", "Multisistemik tutulumu değerlendirebilme"],
+    "difficulty": "hard"
+  },
+  {
+    "mini_case_id": "mc_pemphigus_001",
+    "linked_topic_ids": ["oral_pathology"],
+    "title": "Ağrılı Oral Erozyon ve Bül",
+    "clinical_vignette": "45 yaşında kadın hasta, 6 haftadır ağız mukozasında ağrılı yaralar ve yutma güçlüğü şikayetiyle başvurdu. Muayenede yanak ve damak mukozasında geniş erozyonlar, deri muayenesinde sırt bölgesinde gevşek büller saptandı. Nikolsky belirtisi pozitif.",
+    "key_findings": ["Geniş mukozal erozyonlar", "Gevşek büller", "Nikolsky pozitif", "Oral lezyonlar deri lezyonlarından önce başlamış"],
+    "question_ids": ["Q-PV-001"],
+    "learning_objectives": ["Pemfigus vulgarisi klinik olarak tanıyabilme", "İmmünofloresan tanı yöntemlerini bilme"],
+    "difficulty": "hard"
+  },
+  {
+    "mini_case_id": "mc_erythema_001",
+    "linked_topic_ids": ["oral_pathology"],
+    "title": "Akut Başlangıçlı Dudak ve Oral Lezyonlar",
+    "clinical_vignette": "22 yaşında erkek hasta, bir hafta önce üst solunum yolu enfeksiyonu geçirdikten sonra dudaklarda kanama kabuğu ve ağız içinde ağrılı erozyonlar geliştiğini belirtiyor. Deri muayenesinde ellerde hedef (target) lezyonlar saptandı.",
+    "key_findings": ["Dudaklarda hemorajik kabuklanma", "Oral erozyonlar", "Hedef lezyonlar", "Enfeksiyon sonrası başlangıç"],
+    "question_ids": ["Q-EM-001"],
+    "learning_objectives": ["Eritema multiformenin klinik özelliklerini tanıyabilme", "Tetikleyici faktörleri bilme"],
+    "difficulty": "medium"
+  },
+  {
+    "mini_case_id": "mc_geographic_001",
+    "linked_topic_ids": ["oral_pathology"],
+    "title": "Dilde Göç Eden Eritematöz Alanlar",
+    "clinical_vignette": "35 yaşında kadın hasta, dil yüzeyinde değişken şekilli kırmızı lekeler fark ettiğini ve bunların yer değiştirdiğini belirtiyor. Hafif yanma hissi tarif ediyor. Lezyonlar atopik dermatit tedavisi sırasında fark edilmiş.",
+    "key_findings": ["Migratuar eritematöz alanlar", "Filiform papil kaybı", "Beyaz-sarımsı kenar", "Benign seyir"],
+    "question_ids": ["Q-GT-001"],
+    "learning_objectives": ["Coğrafi dilin klinik özelliklerini tanıyabilme", "Benign migratuar glossiti ayırt edebilme"],
+    "difficulty": "easy"
+  }
+]
