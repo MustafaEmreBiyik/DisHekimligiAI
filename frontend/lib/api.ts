@@ -397,6 +397,53 @@ export interface InstructorQuestionCreatePayload {
   is_active?: boolean;
 }
 
+// ── S10-D: Cognitive Load Profiling ──────────────────────────────────────────
+export interface CognitiveLoadResponse {
+  session_id: number;
+  student_id: string;
+  avg_response_time_ms: number | null;
+  hint_count: number;
+  deviation_count: number;
+  action_count: number;
+  load_level: "low" | "medium" | "high";
+  computed_at: string;
+}
+
+// ── S10-E: Safety-Critical Action Reaction Time ───────────────────────────────
+export interface SafetyMetricsResponse {
+  session_id: number;
+  student_id: string;
+  case_id: string;
+  safety_actions_taken: string[];
+  safety_actions_missing: string[];
+  first_safety_action_seconds: number | null;
+  all_safety_checks_done: boolean;
+  computed_at: string;
+}
+
+// ── S10-F: Diagnostic Reasoning Process Trace ─────────────────────────────────
+export interface ProcessTraceEvent {
+  seq: number;
+  role: string;
+  timestamp: string | null;
+  content_preview: string;
+  interpreted_action: string | null;
+  score: number | null;
+  reasoning_deviation: boolean | null;
+  clinical_intent: string | null;
+}
+
+export interface ProcessTraceResponse {
+  session_id: number;
+  student_id: string;
+  case_id: string;
+  total_score: number;
+  events: ProcessTraceEvent[];
+  reasoning_pattern: Record<string, unknown> | null;
+  total_actions: number;
+  deviation_count: number;
+}
+
 /**
  * Instructor API
  */
@@ -461,6 +508,21 @@ export const instructorAPI = {
   exportQuestionsCSV: async (): Promise<Blob> => {
     const response = await apiClient.get("/api/quiz/instructor/questions/export", { responseType: "blob" });
     return response.data as Blob;
+  },
+
+  getSessionCognitiveLoad: async (sessionId: string): Promise<CognitiveLoadResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/cognitive-load`);
+    return response.data as CognitiveLoadResponse;
+  },
+
+  getSessionSafetyMetrics: async (sessionId: string): Promise<SafetyMetricsResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/safety-metrics`);
+    return response.data as SafetyMetricsResponse;
+  },
+
+  getSessionProcessTrace: async (sessionId: string): Promise<ProcessTraceResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/process-trace`);
+    return response.data as ProcessTraceResponse;
   },
 };
 
@@ -1179,4 +1241,44 @@ export const reviewScheduleAPI = {
     );
     return response.data as SubmitReviewResult;
   },
+};
+
+// ==================== S11-A: Research Snapshots ====================
+
+export interface SnapshotSummary {
+  id: number;
+  label: string;
+  created_by: string;
+  notes: string | null;
+  git_commit_hash: string | null;
+  questions_count: number;
+  cases_count: number;
+  bundle_size_bytes: number | null;
+  created_at: string;
+}
+
+export interface SnapshotDetail extends SnapshotSummary {
+  scoring_config_payload: Record<string, unknown>;
+  llm_config_payload: Record<string, unknown>;
+}
+
+export interface SnapshotCreateRequest {
+  label: string;
+  notes?: string;
+}
+
+export const researchAPI = {
+  createSnapshot: async (body: SnapshotCreateRequest): Promise<SnapshotSummary> => {
+    const response = await apiClient.post('/api/research/snapshots', body);
+    return response.data as SnapshotSummary;
+  },
+  listSnapshots: async (): Promise<SnapshotSummary[]> => {
+    const response = await apiClient.get('/api/research/snapshots');
+    return response.data as SnapshotSummary[];
+  },
+  getSnapshot: async (id: number): Promise<SnapshotDetail> => {
+    const response = await apiClient.get(`/api/research/snapshots/${id}`);
+    return response.data as SnapshotDetail;
+  },
+  getExportUrl: (id: number): string => `${API_URL}/api/research/snapshots/${id}/export`,
 };

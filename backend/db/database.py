@@ -602,6 +602,37 @@ class MiniCase(Base):
         return f"<MiniCase(mini_case_id={self.mini_case_id}, title={self.title})>"
 
 
+class SystemSnapshot(Base):
+    """Immutable research reproducibility snapshot (S11-A).
+
+    Captures the full system state (questions, cases, scoring config, LLM models)
+    at a point in time so published results can be reproduced months later.
+    """
+
+    __tablename__ = "system_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label = Column(String, nullable=False)
+    created_by = Column(String, nullable=False, index=True)
+    notes = Column(Text, nullable=True)
+    git_commit_hash = Column(String, nullable=True)
+    questions_count = Column(Integer, nullable=False, default=0)
+    cases_count = Column(Integer, nullable=False, default=0)
+    questions_payload = Column(JSON, nullable=False, default=list)
+    case_definitions_payload = Column(JSON, nullable=False, default=list)
+    scoring_config_payload = Column(JSON, nullable=False, default=dict)
+    llm_config_payload = Column(JSON, nullable=False, default=dict)
+    rubric_versions_payload = Column(JSON, nullable=False, default=list)
+    bundle_size_bytes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<SystemSnapshot(id={self.id}, label={self.label!r}, "
+            f"created_by={self.created_by}, created_at={self.created_at})>"
+        )
+
+
 class ReviewSchedule(Base):
     """SM-2 spaced repetition schedule for a student's question (S10-C).
 
