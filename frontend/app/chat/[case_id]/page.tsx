@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { chatAPI, feedbackAPI, getApiErrorMessage } from "@/lib/api";
+import { chatAPI, feedbackAPI, getApiErrorMessage, ReinforcementQuestion } from "@/lib/api";
 import Link from "next/link";
 
 interface Message {
@@ -34,6 +34,10 @@ export default function ChatPage() {
   const [currentScore, setCurrentScore] = useState(0);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
+
+  // S10-A: reinforcement popup state
+  const [reinforcementQuestions, setReinforcementQuestions] = useState<ReinforcementQuestion[]>([]);
+  const [showReinforcement, setShowReinforcement] = useState(false);
 
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -103,14 +107,16 @@ export default function ChatPage() {
       // Add AI response to UI
       const aiMessage: Message = {
         role: "assistant",
-        content: response.final_feedback,
-        score: response.score,
+        content: response.final_feedback ?? response.ai_response,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
 
-      // Update score (backend returns cumulative session score)
-      setCurrentScore(response.score);
+      // S10-A: show reinforcement popup if the action triggered a failure
+      if (response.reinforcement_questions && response.reinforcement_questions.length > 0) {
+        setReinforcementQuestions(response.reinforcement_questions);
+        setShowReinforcement(true);
+      }
     } catch (err: unknown) {
       console.error("Chat error:", err);
       setError(
@@ -467,6 +473,62 @@ export default function ChatPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* S10-A: Reinforcement popup */}
+      {showReinforcement && reinforcementQuestions.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "1.5rem",
+            right: "1.5rem",
+            zIndex: 50,
+            background: "#fff",
+            border: "1px solid #bee3f8",
+            borderRadius: "12px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+            padding: "1rem 1.25rem",
+            maxWidth: "340px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+            <span style={{ fontWeight: 700, color: "#2b6cb0", fontSize: "0.9rem" }}>
+              📚 İlgili Teorik Konular
+            </span>
+            <button
+              onClick={() => setShowReinforcement(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#718096", fontSize: "1.1rem", lineHeight: 1 }}
+              aria-label="Kapat"
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ fontSize: "0.8rem", color: "#4a5568", marginBottom: "0.75rem" }}>
+            Bu aksiyonla ilgili teori sorularını çalışmak ister misiniz?
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {reinforcementQuestions.map((rq) => (
+              <li key={rq.question_id} style={{ marginBottom: "0.4rem" }}>
+                <a
+                  href="/student/question-bank"
+                  style={{
+                    display: "block",
+                    padding: "6px 10px",
+                    background: "#ebf8ff",
+                    borderRadius: "6px",
+                    color: "#2b6cb0",
+                    fontSize: "0.82rem",
+                    textDecoration: "none",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: "0.75rem", color: "#718096" }}>{rq.topic_id} · </span>
+                  {rq.question_text.length > 80 ? rq.question_text.slice(0, 80) + "…" : rq.question_text}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

@@ -517,6 +517,37 @@ class AIScoringLog(Base):
         return f"<AIScoringLog(id={self.id}, answer_id={self.answer_id}, status={self.status})>"
 
 
+class LLMInteractionLog(Base):
+    """Per-request audit trail for every LLM API call (S9-C).
+
+    Tracks provider, model, call type, token usage, latency and estimated cost
+    to support budget control, rate-limit monitoring and EU AI Act audit requirements.
+    """
+
+    __tablename__ = "llm_interaction_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=True, index=True)
+    provider = Column(String, nullable=False, index=True)      # "gemini" | "huggingface"
+    model_id = Column(String, nullable=False)                  # exact model string used
+    call_type = Column(String, nullable=False, index=True)     # "interpretation" | "coach" | "validation" | "scoring"
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    total_tokens = Column(Integer, nullable=True)
+    latency_ms = Column(Integer, nullable=False, default=0)
+    estimated_cost_usd = Column(Float, nullable=True)          # null when not computable
+    success = Column(Boolean, nullable=False, default=True, index=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<LLMInteractionLog(id={self.id}, provider={self.provider}, "
+            f"model={self.model_id}, call_type={self.call_type}, "
+            f"latency_ms={self.latency_ms}, success={self.success})>"
+        )
+
+
 class Notification(Base):
     """User notifications (T-7A)."""
     __tablename__ = "notifications"
@@ -569,6 +600,66 @@ class MiniCase(Base):
 
     def __repr__(self):
         return f"<MiniCase(mini_case_id={self.mini_case_id}, title={self.title})>"
+
+
+class SystemSnapshot(Base):
+    """Immutable research reproducibility snapshot (S11-A).
+
+    Captures the full system state (questions, cases, scoring config, LLM models)
+    at a point in time so published results can be reproduced months later.
+    """
+
+    __tablename__ = "system_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label = Column(String, nullable=False)
+    created_by = Column(String, nullable=False, index=True)
+    notes = Column(Text, nullable=True)
+    git_commit_hash = Column(String, nullable=True)
+    questions_count = Column(Integer, nullable=False, default=0)
+    cases_count = Column(Integer, nullable=False, default=0)
+    questions_payload = Column(JSON, nullable=False, default=list)
+    case_definitions_payload = Column(JSON, nullable=False, default=list)
+    scoring_config_payload = Column(JSON, nullable=False, default=dict)
+    llm_config_payload = Column(JSON, nullable=False, default=dict)
+    rubric_versions_payload = Column(JSON, nullable=False, default=list)
+    bundle_size_bytes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return (
+            f"<SystemSnapshot(id={self.id}, label={self.label!r}, "
+            f"created_by={self.created_by}, created_at={self.created_at})>"
+        )
+
+
+class ReviewSchedule(Base):
+    """SM-2 spaced repetition schedule for a student's question (S10-C).
+
+    Tracks interval, ease factor and due date so the student is reminded to
+    review weak questions at optimal spacing intervals.
+    """
+
+    __tablename__ = "review_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False, index=True)
+    due_date = Column(DateTime, nullable=False, index=True)
+    interval_days = Column(Integer, nullable=False, default=1)
+    ease_factor = Column(Float, nullable=False, default=2.5)
+    repetitions = Column(Integer, nullable=False, default=0)
+    last_reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    question = relationship("Question", foreign_keys=[question_id])
+
+    def __repr__(self):
+        return (
+            f"<ReviewSchedule(id={self.id}, user_id={self.user_id}, "
+            f"question_id={self.question_id}, due_date={self.due_date}, "
+            f"interval_days={self.interval_days})>"
+        )
 
 
 # ==================== VERİTABANI FONKSİYONLARI ====================

@@ -29,7 +29,7 @@ from app.services.question_case_mapping_service import (
     DuplicateMappingError,
     MappingNotFoundError,
 )
-from db.database import ExamResult, UserRole, User, Question, QuestionType, QuizAttempt, QuizAnswer, GradingStatus, AIScoringLog, Notification
+from db.database import ExamResult, UserRole, User, Question, QuestionType, QuizAttempt, QuizAnswer, GradingStatus, AIScoringLog, Notification, RubricVersion, ReviewSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,7 @@ class QuestionFeedback(BaseModel):
     grading_status: str = "PUBLISHED"
     instructor_score: Optional[int] = None
     instructor_feedback: Optional[str] = None
+    answer_id: Optional[int] = None  # S10-B: needed for explanation lookup
 
 
 class SubmitResponse(BaseModel):
@@ -214,6 +215,24 @@ def _question_to_summary(question: Question) -> InstructorQuestionSummary:
         created_at=question.created_at.isoformat() if question.created_at else None,
         updated_at=question.updated_at.isoformat() if question.updated_at else None,
     )
+
+
+def _ensure_review_schedule(db: Session, user_id: str, question: Question) -> None:
+    """Create a ReviewSchedule entry for this question if one doesn't already exist. S10-C."""
+    existing = db.query(ReviewSchedule).filter(
+        ReviewSchedule.user_id == user_id,
+        ReviewSchedule.question_id == question.id,
+    ).first()
+    if not existing:
+        db.add(ReviewSchedule(
+            user_id=user_id,
+            question_id=question.id,
+            due_date=datetime.utcnow(),
+            interval_days=1,
+            ease_factor=2.5,
+            repetitions=0,
+            created_at=datetime.utcnow(),
+        ))
 
 
 def _generate_question_id(db: Session, question_type: QuestionType, topic_id: str, question_text: str) -> str:
@@ -404,7 +423,15 @@ def submit_answers(body: SubmitRequest, current_user: AuthenticatedUser = Depend
             answer.auto_score = earned
             answer.grading_status = GradingStatus.PUBLISHED
             total_score += earned
-            
+
+            if not is_correct:
+                _ensure_review_schedule(db, current_user.user_id, q)  # S10-C
+
+            db.add(answer)
+            db.flush()  # get answer.id for S10-B explanation link
+            if not is_correct:
+                _ensure_review_schedule(db, current_user.user_id, q)  # S10-C
+
             results.append(QuestionFeedback(
                 id=q.question_id,
                 topic=q.topic_id,
@@ -413,12 +440,14 @@ def submit_answers(body: SubmitRequest, current_user: AuthenticatedUser = Depend
                 selected_option=selected,
                 is_correct=is_correct,
                 feedback=_safe_feedback(is_correct=is_correct),
-                grading_status=GradingStatus.PUBLISHED.value
+                grading_status=GradingStatus.PUBLISHED.value,
+                answer_id=answer.id,  # S10-B
             ))
         else:
             answer.grading_status = GradingStatus.PENDING
             has_pending = True
-            
+            db.add(answer)
+
             results.append(QuestionFeedback(
                 id=q.question_id,
                 topic=q.topic_id,
@@ -429,8 +458,6 @@ def submit_answers(body: SubmitRequest, current_user: AuthenticatedUser = Depend
                 feedback=None,
                 grading_status=GradingStatus.PENDING.value
             ))
-            
-        db.add(answer)
         
     if not has_pending:
         attempt.total_score = total_score
@@ -643,6 +670,93 @@ def get_my_attempt_detail(
         return SubmitResponse(attempt_id=attempt.id, score=None, total=attempt.max_score, percentage=None, overall_status="PENDING", results=results)
     perc = round((attempt.total_score / attempt.max_score) * 100) if attempt.max_score > 0 else 0
     return SubmitResponse(attempt_id=attempt.id, score=attempt.total_score, total=attempt.max_score, percentage=perc, overall_status="PUBLISHED", results=results)
+
+
+# ── S10-B: "Why this score?" Explainability ──────────────────────────────────
+
+class RubricVersionSnapshot(BaseModel):
+    version: int
+    rubric_guide: str
+    model_answer_outline: str
+    created_at: Optional[str] = None
+
+
+class AnswerExplanationResponse(BaseModel):
+    answer_id: int
+    question_id: str
+    question_text: str
+    question_type: str
+    topic_id: str
+    student_response: str
+    auto_score: Optional[int] = None
+    instructor_score: Optional[int] = None
+    ai_score_suggestion: Optional[float] = None
+    ai_score_rationale: Optional[str] = None
+    max_score: int
+    grading_status: str
+    rubric_guide: Optional[str] = None
+    rubric_version_snapshot: Optional[RubricVersionSnapshot] = None
+
+
+@router.get(
+    "/my-attempts/{attempt_id}/answers/{answer_id}/explanation",
+    response_model=AnswerExplanationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get 'Why this score?' explanation for a specific answer",
+    description=(
+        "Returns AI rationale, rubric guide, and rubric version snapshot for a "
+        "specific quiz answer. Students can only access their own attempts. "
+        "Returns 403 if the attempt belongs to another student. "
+        "Returns 404 if attempt or answer not found."
+    ),
+)
+def get_answer_explanation(
+    attempt_id: int,
+    answer_id: int,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> AnswerExplanationResponse:
+    attempt = db.query(QuizAttempt).filter(QuizAttempt.id == attempt_id).first()
+    if not attempt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt not found")
+    if current_user.role == UserRole.STUDENT and attempt.user_id != current_user.user_id:
+        raise _forbidden()
+
+    ans = db.query(QuizAnswer).filter(
+        QuizAnswer.id == answer_id,
+        QuizAnswer.attempt_id == attempt_id,
+    ).first()
+    if not ans:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer not found in this attempt")
+
+    q = ans.question
+    rubric_snapshot: Optional[RubricVersionSnapshot] = None
+    if ans.rubric_version_id:
+        rv = db.query(RubricVersion).filter(RubricVersion.id == ans.rubric_version_id).first()
+        if rv:
+            rubric_snapshot = RubricVersionSnapshot(
+                version=rv.version,
+                rubric_guide=rv.rubric_guide,
+                model_answer_outline=rv.model_answer_outline,
+                created_at=rv.created_at.isoformat() if rv.created_at else None,
+            )
+
+    return AnswerExplanationResponse(
+        answer_id=ans.id,
+        question_id=q.question_id,
+        question_text=q.question_text,
+        question_type=q.question_type.value,
+        topic_id=q.topic_id,
+        student_response=ans.student_response_text,
+        auto_score=ans.auto_score,
+        instructor_score=ans.instructor_score,
+        ai_score_suggestion=ans.ai_score_suggestion,
+        ai_score_rationale=ans.ai_score_rationale,
+        max_score=q.max_score,
+        grading_status=ans.grading_status.value,
+        rubric_guide=q.rubric_guide,
+        rubric_version_snapshot=rubric_snapshot,
+    )
 
 
 @router.get("/topics", status_code=status.HTTP_200_OK)
@@ -2005,3 +2119,118 @@ def get_ai_vs_human_delta(
     with_delta = [s for s in all_stats if s.ai_human_delta is not None]
     with_delta.sort(key=lambda x: x.ai_human_delta or 0, reverse=True)
     return with_delta[:10]
+
+
+# ── S10-C: Spaced Repetition Scheduler ───────────────────────────────────────
+
+class ReviewScheduleItem(BaseModel):
+    id: int
+    question_id: str
+    question_text: str
+    topic_id: str
+    due_date: str
+    interval_days: int
+    ease_factor: float
+    repetitions: int
+    last_reviewed_at: Optional[str] = None
+
+
+class SubmitReviewRequest(BaseModel):
+    rating: int = Field(..., ge=0, le=5, description="SM-2 rating 0 (fail) – 5 (easy)")
+
+
+class SubmitReviewResponse(BaseModel):
+    id: int
+    next_due_date: str
+    next_interval_days: int
+    repetitions: int
+
+
+@router.get(
+    "/my-review-schedule",
+    response_model=List[ReviewScheduleItem],
+    status_code=status.HTTP_200_OK,
+    summary="Get due review items for the current student (S10-C)",
+    description=(
+        "Returns questions due for spaced repetition review today or earlier. "
+        "Items are ordered by due_date ascending (most overdue first). "
+        "When the student has no scheduled items yet, an empty list is returned. "
+        "New review entries are created automatically when a student answers a "
+        "question incorrectly via the /quiz/submit endpoint."
+    ),
+)
+def get_my_review_schedule(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> List[ReviewScheduleItem]:
+    now = datetime.utcnow()
+    items = (
+        db.query(ReviewSchedule)
+        .filter(
+            ReviewSchedule.user_id == current_user.user_id,
+            ReviewSchedule.due_date <= now,
+        )
+        .order_by(ReviewSchedule.due_date.asc())
+        .all()
+    )
+    result = []
+    for item in items:
+        q = item.question
+        if not q or not q.is_active:
+            continue
+        result.append(ReviewScheduleItem(
+            id=item.id,
+            question_id=q.question_id,
+            question_text=q.question_text,
+            topic_id=q.topic_id,
+            due_date=item.due_date.isoformat() + "Z",
+            interval_days=item.interval_days,
+            ease_factor=item.ease_factor,
+            repetitions=item.repetitions,
+            last_reviewed_at=item.last_reviewed_at.isoformat() + "Z" if item.last_reviewed_at else None,
+        ))
+    return result
+
+
+@router.post(
+    "/my-review-schedule/{item_id}/result",
+    response_model=SubmitReviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Submit a review result and advance the SM-2 schedule (S10-C)",
+)
+def submit_review_result(
+    item_id: int,
+    body: SubmitReviewRequest,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> SubmitReviewResponse:
+    from app.services.spaced_repetition import next_review_state
+
+    item = db.query(ReviewSchedule).filter(
+        ReviewSchedule.id == item_id,
+        ReviewSchedule.user_id == current_user.user_id,
+    ).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review item not found")
+
+    now = datetime.utcnow()
+    new_state = next_review_state(
+        repetitions=item.repetitions,
+        interval_days=item.interval_days,
+        ease_factor=item.ease_factor,
+        rating=body.rating,
+        reviewed_at=now,
+    )
+    item.repetitions = new_state.repetitions
+    item.interval_days = new_state.interval_days
+    item.ease_factor = new_state.ease_factor
+    item.due_date = new_state.due_date
+    item.last_reviewed_at = now
+    db.commit()
+
+    return SubmitReviewResponse(
+        id=item.id,
+        next_due_date=new_state.due_date.isoformat() + "Z",
+        next_interval_days=new_state.interval_days,
+        repetitions=new_state.repetitions,
+    )
