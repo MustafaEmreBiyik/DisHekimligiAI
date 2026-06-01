@@ -135,12 +135,12 @@ export const chatAPI = {
   /**
    * Send a chat message (requires authentication)
    */
-  sendMessage: async (message: string, case_id: string) => {
+  sendMessage: async (message: string, case_id: string): Promise<ChatApiResponse> => {
     const response = await apiClient.post("/api/chat/send", {
       message,
       case_id,
     });
-    return response.data;
+    return response.data as ChatApiResponse;
   },
 
   /**
@@ -397,6 +397,53 @@ export interface InstructorQuestionCreatePayload {
   is_active?: boolean;
 }
 
+// ── S10-D: Cognitive Load Profiling ──────────────────────────────────────────
+export interface CognitiveLoadResponse {
+  session_id: number;
+  student_id: string;
+  avg_response_time_ms: number | null;
+  hint_count: number;
+  deviation_count: number;
+  action_count: number;
+  load_level: "low" | "medium" | "high";
+  computed_at: string;
+}
+
+// ── S10-E: Safety-Critical Action Reaction Time ───────────────────────────────
+export interface SafetyMetricsResponse {
+  session_id: number;
+  student_id: string;
+  case_id: string;
+  safety_actions_taken: string[];
+  safety_actions_missing: string[];
+  first_safety_action_seconds: number | null;
+  all_safety_checks_done: boolean;
+  computed_at: string;
+}
+
+// ── S10-F: Diagnostic Reasoning Process Trace ─────────────────────────────────
+export interface ProcessTraceEvent {
+  seq: number;
+  role: string;
+  timestamp: string | null;
+  content_preview: string;
+  interpreted_action: string | null;
+  score: number | null;
+  reasoning_deviation: boolean | null;
+  clinical_intent: string | null;
+}
+
+export interface ProcessTraceResponse {
+  session_id: number;
+  student_id: string;
+  case_id: string;
+  total_score: number;
+  events: ProcessTraceEvent[];
+  reasoning_pattern: Record<string, unknown> | null;
+  total_actions: number;
+  deviation_count: number;
+}
+
 /**
  * Instructor API
  */
@@ -461,6 +508,21 @@ export const instructorAPI = {
   exportQuestionsCSV: async (): Promise<Blob> => {
     const response = await apiClient.get("/api/quiz/instructor/questions/export", { responseType: "blob" });
     return response.data as Blob;
+  },
+
+  getSessionCognitiveLoad: async (sessionId: string): Promise<CognitiveLoadResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/cognitive-load`);
+    return response.data as CognitiveLoadResponse;
+  },
+
+  getSessionSafetyMetrics: async (sessionId: string): Promise<SafetyMetricsResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/safety-metrics`);
+    return response.data as SafetyMetricsResponse;
+  },
+
+  getSessionProcessTrace: async (sessionId: string): Promise<ProcessTraceResponse> => {
+    const response = await apiClient.get(`/api/sessions/${sessionId}/process-trace`);
+    return response.data as ProcessTraceResponse;
   },
 };
 
@@ -788,6 +850,7 @@ export interface QuizQuestionResult {
     grading_status?: string;
     instructor_score?: number | null;
     instructor_feedback?: string | null;
+    answer_id?: number | null;  // S10-B: for explanation lookup
 }
 
 /** Student quiz attempt list item (T-5D). */
@@ -1088,4 +1151,134 @@ export const notificationAPI = {
   markAllAsRead: async (): Promise<void> => {
     await apiClient.patch('/api/notifications/read-all');
   },
+};
+
+// ── S10-A: Reinforcement types ────────────────────────────────────────────────
+
+export interface ReinforcementQuestion {
+  question_id: string;
+  topic_id: string;
+  question_text: string;
+}
+
+export interface ChatApiResponse {
+  session_id: number | null;
+  ai_response: string;
+  final_feedback: string | null;
+  state_updates: Record<string, unknown>;
+  revealed_findings: string[];
+  reinforcement_questions: ReinforcementQuestion[];
+}
+
+// ── S10-B: "Why this score?" explanation types ────────────────────────────────
+
+export interface RubricVersionSnapshot {
+  version: number;
+  rubric_guide: string;
+  model_answer_outline: string;
+  created_at: string | null;
+}
+
+export interface AnswerExplanationResponse {
+  answer_id: number;
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  topic_id: string;
+  student_response: string;
+  auto_score: number | null;
+  instructor_score: number | null;
+  ai_score_suggestion: number | null;
+  ai_score_rationale: string | null;
+  max_score: number;
+  grading_status: string;
+  rubric_guide: string | null;
+  rubric_version_snapshot: RubricVersionSnapshot | null;
+}
+
+export const explanationAPI = {
+  getAnswerExplanation: async (
+    attemptId: number,
+    answerId: number
+  ): Promise<AnswerExplanationResponse> => {
+    const response = await apiClient.get(
+      `/api/quiz/my-attempts/${attemptId}/answers/${answerId}/explanation`
+    );
+    return response.data as AnswerExplanationResponse;
+  },
+};
+
+// ── S10-C: Spaced repetition review schedule ──────────────────────────────────
+
+export interface ReviewScheduleItem {
+  id: number;
+  question_id: string;
+  question_text: string;
+  topic_id: string;
+  due_date: string;
+  interval_days: number;
+  ease_factor: number;
+  repetitions: number;
+  last_reviewed_at: string | null;
+}
+
+export interface SubmitReviewResult {
+  id: number;
+  next_due_date: string;
+  next_interval_days: number;
+  repetitions: number;
+}
+
+export const reviewScheduleAPI = {
+  getDueItems: async (): Promise<ReviewScheduleItem[]> => {
+    const response = await apiClient.get('/api/quiz/my-review-schedule');
+    return response.data as ReviewScheduleItem[];
+  },
+  submitResult: async (itemId: number, rating: number): Promise<SubmitReviewResult> => {
+    const response = await apiClient.post(
+      `/api/quiz/my-review-schedule/${itemId}/result`,
+      { rating }
+    );
+    return response.data as SubmitReviewResult;
+  },
+};
+
+// ==================== S11-A: Research Snapshots ====================
+
+export interface SnapshotSummary {
+  id: number;
+  label: string;
+  created_by: string;
+  notes: string | null;
+  git_commit_hash: string | null;
+  questions_count: number;
+  cases_count: number;
+  bundle_size_bytes: number | null;
+  created_at: string;
+}
+
+export interface SnapshotDetail extends SnapshotSummary {
+  scoring_config_payload: Record<string, unknown>;
+  llm_config_payload: Record<string, unknown>;
+}
+
+export interface SnapshotCreateRequest {
+  label: string;
+  notes?: string;
+}
+
+export const researchAPI = {
+  createSnapshot: async (body: SnapshotCreateRequest): Promise<SnapshotSummary> => {
+    const response = await apiClient.post('/api/research/snapshots', body);
+    return response.data as SnapshotSummary;
+  },
+  listSnapshots: async (): Promise<SnapshotSummary[]> => {
+    const response = await apiClient.get('/api/research/snapshots');
+    return response.data as SnapshotSummary[];
+  },
+  getSnapshot: async (id: number): Promise<SnapshotDetail> => {
+    const response = await apiClient.get(`/api/research/snapshots/${id}`);
+    return response.data as SnapshotDetail;
+  },
+  getExportUrl: (id: number): string => `${API_URL}/api/research/snapshots/${id}/export`,
 };

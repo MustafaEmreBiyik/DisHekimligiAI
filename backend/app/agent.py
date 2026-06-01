@@ -24,6 +24,7 @@ from app.services.llm_safety import (
 )
 from app.services.med_gemma_service import MedGemmaService
 from app.services.rule_service import rule_service
+from app.services.llm_tracker import record_llm_interaction
 
 
 logger = logging.getLogger(__name__)
@@ -253,8 +254,21 @@ class DentalEducationAgent:
         )
 
         try:
-            response = self.model.generate_content(user_prompt)
-            raw_text = getattr(response, "text", "") or ""
+            with record_llm_interaction(
+                provider="gemini",
+                model_id=getattr(self.model, "_model_name", "gemini-2.5-flash-lite"),
+                call_type="interpretation",
+                session_id=state.get("_session_id"),
+            ) as llm_ctx:
+                response = self.model.generate_content(user_prompt)
+                usage = getattr(response, "usage_metadata", None)
+                if usage:
+                    llm_ctx.set_token_usage(
+                        prompt_tokens=getattr(usage, "prompt_token_count", None),
+                        completion_tokens=getattr(usage, "candidates_token_count", None),
+                    )
+                raw_text = getattr(response, "text", "") or ""
+
             json_str = _extract_first_json_block(raw_text)
 
             if not json_str:
