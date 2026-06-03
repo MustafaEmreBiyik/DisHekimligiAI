@@ -26,6 +26,7 @@ import {
   Bell,
   Calendar,
   Brain,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "./NotificationBell";
@@ -50,6 +51,7 @@ export default function Sidebar() {
   const studentLinks: NavLink[] = [
     { href: "/statistics", icon: <BarChart2 size={20} />, label: "My Statistics" },
     { href: "/cases", icon: <BookOpen size={20} />, label: "Case Library" },
+    { href: "/student/recommendations", icon: <Sparkles size={20} />, label: "Vaka Önerileri" },
     { href: "/oral-pathology", icon: <Microscope size={20} />, label: "Oral Pathology" },
     { href: "/quiz", icon: <FileQuestion size={20} />, label: "Klinik Bilgi Testi" },
     { href: "/student/question-bank", icon: <Library size={20} />, label: "Soru Bankası" },
