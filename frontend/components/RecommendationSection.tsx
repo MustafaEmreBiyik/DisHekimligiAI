@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { RecommendationResponse } from "@/lib/api";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import type { RecommendationResponse, TopFeature } from "@/lib/api";
 
 interface RecommendationSectionProps {
   data: RecommendationResponse | null;
@@ -36,6 +37,55 @@ function getDifficultyBadgeClass(value: string): string {
   }
 
   return "bg-slate-100 text-slate-700 border-slate-200";
+}
+
+const FEATURE_LABELS: Record<string, string> = {
+  avg_score_pct: "Ortalama Başarı",
+  bkt_mastery_avg: "BKT Hakimiyet",
+  irt_difficulty_b: "IRT Zorluk (b)",
+  n_sessions: "Oturum Sayısı",
+  mastery_gap: "Hakimiyet Açığı",
+  n_critical_safety_violations: "Güvenlik İhlali",
+  n_weak_competency_overlaps: "Zayıf Yetkinlik",
+  difficulty_ordinal: "Zorluk Derecesi",
+  case_avg_score_pct: "Vaka Ort. Başarı",
+  is_completed: "Tamamlandı",
+  is_in_progress: "Devam Ediyor",
+};
+
+function InlineTopFeatures({ features }: { features: TopFeature[] }) {
+  if (!features || features.length === 0) return null;
+  const maxC = Math.max(...features.map((f) => f.contribution), 1e-9);
+  return (
+    <div className="mt-3 space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Öne Çıkan Faktörler</p>
+      {features.map((f, i) => {
+        const pct = Math.round((f.contribution / maxC) * 100);
+        return (
+          <div key={i}>
+            <div className="flex items-center justify-between gap-1 mb-0.5">
+              <div className="flex items-center gap-1 min-w-0">
+                {f.direction === "up" ? (
+                  <ArrowUpRight size={12} className="shrink-0 text-emerald-500" />
+                ) : (
+                  <ArrowDownRight size={12} className="shrink-0 text-rose-500" />
+                )}
+                <span className="truncate text-xs text-slate-600">
+                  {FEATURE_LABELS[f.name] ?? f.name.replace(/_/g, " ")}
+                </span>
+              </div>
+            </div>
+            <div className="h-1 w-full rounded-full bg-slate-200">
+              <div
+                className={`h-1 rounded-full ${f.direction === "up" ? "bg-emerald-400" : "bg-rose-400"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function RecommendationSection({
@@ -83,9 +133,17 @@ export default function RecommendationSection({
             Klinik performansına göre önceliklendirilmiş en uygun vakalar
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-          <span>Algoritma:</span>
-          <span className="text-slate-800">{data.meta.algorithm_version}</span>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+            <span>Algoritma:</span>
+            <span className="text-slate-800">{data.meta.algorithm_version}</span>
+          </div>
+          <Link
+            href="/student/recommendations"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-800 transition-colors"
+          >
+            Tümünü Gör →
+          </Link>
         </div>
       </div>
 
@@ -136,12 +194,18 @@ export default function RecommendationSection({
               ))}
             </div>
 
-            <Link
-              href={`/chat/${item.case_id}`}
-              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:from-cyan-700 hover:to-blue-700"
-            >
-              Vakayı Aç
-            </Link>
+            {item.top_features && item.top_features.length > 0 && (
+              <InlineTopFeatures features={item.top_features} />
+            )}
+
+            <div className="mt-4 flex items-center gap-3">
+              <Link
+                href={`/chat/${item.case_id}`}
+                className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:from-cyan-700 hover:to-blue-700"
+              >
+                Vakayı Aç
+              </Link>
+            </div>
           </article>
         ))}
       </div>
