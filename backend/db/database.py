@@ -14,7 +14,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
-from sqlalchemy import Boolean, Enum
+from sqlalchemy import Boolean, Enum, UniqueConstraint, Index
 import enum
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
@@ -659,6 +659,135 @@ class ReviewSchedule(Base):
             f"<ReviewSchedule(id={self.id}, user_id={self.user_id}, "
             f"question_id={self.question_id}, due_date={self.due_date}, "
             f"interval_days={self.interval_days})>"
+        )
+
+
+# ==================== SPRINT 11 — RECOMMENDATION V2 (IRT + BKT + XGB) ====================
+
+class IRTParameters(Base):
+    """Item Response Theory parameters for a Question (S11-T03).
+
+    Persists a per-item difficulty (b) and discrimination (a), optionally
+    guessing (c) for 3PL. Calibrated by the nightly IRT job; one row per
+    question. sample_size and is_synthetic enable honest filtering downstream.
+    """
+
+    __tablename__ = "irt_parameters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), unique=True, nullable=False, index=True)
+    model = Column(String, nullable=False, default="2PL")           # "2PL" | "3PL"
+    difficulty_b = Column(Float, nullable=False)
+    discrimination_a = Column(Float, nullable=False)
+    guessing_c = Column(Float, nullable=True)                       # 3PL only
+    sample_size = Column(Integer, nullable=False)
+    fit_log_likelihood = Column(Float, nullable=True)
+    is_synthetic = Column(Boolean, nullable=False, default=False, index=True)
+    calibrated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+    calibration_run_id = Column(String, nullable=False, index=True)
+
+    question = relationship("Question", foreign_keys=[question_id])
+
+    def __repr__(self):
+        return (
+            f"<IRTParameters(question_id={self.question_id}, b={self.difficulty_b:.3f}, "
+            f"a={self.discrimination_a:.3f}, n={self.sample_size}, synthetic={self.is_synthetic})>"
+        )
+
+
+class MasteryState(Base):
+    """BKT mastery posterior for a (user, topic) pair (S11-T04).
+
+    Updated incrementally on every graded answer. mastery_prob is the
+    BKT posterior P(L_n); the four BKT priors are stored per row to
+    allow future per-topic prior fitting without schema change.
+    """
+
+    __tablename__ = "mastery_states"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    topic_id = Column(String, nullable=False, index=True)
+    mastery_prob = Column(Float, nullable=False)                    # current P(L_n)
+    p_init = Column(Float, nullable=False, default=0.20)            # P(L_0)
+    p_transit = Column(Float, nullable=False, default=0.10)         # P(T)
+    p_slip = Column(Float, nullable=False, default=0.10)            # P(S)
+    p_guess = Column(Float, nullable=False, default=0.20)           # P(G)
+    n_observations = Column(Integer, nullable=False, default=0)
+    last_observation_at = Column(DateTime, nullable=True)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        onupdate=datetime.datetime.utcnow,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "topic_id", name="uq_mastery_user_topic"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<MasteryState(user_id={self.user_id}, topic_id={self.topic_id}, "
+            f"p={self.mastery_prob:.3f}, n={self.n_observations})>"
+        )
+
+
+class RecommendationModelVersion(Base):
+    """Registered XGBoost ranker artefact for the v2 engine (S11-T05).
+
+    Each training run inserts one row with is_active=False; promotion
+    is a separate atomic operation enforced by the promotion CLI. The
+    partial-active invariant is enforced at the application layer
+    (not via partial index, since SQLite filtered indexes are unreliable).
+    """
+
+    __tablename__ = "recommendation_model_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    algorithm_version = Column(String, unique=True, nullable=False, index=True)
+    model_blob_path = Column(String, nullable=False)
+    trained_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+    training_sample_size = Column(Integer, nullable=False)
+    ndcg_at_5 = Column(Float, nullable=True)
+    hit_rate_at_5 = Column(Float, nullable=True)
+    map_at_10 = Column(Float, nullable=True)
+    feature_set_hash = Column(String, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=False, index=True)
+    notes = Column(Text, nullable=True)
+
+    def __repr__(self):
+        return (
+            f"<RecommendationModelVersion(version={self.algorithm_version}, "
+            f"ndcg@5={self.ndcg_at_5}, active={self.is_active})>"
+        )
+
+
+class RecommendationFeatureLog(Base):
+    """Per-recommendation feature snapshot for offline reproducibility (S11-T06).
+
+    Stores the exact feature vector and SHAP top contributions that produced
+    a given RecommendationSnapshot row. Enables debug ('why did the model
+    rank case X?') and longitudinal drift analysis without recomputing
+    historical features.
+    """
+
+    __tablename__ = "recommendation_feature_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    snapshot_id = Column(Integer, ForeignKey("recommendation_snapshots.id"), nullable=False, index=True)
+    model_version_id = Column(Integer, ForeignKey("recommendation_model_versions.id"), nullable=False, index=True)
+    feature_vector_json = Column(JSON, nullable=False)
+    shap_values_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
+
+    snapshot = relationship("RecommendationSnapshot", foreign_keys=[snapshot_id])
+    model_version = relationship("RecommendationModelVersion", foreign_keys=[model_version_id])
+
+    def __repr__(self):
+        return (
+            f"<RecommendationFeatureLog(snapshot_id={self.snapshot_id}, "
+            f"model_version_id={self.model_version_id})>"
         )
 
 
