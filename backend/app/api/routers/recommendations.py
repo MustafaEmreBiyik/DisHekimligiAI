@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -22,11 +23,19 @@ from db.database import (
     UserRole,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 ALGORITHM_VERSION = "v1_competency_based"
 SCORING_RULES_PATH = Path(__file__).resolve().parents[3] / "data" / "scoring_rules.json"
 CASE_SCENARIOS_PATH = Path(__file__).resolve().parents[3] / "data" / "case_scenarios.json"
+
+
+class TopFeature(BaseModel):
+    name: str
+    contribution: float
+    direction: str  # "up" | "down"
 
 
 class RecommendationItem(BaseModel):
@@ -38,6 +47,8 @@ class RecommendationItem(BaseModel):
     reason_code: str
     reason_text: str
     priority_score: int
+    top_features: Optional[list[TopFeature]] = None
+    model_version: Optional[str] = None
 
 
 class RecommendationMeta(BaseModel):
@@ -236,97 +247,82 @@ def _build_reason(
 
 @router.get("/me", response_model=RecommendationResponse)
 def get_my_recommendations(
+    algorithm: Optional[str] = Query(
+        None,
+        description="Force a specific algorithm: v1_competency_based | v2_hybrid_xgb_irt_bkt | auto",
+    ),
     current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
     db: Session = Depends(get_db),
 ):
-    candidates = _build_case_candidates(db)
+    from app.services.recommendation_engine_v2 import (
+        get_active_model_version,
+        persist_recommendation_snapshots,
+        recommend,
+    )
 
-    attempted_case_ids = {
-        case_id
-        for (case_id,) in db.query(StudentSession.case_id)
-        .filter(StudentSession.student_id == current_user.user_id)
-        .distinct()
-        .all()
-    }
-    completed_case_ids = {
-        case_id
-        for (case_id,) in db.query(ExamResult.case_id)
-        .filter(ExamResult.user_id == current_user.user_id)
-        .distinct()
-        .all()
-    }
-
-    has_sessions = len(attempted_case_ids) > 0
-    cold_start = not has_sessions
-    avg_percentage = _mean_percentage(db, current_user.user_id)
-    weak_competency_tags = _extract_weak_competencies(db, current_user.user_id)
-
-    scored: list[RecommendationItem] = []
-    for candidate in candidates:
-        is_completed = candidate.case_id in completed_case_ids
-        is_not_attempted = candidate.case_id not in attempted_case_ids
-        is_unfinished = not is_completed
-
-        overlap = set(candidate.competency_tags).intersection(weak_competency_tags)
-        overlap_count = len(overlap)
-        difficulty_points = _difficulty_score(avg_percentage, candidate.difficulty)
-
-        if is_completed:
-            priority_score = 0
-        else:
-            priority_score = 0
-            if is_unfinished:
-                priority_score += 50
-            if is_not_attempted:
-                priority_score += 10
-            if overlap_count > 0:
-                priority_score += 30 + (5 * overlap_count)
-            priority_score += difficulty_points
-            if cold_start and candidate.difficulty == "beginner":
-                priority_score += 15
-
-        reason_code, reason_text = _build_reason(
-            cold_start=cold_start,
-            overlap_count=overlap_count,
-            is_not_attempted=is_not_attempted,
-            difficulty_score=difficulty_points,
-            weak_tags=overlap,
+    try:
+        engine_result = recommend(db, current_user.user_id, k=5, algorithm=algorithm)
+        active_model = get_active_model_version(db)
+        persist_recommendation_snapshots(db, current_user.user_id, engine_result, active_model)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Recommendation engine failed for user=%s: %s — falling back to v1",
+            current_user.user_id, exc, exc_info=True,
         )
+        # Hard fallback: run v1 directly without feature logs
+        engine_result = _v1_fallback(db, current_user.user_id)
+        _persist_v1_snapshots(db, current_user.user_id, engine_result)
+        db.commit()
 
-        scored.append(
-            RecommendationItem(
-                case_id=candidate.case_id,
-                title=candidate.title,
-                difficulty=candidate.difficulty,
-                estimated_duration_minutes=candidate.estimated_duration_minutes,
-                competency_tags=candidate.competency_tags,
-                reason_code=reason_code,
-                reason_text=reason_text,
-                priority_score=int(priority_score),
-            )
+    items = [
+        RecommendationItem(
+            case_id=r.case_id,
+            title=r.title,
+            difficulty=r.difficulty,
+            estimated_duration_minutes=r.estimated_duration_minutes,
+            competency_tags=r.competency_tags,
+            reason_code=r.reason_code,
+            reason_text=r.reason_text,
+            priority_score=int(r.priority_score),
+            top_features=[
+                TopFeature(
+                    name=f["name"],
+                    contribution=float(f["contribution"]),
+                    direction=str(f["direction"]),
+                )
+                for f in (r.top_features or [])
+            ] or None,
+            model_version=r.model_version,
         )
-
-    scored.sort(key=lambda item: (-item.priority_score, item.case_id))
-    top_recommendations = scored[:5]
-
-    for item in top_recommendations:
-        db.add(
-            RecommendationSnapshot(
-                user_id=current_user.user_id,
-                case_id=item.case_id,
-                reason_code=item.reason_code,
-                reason_text=item.reason_text,
-                priority_score=item.priority_score,
-                algorithm_version=ALGORITHM_VERSION,
-            )
-        )
-    db.commit()
+        for r in engine_result.items
+    ]
 
     return RecommendationResponse(
-        recommendations=top_recommendations,
+        recommendations=items,
         meta=RecommendationMeta(
-            algorithm_version=ALGORITHM_VERSION,
+            algorithm_version=engine_result.algorithm_version,
             generated_at=datetime.utcnow().isoformat(),
-            cold_start=cold_start,
+            cold_start=engine_result.cold_start,
         ),
     )
+
+
+def _v1_fallback(db: Session, user_id: str):
+    """Direct v1 call used only when the engine itself crashes."""
+    from app.services.recommendation_engine_v2 import _run_v1, ALGORITHM_V1
+    return _run_v1(db, user_id, k=5, algorithm_label=ALGORITHM_V1)
+
+
+def _persist_v1_snapshots(db: Session, user_id: str, engine_result) -> None:
+    for item in engine_result.items:
+        db.add(RecommendationSnapshot(
+            user_id=user_id,
+            case_id=item.case_id,
+            reason_code=item.reason_code,
+            reason_text=item.reason_text,
+            priority_score=int(item.priority_score),
+            algorithm_version=engine_result.algorithm_version,
+        ))
+    db.flush()

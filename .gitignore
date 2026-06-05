@@ -70,6 +70,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# ML model artefacts (large binaries, not for git)
+models/
+
 # Sensitive local data
 data/users.json
 app/data/users.json
@@ -78,3 +81,4 @@ app/data/users.json
 md/
 docs/
 dentai/
+SPRINT_RECAP.md

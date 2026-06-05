@@ -15,3 +15,8 @@ passlib[bcrypt]>=1.7.4
 # Database migration
 alembic>=1.13.0
 psycopg[binary]>=3.2.0
+
+# Sprint 11 — ML pipeline (CPU variants for CI/local; see requirements-ml.txt for GPU)
+pandas>=2.2.0
+numpy>=1.26.0
+scikit-learn>=1.4.0

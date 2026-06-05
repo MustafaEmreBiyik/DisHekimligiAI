@@ -191,6 +191,12 @@ export const casesAPI = {
   },
 };
 
+export interface TopFeature {
+  name: string;
+  contribution: number;
+  direction: "up" | "down";
+}
+
 export interface RecommendationItem {
   case_id: string;
   title: string;
@@ -200,6 +206,8 @@ export interface RecommendationItem {
   reason_code: string;
   reason_text: string;
   priority_score: number;
+  top_features?: TopFeature[] | null;
+  model_version?: string | null;
 }
 
 export interface RecommendationMeta {
@@ -217,11 +225,9 @@ export interface RecommendationResponse {
  * Recommendation API
  */
 export const recommendationsAPI = {
-  /**
-   * Get personalized recommendations for authenticated student
-   */
-  getMyRecommendations: async (): Promise<RecommendationResponse> => {
-    const response = await apiClient.get("/api/recommendations/me");
+  getMyRecommendations: async (algorithm?: string): Promise<RecommendationResponse> => {
+    const params = algorithm ? { algorithm } : {};
+    const response = await apiClient.get("/api/recommendations/me", { params });
     return response.data as RecommendationResponse;
   },
 };

@@ -61,3 +61,28 @@ def _load_composite_weights() -> dict[str, float]:
 
 
 COMPOSITE_WEIGHTS: dict[str, float] = _load_composite_weights()
+
+
+# ── Sprint 11 — Recommendation v2 (IRT + BKT + XGB) ────────────────────────
+
+IRT_MODEL: str = os.getenv("DENTAI_IRT_MODEL", "2PL")
+IRT_MIN_SAMPLE: int = int(os.getenv("DENTAI_IRT_MIN_SAMPLE", "200"))
+
+RECOMMENDATION_ALGORITHM: str = os.getenv("DENTAI_RECOMMENDATION_ALGORITHM", "auto")
+EXPLORATION_EPSILON: float = float(os.getenv("DENTAI_EXPLORATION_EPSILON", "0.10"))
+RECOMMENDATION_FALLBACK: str = os.getenv("DENTAI_RECOMMENDATION_FALLBACK", "v1_competency_based")
+
+BKT_P_INIT: float = float(os.getenv("DENTAI_BKT_P_INIT", "0.20"))
+BKT_P_TRANSIT: float = float(os.getenv("DENTAI_BKT_P_TRANSIT", "0.10"))
+BKT_P_SLIP: float = float(os.getenv("DENTAI_BKT_P_SLIP", "0.10"))
+BKT_P_GUESS: float = float(os.getenv("DENTAI_BKT_P_GUESS", "0.20"))
+
+# Mastery thresholds (used by feature store and engine v2)
+BKT_MASTERY_LOW_THRESHOLD: float = 0.60    # below → "weak topic"
+BKT_MASTERY_HIGH_THRESHOLD: float = 0.80   # above → "strong topic"
+# Minimum observations before a user exits cold-start BKT mode
+BKT_MIN_OBSERVATIONS_PER_TOPIC: int = 20
+BKT_MIN_TOPICS_CONFIDENT: int = 3          # need ≥3 topics with ≥20 obs to drop v1 floor
+
+# Feature store
+FEATURE_COLD_START_SESSION_THRESHOLD: int = 3   # sessions below this → cold_start_flag=1
