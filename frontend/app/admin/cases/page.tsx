@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { adminAPI, AdminCaseItem } from "@/lib/api";
+import { adminAPI, AdminCaseItem, PatientPersona, PersonaLevel } from "@/lib/api";
 import AdminRouteGuard from "@/components/admin/AdminRouteGuard";
 
 type DifficultyLevel = "beginner" | "intermediate" | "advanced";
@@ -12,6 +12,29 @@ const DIFFICULTY_OPTIONS: DifficultyLevel[] = [
   "intermediate",
   "advanced",
 ];
+
+// S12-T01: patient persona editing.
+const PERSONA_LEVELS: PersonaLevel[] = ["low", "medium", "high"];
+
+const EMPTY_PERSONA: PatientPersona = {
+  age: null,
+  gender: "",
+  education_level: "",
+  anxiety_level: "medium",
+  evasiveness: "medium",
+  speech_style: "",
+  hidden_habits: [],
+};
+
+function personaLevelLabel(level: PersonaLevel): string {
+  if (level === "low") {
+    return "Düşük";
+  }
+  if (level === "high") {
+    return "Yüksek";
+  }
+  return "Orta";
+}
 
 function formatDate(dateText: string | null): string {
   if (!dateText) {
@@ -65,6 +88,10 @@ export default function AdminCasesPage() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [isUpdatingCase, setIsUpdatingCase] = useState(false);
   const [editErrorMessage, setEditErrorMessage] = useState("");
+
+  // S12-T01: persona editing state. hidden_habits is edited as one-per-line text.
+  const [editPersona, setEditPersona] = useState<PatientPersona>(EMPTY_PERSONA);
+  const [editHiddenHabits, setEditHiddenHabits] = useState("");
 
   const loadCases = useCallback(async () => {
     setIsLoadingCases(true);
@@ -153,6 +180,18 @@ export default function AdminCasesPage() {
     setEditDifficulty(item.difficulty);
     setEditIsActive(item.is_active);
     setEditErrorMessage("");
+
+    const persona = item.patient_persona ?? {};
+    setEditPersona({
+      age: persona.age ?? null,
+      gender: persona.gender ?? "",
+      education_level: persona.education_level ?? "",
+      anxiety_level: persona.anxiety_level ?? "medium",
+      evasiveness: persona.evasiveness ?? "medium",
+      speech_style: persona.speech_style ?? "",
+      hidden_habits: persona.hidden_habits ?? [],
+    });
+    setEditHiddenHabits((persona.hidden_habits ?? []).join("\n"));
   };
 
   const closeEditModal = () => {
@@ -170,10 +209,31 @@ export default function AdminCasesPage() {
     setIsUpdatingCase(true);
     setEditErrorMessage("");
 
+    const hiddenHabits = editHiddenHabits
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const ageValue =
+      editPersona.age === null || editPersona.age === undefined || Number.isNaN(editPersona.age)
+        ? null
+        : Number(editPersona.age);
+
+    const personaPayload: PatientPersona = {
+      age: ageValue,
+      gender: (editPersona.gender ?? "").trim(),
+      education_level: (editPersona.education_level ?? "").trim(),
+      anxiety_level: editPersona.anxiety_level ?? "medium",
+      evasiveness: editPersona.evasiveness ?? "medium",
+      speech_style: (editPersona.speech_style ?? "").trim(),
+      hidden_habits: hiddenHabits,
+    };
+
     try {
       const updated = await adminAPI.updateCase(editCase.case_id, {
         difficulty: editDifficulty,
         is_active: editIsActive,
+        patient_persona: personaPayload,
       });
 
       setCases((prev) =>
@@ -401,6 +461,144 @@ export default function AdminCasesPage() {
                 />
                 Aktif olarak işaretle
               </label>
+
+              {/* S12-T01: Hasta persona düzenleme */}
+              <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-800">
+                  Hasta Persona
+                </legend>
+                <p className="text-xs text-slate-500">
+                  Bu alan, simülasyondaki hastanın yaşını, kaygı ve kaçınma düzeyini, konuşma
+                  tarzını belirler. Boş bırakılırsa varsayılan persona kullanılır.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-age">
+                      Yaş
+                    </label>
+                    <input
+                      id="persona-age"
+                      type="number"
+                      min={0}
+                      value={editPersona.age ?? ""}
+                      onChange={(event) =>
+                        setEditPersona((prev) => ({
+                          ...prev,
+                          age: event.target.value === "" ? null : Number(event.target.value),
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-gender">
+                      Cinsiyet
+                    </label>
+                    <input
+                      id="persona-gender"
+                      type="text"
+                      value={editPersona.gender ?? ""}
+                      onChange={(event) =>
+                        setEditPersona((prev) => ({ ...prev, gender: event.target.value }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-education">
+                    Eğitim Düzeyi
+                  </label>
+                  <input
+                    id="persona-education"
+                    type="text"
+                    value={editPersona.education_level ?? ""}
+                    onChange={(event) =>
+                      setEditPersona((prev) => ({ ...prev, education_level: event.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-anxiety">
+                      Anksiyete Düzeyi
+                    </label>
+                    <select
+                      id="persona-anxiety"
+                      value={editPersona.anxiety_level ?? "medium"}
+                      onChange={(event) =>
+                        setEditPersona((prev) => ({
+                          ...prev,
+                          anxiety_level: event.target.value as PersonaLevel,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    >
+                      {PERSONA_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {personaLevelLabel(level)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-evasiveness">
+                      Kaçınma Düzeyi
+                    </label>
+                    <select
+                      id="persona-evasiveness"
+                      value={editPersona.evasiveness ?? "medium"}
+                      onChange={(event) =>
+                        setEditPersona((prev) => ({
+                          ...prev,
+                          evasiveness: event.target.value as PersonaLevel,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    >
+                      {PERSONA_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {personaLevelLabel(level)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-speech">
+                    Konuşma Tarzı
+                  </label>
+                  <textarea
+                    id="persona-speech"
+                    rows={2}
+                    value={editPersona.speech_style ?? ""}
+                    onChange={(event) =>
+                      setEditPersona((prev) => ({ ...prev, speech_style: event.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    placeholder="Örn: Sakin ve işbirlikçi; sorulara açık yanıt verir."
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="persona-hidden">
+                    Gizli Alışkanlıklar (her satıra bir madde)
+                  </label>
+                  <textarea
+                    id="persona-hidden"
+                    rows={2}
+                    value={editHiddenHabits}
+                    onChange={(event) => setEditHiddenHabits(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    placeholder={"Sigara kullanımı\nDüzensiz ilaç kullanımı"}
+                  />
+                </div>
+              </fieldset>
 
               {editErrorMessage && <p className="text-sm font-medium text-rose-700">{editErrorMessage}</p>}
 

@@ -177,6 +177,13 @@ class CaseDefinition(Base):
     initial_state = Column(String, nullable=False)
     states_json = Column(JSON, nullable=False, default=dict)
     patient_info_json = Column(JSON, nullable=False, default=dict)
+    # S12-T01: Case-specific patient persona (age/anxiety/evasiveness/speech_style/...)
+    # used to dynamically shape the simulated patient's dialogue. Optional; the agent
+    # falls back to a default persona when empty.
+    patient_persona_json = Column(JSON, nullable=False, default=dict)
+    # S12-T02: clinical images attached to the case (list of {url, type, caption}).
+    # type values: periapical_xray | panoramic | clinical_photo | dermoscopy
+    case_images_json = Column(JSON, nullable=False, default=list)
     rules_json = Column(JSON, nullable=False, default=list)
     source_payload = Column(JSON, nullable=False, default=dict)
     is_archived = Column(Boolean, nullable=False, default=False, index=True)
