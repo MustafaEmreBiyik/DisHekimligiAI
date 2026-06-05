@@ -189,6 +189,14 @@ export const casesAPI = {
     const response = await apiClient.get(`/api/cases/${caseId}/session`);
     return response.data;
   },
+
+  /**
+   * S12-T02: Get clinical images attached to a case
+   */
+  getImages: async (caseId: string): Promise<{ case_id: string; images: CaseImage[] }> => {
+    const response = await apiClient.get(`/api/cases/${caseId}/images`);
+    return response.data;
+  },
 };
 
 export interface TopFeature {
@@ -559,6 +567,28 @@ export interface AdminUserUpdatePayload {
   is_archived?: boolean;
 }
 
+// S12-T02: clinical image attached to a case definition.
+export type CaseImageType = "periapical_xray" | "panoramic" | "clinical_photo" | "dermoscopy";
+
+export interface CaseImage {
+  url: string;
+  type: CaseImageType;
+  caption: string;
+}
+
+// S12-T01: case-specific simulated patient persona.
+export type PersonaLevel = "low" | "medium" | "high";
+
+export interface PatientPersona {
+  age?: number | null;
+  gender?: string;
+  education_level?: string;
+  anxiety_level?: PersonaLevel;
+  evasiveness?: PersonaLevel;
+  speech_style?: string;
+  hidden_habits?: string[];
+}
+
 export interface AdminCaseItem {
   case_id: string;
   title: string;
@@ -568,6 +598,8 @@ export interface AdminCaseItem {
   schema_version: string;
   published_version: number;
   last_published_at: string | null;
+  patient_persona?: PatientPersona;
+  case_images?: CaseImage[];
 }
 
 export interface AdminCasesResponse {
@@ -588,6 +620,8 @@ export interface AdminCaseCreatePayload {
   initial_state?: string;
   states?: Record<string, unknown>;
   patient_info?: Record<string, unknown>;
+  patient_persona?: PatientPersona;
+  case_images?: CaseImage[];
 }
 
 export interface AdminCaseUpdatePayload {
@@ -596,6 +630,8 @@ export interface AdminCaseUpdatePayload {
   difficulty?: "beginner" | "intermediate" | "advanced";
   estimated_duration_minutes?: number;
   is_active?: boolean;
+  patient_persona?: PatientPersona;
+  case_images?: CaseImage[];
 }
 
 export interface AdminPublishPayload {
