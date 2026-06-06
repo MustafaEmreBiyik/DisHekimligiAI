@@ -142,6 +142,10 @@ def _apply_case_payload(model: CaseDefinition, case_payload: dict[str, Any]) -> 
     model.initial_state = case_payload["initial_state"]
     model.states_json = case_payload["states"]
     model.patient_info_json = case_payload["patient_info"]
+    # S12-T01: optional case-specific patient persona (defaults to {} when absent).
+    model.patient_persona_json = case_payload.get("patient_persona") or {}
+    # S12-T02: optional clinical images list (defaults to [] when absent).
+    model.case_images_json = case_payload.get("case_images") or []
     model.source_payload = case_payload
 
 

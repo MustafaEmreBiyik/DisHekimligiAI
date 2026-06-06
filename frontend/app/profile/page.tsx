@@ -58,6 +58,7 @@ export default function ProfilePage() {
     if (user) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadData = async () => {

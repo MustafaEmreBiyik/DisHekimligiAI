@@ -6,6 +6,8 @@ import {
   researchAPI,
   SnapshotSummary,
   SnapshotDetail,
+  RecommendationEvalResult,
+  ResearchExportSummary,
   getApiErrorMessage,
 } from "@/lib/api";
 
@@ -195,7 +197,7 @@ function CreateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
         <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Yeni Araştırma Snapshot'u</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Yeni Araştırma Snapshot&apos;u</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
@@ -254,6 +256,304 @@ function CreateModal({
   );
 }
 
+function fmt(v: number | null | undefined): string {
+  if (v === null || v === undefined || isNaN(v as number)) return "—";
+  return (v as number).toFixed(4);
+}
+
+function EvalSection() {
+  const [result, setResult] = useState<RecommendationEvalResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [windowDays, setWindowDays] = useState(60);
+
+  async function run() {
+    setLoading(true);
+    setError(null);
+    try {
+      setResult(await researchAPI.getRecommendationEval(windowDays));
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Değerlendirme çalıştırılamadı."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const noData = result && (result.error || result.note || (result.n_contexts_evaluated ?? 0) === 0);
+
+  return (
+    <div className="mb-8 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Öneri Algoritması Değerlendirmesi</h2>
+          <p className="text-xs text-gray-500 mt-0.5">V1 (kural tabanlı) vs V2 (XGBoost+IRT+BKT) — offline NDCG karşılaştırması</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={windowDays}
+            onChange={(e) => setWindowDays(Number(e.target.value))}
+            className="text-xs border border-gray-200 rounded px-2 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          >
+            <option value={30}>Son 30 gün</option>
+            <option value={60}>Son 60 gün</option>
+            <option value={90}>Son 90 gün</option>
+            <option value={180}>Son 180 gün</option>
+          </select>
+          <button
+            onClick={run}
+            disabled={loading}
+            className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? "Hesaplanıyor…" : "Değerlendir"}
+          </button>
+        </div>
+      </div>
+
+      <div className="p-5">
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{error}</p>
+        )}
+
+        {!result && !error && !loading && (
+          <p className="text-sm text-gray-400 text-center py-4">
+            Algoritma karşılaştırması için &ldquo;Değerlendir&rdquo; butonuna tıklayın.
+          </p>
+        )}
+
+        {loading && (
+          <p className="text-sm text-gray-400 text-center py-4">Hesaplanıyor…</p>
+        )}
+
+        {result && noData && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            {result.error || result.note || "Bu pencerede değerlendirilebilecek yeterli veri yok."}
+          </div>
+        )}
+
+        {result && !noData && (
+          <>
+            <div className="flex flex-wrap gap-2 mb-5 text-xs text-gray-500">
+              <span className="bg-gray-100 rounded px-2 py-1">
+                Pencere: {result.window_start?.slice(0, 10)} → {result.window_end?.slice(0, 10)}
+              </span>
+              <span className="bg-gray-100 rounded px-2 py-1">
+                Değerlendirilen bağlam: {result.n_contexts_evaluated} / {result.n_contexts_total}
+              </span>
+              {result.active_model_version && (
+                <span className="bg-gray-100 rounded px-2 py-1 font-mono">
+                  Aktif model: {result.active_model_version}
+                </span>
+              )}
+            </div>
+
+            {/* Metric comparison table */}
+            <div className="overflow-x-auto mb-5">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-gray-500 border-b">
+                    <th className="text-left py-2 font-medium">Metrik</th>
+                    <th className="text-right py-2 font-medium">V1 (kural)</th>
+                    <th className="text-right py-2 font-medium">V2 (XGBoost)</th>
+                    <th className="text-right py-2 font-medium">Delta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(
+                    [
+                      ["NDCG@5", "ndcg_at_5"],
+                      ["Hit-rate@5", "hit_rate_at_5"],
+                      ["MAP@10", "map_at_10"],
+                    ] as [string, keyof typeof result.v1][]
+                  ).map(([label, key]) => {
+                    const v1v = ((result.v1?.[key] as number | undefined) ?? null);
+                    const v2v = ((result.v2?.[key] as number | undefined) ?? null);
+                    const delta = v1v != null && v2v != null ? v2v - v1v : null;
+                    return (
+                      <tr key={key} className="border-b border-gray-50">
+                        <td className="py-2 text-gray-700 font-medium">{label}</td>
+                        <td className="py-2 text-right font-mono text-gray-600">{fmt(v1v)}</td>
+                        <td className="py-2 text-right font-mono text-gray-600">{fmt(v2v)}</td>
+                        <td className={`py-2 text-right font-mono font-semibold ${delta !== null && delta > 0 ? "text-emerald-600" : delta !== null && delta < 0 ? "text-red-500" : "text-gray-400"}`}>
+                          {delta !== null ? (delta > 0 ? "+" : "") + fmt(delta) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bootstrap CI */}
+            <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 mb-5 space-y-1">
+              <p>
+                <span className="font-medium">ΔNDCG@5 ortalaması:</span>{" "}
+                <span className="font-mono">{fmt(result.delta_ndcg_at_5)}</span>
+              </p>
+              <p>
+                <span className="font-medium">Bootstrap %95 CI:</span>{" "}
+                <span className="font-mono">
+                  [{fmt(result.bootstrap_ci_95?.[0])}, {fmt(result.bootstrap_ci_95?.[1])}]
+                </span>
+                {result.bootstrap_ci_95 && result.bootstrap_ci_95[0] > 0 && (
+                  <span className="ml-2 text-emerald-600 font-medium">CI sıfırı dışlıyor ✓</span>
+                )}
+              </p>
+            </div>
+
+            {/* Promotion gates + verdict */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 text-xs">
+                <div className={`flex items-center gap-2 ${result.gate1_ndcg_lift_pass ? "text-emerald-700" : "text-red-600"}`}>
+                  <span>{result.gate1_ndcg_lift_pass ? "✅" : "❌"}</span>
+                  <span>Gate 1: NDCG@5 ≥ 1.10 × V1 ({fmt(result.required_ndcg_for_promotion)})</span>
+                </div>
+                <div className={`flex items-center gap-2 ${result.gate2_ci_excludes_zero_pass ? "text-emerald-700" : "text-red-600"}`}>
+                  <span>{result.gate2_ci_excludes_zero_pass ? "✅" : "❌"}</span>
+                  <span>Gate 2: Bootstrap CI sıfırı dışlıyor</span>
+                </div>
+              </div>
+              <div className={`px-4 py-2 rounded-lg text-sm font-bold ${result.verdict === "PROMOTE" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>
+                {result.verdict === "PROMOTE" ? "PROMOTE" : "DO NOT PROMOTE"}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ExportSection() {
+  const [exports, setExports] = useState<ResearchExportSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  async function loadExports() {
+    setLoading(true);
+    setError(null);
+    try {
+      setExports(await researchAPI.listExports());
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Export listesi yüklenemedi."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function generate() {
+    setGenerating(true);
+    setError(null);
+    try {
+      const record = await researchAPI.createExport();
+      setExports((prev) => [record, ...prev]);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Export oluşturulamadı."));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function toggle() {
+    if (!open) loadExports();
+    setOpen((v) => !v);
+  }
+
+  return (
+    <div className="mb-8 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Anonimleştirilmiş Veri Export</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            KVKK uyumlu — user_id hashlendi, PII kaldırıldı — ZIP (7 CSV)
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={toggle}
+            className="px-3 py-1.5 text-xs border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
+          >
+            {open ? "Gizle" : "Geçmiş Export'lar"}
+          </button>
+          <button
+            onClick={generate}
+            disabled={generating}
+            className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {generating ? "Oluşturuluyor…" : "+ Yeni Export"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="px-5 py-3">
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{error}</p>
+        </div>
+      )}
+
+      {open && (
+        <div className="p-5">
+          {loading && (
+            <p className="text-sm text-gray-400 text-center py-4">Yükleniyor…</p>
+          )}
+          {!loading && exports.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Henüz export yok. &ldquo;Yeni Export&rdquo; ile ilk dataset&apos;i oluşturun.
+            </p>
+          )}
+          {!loading && exports.length > 0 && (
+            <div className="space-y-2">
+              {exports.map((ex) => (
+                <div
+                  key={ex.id}
+                  className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 text-sm"
+                >
+                  <div>
+                    <span className="font-mono text-xs text-gray-400 mr-2">#{ex.id}</span>
+                    <span className="text-gray-700">
+                      {new Date(ex.created_at).toLocaleString("tr-TR", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                    <span className="ml-3 text-gray-500 text-xs">
+                      {ex.row_count_total.toLocaleString()} satır · {ex.tables_included.length} tablo
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        ex.status === "ready"
+                          ? "bg-green-100 text-green-700"
+                          : ex.status === "error"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {ex.status === "ready" ? "Hazır" : ex.status === "error" ? "Hata" : "Bekliyor"}
+                    </span>
+                    {ex.status === "ready" && (
+                      <a
+                        href={researchAPI.getExportDownloadUrl(ex.id)}
+                        download
+                        className="text-xs px-3 py-1.5 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                      >
+                        ZIP İndir
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function ResearchSnapshotsPage() {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,7 +601,7 @@ export default function ResearchSnapshotsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Araştırma Snapshot'ları</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Araştırma Snapshot&apos;ları</h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Sistem durumunun immutable anlık görüntüleri — akademik yayın reproducibility için
               </p>
@@ -313,6 +613,12 @@ export default function ResearchSnapshotsPage() {
               + Yeni Snapshot
             </button>
           </div>
+
+          {/* Recommendation evaluation */}
+          <EvalSection />
+
+          {/* Anonymised data export */}
+          <ExportSection />
 
           {/* Info banner */}
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
