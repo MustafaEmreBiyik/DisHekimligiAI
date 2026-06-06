@@ -28,14 +28,13 @@ export default function ExamPage() {
   const [done, setDone] = useState(false);
   const submitted = useRef(false);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
   const startExam = useCallback(async () => {
+    const tok = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    const hdrs = { "Content-Type": "application/json", Authorization: `Bearer ${tok}` };
     try {
       const res = await fetch(`${API_BASE}/api/quiz/exam-schedules/${scheduleId}/start`, {
         method: "POST",
-        headers,
+        headers: hdrs,
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -47,7 +46,7 @@ export default function ExamPage() {
       if (data.time_limit_expires_at) {
         setExpiresAt(new Date(data.time_limit_expires_at));
       }
-      const qRes = await fetch(`${API_BASE}/api/quiz/questions`, { headers });
+      const qRes = await fetch(`${API_BASE}/api/quiz/questions`, { headers: hdrs });
       if (qRes.ok) {
         const allQ = await qRes.json();
         setQuestions(allQ.slice(0, data.question_count));
@@ -61,6 +60,24 @@ export default function ExamPage() {
     startExam();
   }, [startExam]);
 
+  const handleSubmit = async () => {
+    if (submitted.current || !attemptId) return;
+    submitted.current = true;
+    setSubmitting(true);
+    const tok = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    try {
+      await fetch(`${API_BASE}/api/quiz/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+        body: JSON.stringify({ answers }),
+      });
+    } catch {
+      // best effort
+    }
+    setSubmitting(false);
+    setDone(true);
+  };
+
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -71,24 +88,8 @@ export default function ExamPage() {
       }
     }, 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expiresAt]);
-
-  const handleSubmit = async () => {
-    if (submitted.current || !attemptId) return;
-    submitted.current = true;
-    setSubmitting(true);
-    try {
-      await fetch(`${API_BASE}/api/quiz/submit`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ answers }),
-      });
-    } catch {
-      // best effort
-    }
-    setSubmitting(false);
-    setDone(true);
-  };
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

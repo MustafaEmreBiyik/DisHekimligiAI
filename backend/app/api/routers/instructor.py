@@ -519,3 +519,21 @@ def create_recommendation_spotlight(
         "spotlight_id": str(spotlight.id),
         "message": "Vaka öneri listesine eklendi.",
     }
+
+
+@router.get(
+    "/students/{student_id}/progress-timeline",
+    summary="Student 12-week longitudinal progress timeline (T07)",
+)
+def get_student_progress_timeline(
+    student_id: str,
+    n_weeks: int = 12,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Return weekly progress timeline for a specific student (instructor/admin only)."""
+    student = db.query(User).filter(User.user_id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    from app.services.progress_timeline_service import build_timeline
+    return build_timeline(student_id, db, n_weeks=min(n_weeks, 52))

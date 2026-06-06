@@ -64,7 +64,7 @@ def security_client(tmp_path, monkeypatch, mock_external_ai_sdks):
     monkeypatch.setattr(chat_router, "SessionLocal", testing_session_local)
     monkeypatch.setattr(analytics_router, "SessionLocal", testing_session_local)
     monkeypatch.setattr(database_module, "SessionLocal", testing_session_local)
-    monkeypatch.setattr(chat_router, "agent", _DummyAgent())
+    monkeypatch.setattr(chat_router, "_get_or_create_agent", lambda: _DummyAgent())
     monkeypatch.setattr(chat_router, "reasoning_classifier", _DummyReasoningClassifier())
     from app.scenario_manager import ScenarioManager
     dummy_sm = ScenarioManager(session_factory=testing_session_local, allow_json_fallback=True)

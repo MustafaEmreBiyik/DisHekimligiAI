@@ -63,6 +63,10 @@ class AdminCaseCreateRequest(BaseModel):
     initial_state: str = "consultation"
     states: dict[str, Any] = Field(default_factory=dict)
     patient_info: dict[str, Any] = Field(default_factory=dict)
+    # S12-T01: optional case-specific patient persona.
+    patient_persona: dict[str, Any] = Field(default_factory=dict)
+    # S12-T02: optional clinical images list [{url, type, caption}].
+    case_images: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class AdminCaseUpdateRequest(BaseModel):
@@ -71,6 +75,10 @@ class AdminCaseUpdateRequest(BaseModel):
     difficulty: str | None = None
     estimated_duration_minutes: int | None = Field(default=None, gt=0)
     is_active: bool | None = None
+    # S12-T01: optional case-specific patient persona update.
+    patient_persona: dict[str, Any] | None = None
+    # S12-T02: optional clinical images update [{url, type, caption}].
+    case_images: list[dict[str, Any]] | None = None
 
 
 class PublishRequest(BaseModel):
@@ -166,6 +174,10 @@ def _case_summary(db: Session, case: CaseDefinition) -> dict[str, Any]:
         "schema_version": case.schema_version,
         "published_version": int(latest.version) if latest else 0,
         "last_published_at": _safe_iso(latest.published_at) if latest else None,
+        # S12-T01: surface persona so the instructor form can prefill/edit it.
+        "patient_persona": case.patient_persona_json if isinstance(case.patient_persona_json, dict) else {},
+        # S12-T02: surface case images for instructor editing.
+        "case_images": case.case_images_json if isinstance(case.case_images_json, list) else [],
     }
 
 
@@ -346,6 +358,8 @@ def create_admin_case(
         initial_state=payload.initial_state,
         states_json=payload.states,
         patient_info_json=payload.patient_info,
+        patient_persona_json=payload.patient_persona,
+        case_images_json=payload.case_images,
         rules_json=[],
         source_payload={
             "case_id": case_id,
@@ -361,6 +375,8 @@ def create_admin_case(
             "initial_state": payload.initial_state,
             "states": payload.states,
             "patient_info": payload.patient_info,
+            "patient_persona": payload.patient_persona,
+            "case_images": payload.case_images,
         },
         is_archived=False,
         archived_at=None,
@@ -391,6 +407,10 @@ def update_admin_case(
         case.estimated_duration_minutes = payload.estimated_duration_minutes
     if payload.is_active is not None:
         case.is_active = payload.is_active
+    if payload.patient_persona is not None:
+        case.patient_persona_json = payload.patient_persona
+    if payload.case_images is not None:
+        case.case_images_json = payload.case_images
 
     db.commit()
     db.refresh(case)

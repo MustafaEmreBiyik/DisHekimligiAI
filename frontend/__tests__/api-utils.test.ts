@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import axios from "axios";
 
 // We only test the pure utility function, not the axios instance itself.

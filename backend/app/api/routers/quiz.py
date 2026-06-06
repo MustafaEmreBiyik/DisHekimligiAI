@@ -2192,6 +2192,75 @@ def get_my_review_schedule(
     return result
 
 
+# ── T05: Question-Based Recommendation Endpoint ──────────────────────────────
+
+class RecommendedQuestionItem(BaseModel):
+    question_id: str
+    question_text: str
+    question_type: str
+    topic_id: str
+    bloom_level: str
+    difficulty: str
+    max_score: int
+    options_json: Optional[List[str]] = None
+    reason: str
+    reason_code: str
+    mastery_pct: Optional[int] = None
+    priority: int
+
+
+@router.get(
+    "/my-recommended-questions",
+    response_model=List[RecommendedQuestionItem],
+    status_code=status.HTTP_200_OK,
+    summary="Get personalised question recommendations for the current student (T05)",
+    description=(
+        "Returns up to 10 recommended questions ordered by priority. "
+        "Priority 1: SM-2 due review items. "
+        "Priority 2: weak-topic questions (BKT mastery < 70 %) matched by IRT difficulty. "
+        "Priority 3: cold-start fallback for students with no history. "
+        "Each item includes a Turkish reason text explaining why the question was selected."
+    ),
+)
+def get_my_recommended_questions(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> List[RecommendedQuestionItem]:
+    from app.services.ab_test_service import get_or_assign
+    from app.services.question_recommender import (
+        recommend_questions,
+        recommend_questions_control,
+    )
+
+    # Ensure the student has an experiment assignment (lazy, deterministic)
+    group = get_or_assign(current_user.user_id, "recsys_ab_2026", db)
+
+    # Dispatch based on experiment group
+    if group == "control":
+        recs = recommend_questions_control(current_user.user_id, db)
+    else:
+        # treatment_v2 and treatment_persona both use the full personalised stack
+        recs = recommend_questions(current_user.user_id, db)
+
+    return [
+        RecommendedQuestionItem(
+            question_id=r.question_id,
+            question_text=r.question_text,
+            question_type=r.question_type,
+            topic_id=r.topic_id,
+            bloom_level=r.bloom_level,
+            difficulty=r.difficulty,
+            max_score=r.max_score,
+            options_json=r.options_json,
+            reason=r.reason,
+            reason_code=r.reason_code,
+            mastery_pct=r.mastery_pct,
+            priority=r.priority,
+        )
+        for r in recs
+    ]
+
+
 @router.post(
     "/my-review-schedule/{item_id}/result",
     response_model=SubmitReviewResponse,
@@ -2234,3 +2303,19 @@ def submit_review_result(
         next_interval_days=new_state.interval_days,
         repetitions=new_state.repetitions,
     )
+
+
+@router.get(
+    "/students/me/progress-timeline",
+    response_model=Dict,
+    status_code=status.HTTP_200_OK,
+    summary="My 12-week longitudinal progress timeline (T07)",
+)
+def get_my_progress_timeline(
+    n_weeks: int = 12,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.STUDENT)),
+    db: Session = Depends(get_db),
+) -> Dict:
+    """Return weekly quiz/case/recommendation data and current mastery for the student."""
+    from app.services.progress_timeline_service import build_timeline
+    return build_timeline(current_user.user_id, db, n_weeks=min(n_weeks, 52))

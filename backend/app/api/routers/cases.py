@@ -250,6 +250,24 @@ def get_session(
     )
 
 
+@router.get("/{case_id}/images", status_code=status.HTTP_200_OK)
+def get_case_images(case_id: str, current_user: str = Depends(get_current_user)):
+    """
+    Get clinical images for a specific case.
+
+    Returns the images list [{url, type, caption}] attached to the case definition.
+    Empty list when the case has no images (backward compatible).
+    """
+    case = scenario_manager.get_case(case_id, include_inactive=False)
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Case '{case_id}' not found",
+        )
+    images = case.get("case_images", [])
+    return {"case_id": case_id, "images": images if isinstance(images, list) else []}
+
+
 @router.get("/status", status_code=status.HTTP_200_OK)
 def cases_service_status():
     """
