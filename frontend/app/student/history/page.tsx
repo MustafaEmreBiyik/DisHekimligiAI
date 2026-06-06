@@ -19,7 +19,6 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  BarChart2,
 } from "lucide-react";
 import {
   AreaChart,

@@ -31,7 +31,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentScore, setCurrentScore] = useState(0);
+  const [currentScore] = useState(0);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
 

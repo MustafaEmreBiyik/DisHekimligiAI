@@ -42,6 +42,7 @@ export default function InstructorExamSchedulesPage() {
 
   useEffect(() => {
     loadSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreate = async () => {
