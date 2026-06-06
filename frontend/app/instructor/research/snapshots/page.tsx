@@ -197,7 +197,7 @@ function CreateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
         <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Yeni Araştırma Snapshot'u</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Yeni Araştırma Snapshot&apos;u</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
@@ -601,7 +601,7 @@ export default function ResearchSnapshotsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Araştırma Snapshot'ları</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Araştırma Snapshot&apos;ları</h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Sistem durumunun immutable anlık görüntüleri — akademik yayın reproducibility için
               </p>
