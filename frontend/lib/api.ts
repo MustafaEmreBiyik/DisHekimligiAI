@@ -880,6 +880,22 @@ export interface QuestionBankFilters {
   search?: string;
 }
 
+/** T05: Personalised question recommendation (BKT + IRT + SM-2). */
+export interface RecommendedQuestion {
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  topic_id: string;
+  bloom_level: string;
+  difficulty: string;
+  max_score: number;
+  options_json: string[] | null;
+  reason: string;
+  reason_code: 'sm2_due' | 'weak_topic_irt' | 'weak_topic' | 'cold_start';
+  mastery_pct: number | null;
+  priority: number;
+}
+
 /** Per-question result after server-side grading — student-safe feedback only. */
 export interface QuizQuestionResult {
     id: string;
@@ -971,6 +987,20 @@ export const quizAPI = {
     getMyAttemptDetail: async (attemptId: number): Promise<QuizSubmitResponse> => {
         const response = await apiClient.get(`/api/quiz/my-attempts/${attemptId}`);
         return response.data as QuizSubmitResponse;
+    },
+
+    /** Get personalised question recommendations (T05). */
+    getMyRecommendedQuestions: async (): Promise<RecommendedQuestion[]> => {
+        const response = await apiClient.get('/api/quiz/my-recommended-questions');
+        return response.data as RecommendedQuestion[];
+    },
+
+    /** Get 12-week longitudinal progress timeline (T07). */
+    getMyProgressTimeline: async (nWeeks = 12): Promise<ProgressTimeline> => {
+        const response = await apiClient.get('/api/quiz/students/me/progress-timeline', {
+            params: { n_weeks: nWeeks },
+        });
+        return response.data as ProgressTimeline;
     },
 };
 
@@ -1309,6 +1339,75 @@ export interface SnapshotCreateRequest {
   notes?: string;
 }
 
+export interface RecommendationEvalMetrics {
+  ndcg_at_5: number | null;
+  hit_rate_at_5: number | null;
+  map_at_10: number | null;
+}
+
+export interface RecommendationEvalResult {
+  window_days?: number;
+  window_start?: string;
+  window_end?: string;
+  n_contexts_total?: number;
+  n_contexts_evaluated?: number;
+  active_model_version?: string | null;
+  v1?: RecommendationEvalMetrics;
+  v2?: RecommendationEvalMetrics;
+  delta_ndcg_at_5?: number | null;
+  bootstrap_ci_95?: [number, number];
+  required_ndcg_for_promotion?: number | null;
+  gate1_ndcg_lift_pass?: boolean;
+  gate2_ci_excludes_zero_pass?: boolean;
+  verdict?: 'PROMOTE' | 'DO NOT PROMOTE';
+  note?: string;
+  error?: string;
+}
+
+// ── T07: Longitudinal Progress Timeline ───────────────────────────────────────
+export interface ProgressWeek {
+  week_start: string;
+  week_label: string;
+  quiz_score_avg: number | null;
+  quiz_attempts: number;
+  cases_completed: number;
+  recommendations_received: number;
+}
+
+export interface MasteryTopicInfo {
+  label: string;
+  mastery_pct: number;
+  n_observations: number;
+  last_observation_at: string | null;
+}
+
+export interface ProgressTimelineSummary {
+  total_quiz_attempts: number;
+  total_cases_completed: number;
+  avg_quiz_score_pct: number | null;
+  avg_mastery_pct: number;
+  irt_theta_current: number;
+}
+
+export interface ProgressTimeline {
+  user_id: string;
+  weeks: ProgressWeek[];
+  mastery_by_topic: Record<string, MasteryTopicInfo>;
+  irt_theta_current: number;
+  summary: ProgressTimelineSummary;
+}
+
+// ── T08: Research Dataset Export ──────────────────────────────────────────────
+export interface ResearchExportSummary {
+  id: number;
+  created_by: string;
+  created_at: string;
+  tables_included: string[];
+  row_count_total: number;
+  status: "ready" | "pending" | "error";
+  filename: string | null;
+}
+
 export const researchAPI = {
   createSnapshot: async (body: SnapshotCreateRequest): Promise<SnapshotSummary> => {
     const response = await apiClient.post('/api/research/snapshots', body);
@@ -1323,4 +1422,22 @@ export const researchAPI = {
     return response.data as SnapshotDetail;
   },
   getExportUrl: (id: number): string => `${API_URL}/api/research/snapshots/${id}/export`,
+  getRecommendationEval: async (windowDays = 60): Promise<RecommendationEvalResult> => {
+    const response = await apiClient.get('/api/research/recommendation-eval', {
+      params: { window_days: windowDays },
+    });
+    return response.data as RecommendationEvalResult;
+  },
+
+  // T08: anonymised dataset export
+  createExport: async (): Promise<ResearchExportSummary> => {
+    const response = await apiClient.post('/api/research/exports');
+    return response.data as ResearchExportSummary;
+  },
+  listExports: async (): Promise<ResearchExportSummary[]> => {
+    const response = await apiClient.get('/api/research/exports');
+    return response.data as ResearchExportSummary[];
+  },
+  getExportDownloadUrl: (id: number): string =>
+    `${API_URL}/api/research/exports/${id}/download`,
 };
