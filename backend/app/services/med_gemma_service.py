@@ -270,6 +270,7 @@ Return ONLY JSON in this exact schema:
                     response_time_ms = int((time.perf_counter() - started_at) * 1000)
                     normalized["audit"] = {
                         "validator_used": "medgemma",
+                        "model_id": self.model_id,
                         "response_time_ms": response_time_ms,
                         "error_message": None,
                         "attempts": attempt_index + 1,
@@ -295,6 +296,7 @@ Return ONLY JSON in this exact schema:
         fail_closed = self.build_fail_closed_result(last_error or "unknown_error")
         fail_closed["audit"] = {
             "validator_used": "medgemma",
+            "model_id": self.model_id,
             "response_time_ms": int((time.perf_counter() - started_at) * 1000),
             "error_message": last_error or "unknown_error",
             "attempts": attempts_made,
