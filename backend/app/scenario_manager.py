@@ -73,6 +73,8 @@ class ScenarioManager:
     def _serialize_case_definition(self, case: CaseDefinition) -> Dict[str, Any]:
         payload = dict(case.source_payload) if isinstance(case.source_payload, dict) else {}
         patient_info = case.patient_info_json if isinstance(case.patient_info_json, dict) else {}
+        patient_persona = case.patient_persona_json if isinstance(case.patient_persona_json, dict) else {}
+        case_images = case.case_images_json if isinstance(case.case_images_json, list) else []
         states = case.states_json if isinstance(case.states_json, dict) else {}
 
         payload.update(
@@ -90,6 +92,8 @@ class ScenarioManager:
                 "initial_state": case.initial_state,
                 "states": states,
                 "patient_info": patient_info,
+                "patient_persona": patient_persona,
+                "case_images": case_images,
             }
         )
 
@@ -225,6 +229,19 @@ class ScenarioManager:
         canonical_patient = case.get("patient_info")
         if isinstance(canonical_patient, dict) and canonical_patient:
             state["patient"] = canonical_patient
+
+        # S12-T01: carry case-specific patient persona into the session state so the
+        # agent can shape the simulated patient's dialogue. Empty dict is fine; the
+        # agent applies a default persona when this is missing/empty.
+        canonical_persona = case.get("patient_persona")
+        if isinstance(canonical_persona, dict) and canonical_persona:
+            state["patient_persona"] = canonical_persona
+
+        # S12-T02: carry case images into session state so the agent can pass them
+        # to the MedGemma validator for multimodal evaluation.
+        canonical_images = case.get("case_images")
+        if isinstance(canonical_images, list) and canonical_images:
+            state["case_images"] = canonical_images
 
         # Normalize patient fields (case_scenarios.json is primarily Turkish-keyed today)
         patient: Dict[str, Any] = {}

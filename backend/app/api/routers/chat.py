@@ -589,6 +589,7 @@ def send_chat_message(
             session_id=session.id,
             action=str(interpreted_action or "unknown"),
             validator_used=str(audit_meta.get("validator_used") or "medgemma"),
+            model_id=str(audit_meta.get("model_id") or "") or None,
             safety_violation=bool(silent_eval.get("safety_violation", False)),
             clinical_accuracy=clinical_accuracy,
             response_time_ms=int(audit_meta.get("response_time_ms") or 0),
