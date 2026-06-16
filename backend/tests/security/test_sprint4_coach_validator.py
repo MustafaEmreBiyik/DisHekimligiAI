@@ -128,8 +128,8 @@ def sprint4_client(tmp_path, monkeypatch):
 
     monkeypatch.setattr(chat_router, "SessionLocal", testing_session_local)
     monkeypatch.setattr(database_module, "SessionLocal", testing_session_local)
-    monkeypatch.setattr(chat_router, "agent", _DummyAgent())
-    
+    monkeypatch.setattr(chat_router, "_get_or_create_agent", lambda: _DummyAgent())
+
     from app.scenario_manager import ScenarioManager
     dummy_sm = ScenarioManager(session_factory=testing_session_local, allow_json_fallback=True)
     monkeypatch.setattr(chat_router, "scenario_manager", dummy_sm)
@@ -297,7 +297,7 @@ def test_chat_send_logs_llm_safety_event(sprint4_client, monkeypatch):
     client, db_factory = sprint4_client
     from app.api.routers import chat as chat_router
 
-    monkeypatch.setattr(chat_router, "agent", _DummyInjectionAgent())
+    monkeypatch.setattr(chat_router, "_get_or_create_agent", lambda: _DummyInjectionAgent())
     _create_user(db_factory, user_id="student_injection", role=UserRole.STUDENT)
 
     send = client.post(

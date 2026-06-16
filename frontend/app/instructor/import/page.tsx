@@ -77,7 +77,7 @@ export default function InstructorImportPage() {
       }
       const data: ImportResult = await res.json();
       setResult(data);
-    } catch (err) {
+    } catch {
       setError("Bağlantı hatası.");
     } finally {
       setLoading(false);

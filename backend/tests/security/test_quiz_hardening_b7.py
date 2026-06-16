@@ -284,7 +284,7 @@ def test_b7_submit_response_schema_is_student_safe(quiz_client):
     assert set(body.keys()) == {"attempt_id", "score", "total", "percentage", "overall_status", "results"}
     assert isinstance(body["results"], list)
     assert body["results"]
-    safe_keys = {"id", "topic", "question", "question_type", "selected_option", "is_correct", "feedback", "grading_status", "instructor_score", "instructor_feedback"}
+    safe_keys = {"id", "topic", "question", "question_type", "selected_option", "is_correct", "feedback", "grading_status", "instructor_score", "instructor_feedback", "answer_id"}
     assert set(body["results"][0].keys()) == safe_keys
     assert "raw_validator_output" not in body
     assert "evaluation" not in body

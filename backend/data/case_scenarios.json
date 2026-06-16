@@ -2,6 +2,22 @@
   {
     "case_id": "olp_001",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 45,
+      "gender": "Kadın",
+      "education_level": "Üniversite mezunu",
+      "anxiety_level": "medium",
+      "evasiveness": "low",
+      "speech_style": "Sakin ve işbirlikçi; şikayetini düzgün cümlelerle anlatır, sorulara açık yanıt verir.",
+      "hidden_habits": []
+    },
+    "case_images": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Oral_lichen_planus_-_erosive.jpg/320px-Oral_lichen_planus_-_erosive.jpg",
+        "type": "clinical_photo",
+        "caption": "Bukkal mukozada bilateral retikular beyaz çizgiler (Wickham striae) — Oral Liken Planus"
+      }
+    ],
     "title": "Oral Liken Planus",
     "category": "oral_pathology",
     "difficulty": "intermediate",
@@ -92,6 +108,30 @@
   {
     "case_id": "perio_001",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 55,
+      "gender": "Erkek",
+      "education_level": "Lise mezunu",
+      "anxiety_level": "medium",
+      "evasiveness": "high",
+      "speech_style": "Geçiştiren, sigarayı küçümseyen bir ton; 'eh, arada bir' der, sistemik hastalıklarını önemsizmiş gibi anlatır.",
+      "hidden_habits": [
+        "Günde 1 paket sigara (20 yıldır) — ilk başta 'azalttım' diye geçiştirir",
+        "İlaçlarını (kan sulandırıcı) düzenli kullanmadığını saklar"
+      ]
+    },
+    "case_images": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Periodontitis_X-ray.jpg/320px-Periodontitis_X-ray.jpg",
+        "type": "periapical_xray",
+        "caption": "Posterior bölgede alveol kemik kaybı ve furkasyon tutulumu — Evre 3 Periodontitis"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Gingivitis-before-and-after-3.jpg/320px-Gingivitis-before-and-after-3.jpg",
+        "type": "clinical_photo",
+        "caption": "Yaygın gingival inflamasyon, cepler ve diş taşı birikimi"
+      }
+    ],
     "title": "Kronik Periodontitis (Riskli Hasta)",
     "category": "periodontology",
     "difficulty": "advanced",
@@ -170,6 +210,15 @@
   {
     "case_id": "herpes_primary_01",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 6,
+      "gender": "Erkek",
+      "education_level": "İlkokul (çocuk hasta)",
+      "anxiety_level": "high",
+      "evasiveness": "low",
+      "speech_style": "Çocuksu, kısa ve ağlamaklı cümleler; 'ağzım çok acıyor', 'yemek yiyemiyorum' gibi basit ifadeler kullanır, tıbbi soruları tam anlamaz.",
+      "hidden_habits": []
+    },
     "title": "Primer Herpetik Gingivostomatitis",
     "category": "oral_infectious_disease",
     "difficulty": "intermediate",
@@ -243,6 +292,15 @@
   {
     "case_id": "infectious_child_01",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 5,
+      "gender": "Erkek",
+      "education_level": "Okul öncesi (anne yanıtlıyor)",
+      "anxiety_level": "high",
+      "evasiveness": "low",
+      "speech_style": "Hastanın annesi konuşur: endişeli, telaşlı bir ebeveyn tonu; '3 gündür hiçbir şey yemiyor, ateşi düşmüyor, çok korktum' gibi cümleler kurar.",
+      "hidden_habits": []
+    },
     "title": "Primer Herpetik Gingivostomatitis (Pediatrik)",
     "category": "oral_infectious_disease",
     "difficulty": "advanced",
@@ -317,6 +375,18 @@
   {
     "case_id": "behcet_01",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 32,
+      "gender": "Erkek",
+      "education_level": "Üniversite mezunu",
+      "anxiety_level": "medium",
+      "evasiveness": "high",
+      "speech_style": "Ağız yaralarından rahatça bahseder ama vücudunun diğer bölgelerindeki (genital) yaralardan utanır; doğrudan sorulmadıkça açmaz, konuyu değiştirmeye çalışır.",
+      "hidden_habits": [
+        "Genital bölgede tekrarlayan yaralar — utandığı için kendiliğinden söylemez",
+        "Sigara kullanımı"
+      ]
+    },
     "title": "Behcet Hastaligi",
     "category": "oral_systemic_disease",
     "difficulty": "advanced",
@@ -390,6 +460,17 @@
   {
     "case_id": "syphilis_02",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 28,
+      "gender": "Kadın",
+      "education_level": "Üniversite mezunu",
+      "anxiety_level": "high",
+      "evasiveness": "high",
+      "speech_style": "Tedirgin ve çekingen; boğaz ağrısı ve lekelerden bahseder ama şüpheli temas öyküsünü damgalanma korkusuyla saklar, ısrarla ve mahremiyet güvencesiyle sorulursa açar.",
+      "hidden_habits": [
+        "Yakın zamanda korunmasız şüpheli cinsel temas — utanç/damgalanma nedeniyle kendiliğinden söylemez"
+      ]
+    },
     "title": "Sekonder Sifiliz (Mukoz Plak)",
     "category": "oral_infectious_disease",
     "difficulty": "advanced",
@@ -464,6 +545,15 @@
   {
     "case_id": "desquamative_01",
     "schema_version": "2.0",
+    "patient_persona": {
+      "age": 46,
+      "gender": "Kadın",
+      "education_level": "Lise mezunu",
+      "anxiety_level": "medium",
+      "evasiveness": "low",
+      "speech_style": "Bıkkın ve dertli; uzun süredir devam eden yanma ve soyulmadan yakınır, 'asitli bir şey yiyemiyorum' diye detaylı anlatır, sorulara açık yanıt verir.",
+      "hidden_habits": []
+    },
     "title": "Kronik Deskuamatif Gingivitis",
     "category": "oral_pathology",
     "difficulty": "advanced",
