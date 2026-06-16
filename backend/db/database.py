@@ -14,7 +14,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
-from sqlalchemy import Boolean, Enum, UniqueConstraint, Index
+from sqlalchemy import Boolean, Enum, UniqueConstraint, Index, LargeBinary
 import enum
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
@@ -153,6 +153,8 @@ class User(Base):
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
     )
+    # S12-T06: current experiment group for the recommendation A/B test
+    experiment_group = Column(String, nullable=True)
 
     def __repr__(self):
         return f"<User(id={self.id}, user_id={self.user_id}, role={self.role}, archived={self.is_archived})>"
@@ -177,6 +179,13 @@ class CaseDefinition(Base):
     initial_state = Column(String, nullable=False)
     states_json = Column(JSON, nullable=False, default=dict)
     patient_info_json = Column(JSON, nullable=False, default=dict)
+    # S12-T01: Case-specific patient persona (age/anxiety/evasiveness/speech_style/...)
+    # used to dynamically shape the simulated patient's dialogue. Optional; the agent
+    # falls back to a default persona when empty.
+    patient_persona_json = Column(JSON, nullable=False, default=dict)
+    # S12-T02: clinical images attached to the case (list of {url, type, caption}).
+    # type values: periapical_xray | panoramic | clinical_photo | dermoscopy
+    case_images_json = Column(JSON, nullable=False, default=list)
     rules_json = Column(JSON, nullable=False, default=list)
     source_payload = Column(JSON, nullable=False, default=dict)
     is_archived = Column(Boolean, nullable=False, default=False, index=True)
@@ -295,6 +304,7 @@ class ValidatorAuditLog(Base):
     session_id = Column(Integer, ForeignKey("student_sessions.id"), nullable=False, index=True)
     action = Column(String, nullable=False)
     validator_used = Column(String, nullable=False)
+    model_id = Column(String, nullable=True)
     safety_violation = Column(Boolean, nullable=False, default=False)
     clinical_accuracy = Column(String, nullable=True)
     response_time_ms = Column(Integer, nullable=False, default=0)
@@ -791,6 +801,59 @@ class RecommendationFeatureLog(Base):
         )
 
 
+class ExperimentAssignment(Base):
+    """Deterministic A/B experiment group assignment for a user (S12-T06).
+
+    Created lazily on the student's first recommendation request for a given
+    experiment. The group is derived from SHA-256(experiment_id:user_id) so it
+    is deterministic across restarts and re-assignments.
+    """
+
+    __tablename__ = "experiment_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    experiment_id = Column(String, nullable=False, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    group_name = Column(String, nullable=False)
+    assigned_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "experiment_id", name="uq_experiment_user"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<ExperimentAssignment(user_id={self.user_id}, "
+            f"experiment_id={self.experiment_id}, group={self.group_name})>"
+        )
+
+
+class ResearchExport(Base):
+    """KVKK-anonymised dataset export bundle (S12-T08).
+
+    The ZIP is generated synchronously on POST and stored as bytes so the
+    download endpoint can stream it without touching the filesystem.
+    """
+
+    __tablename__ = "research_exports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_by = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    tables_included = Column(JSON, nullable=False)
+    row_count_total = Column(Integer, nullable=False, default=0)
+    zip_bytes = Column(LargeBinary, nullable=True)
+    status = Column(String, nullable=False, default="ready")
+    error_message = Column(Text, nullable=True)
+    filename = Column(String, nullable=True)
+
+    def __repr__(self) -> str:
+        return (
+            f"<ResearchExport(id={self.id}, by={self.created_by}, "
+            f"rows={self.row_count_total}, status={self.status})>"
+        )
+
+
 # ==================== VERİTABANI FONKSİYONLARI ====================
 
 def init_db():
@@ -814,9 +877,13 @@ def _sqlite_db_file_path() -> Optional[str]:
         if not path:
             return None
 
-        # Strip leading '/' on Windows paths like '/d:/path/to/file.db'
-        while path.startswith("/"):
+        # urlparse adds a spurious leading '/' on Windows drive paths:
+        # sqlite:///C:/foo.db → parsed.path = '/C:/foo.db' → strip → 'C:/foo.db'
+        # On Linux the leading '/' is meaningful.
+        if len(path) >= 3 and path[0] == "/" and path[1].isalpha() and path[2] == ":":
             path = path[1:]
+        elif parsed.netloc == "" and path.startswith("//"):
+            path = "/" + path.lstrip("/")
         return os.path.normpath(path)
     except Exception:
         return None
