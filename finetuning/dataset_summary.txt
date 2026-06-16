@@ -1,0 +1,152 @@
+﻿50 total examples
+
+ 1. [high] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 2. [high] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 3. [high] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 4. [medium] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 5. [low] flags=[premature_treatment]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 6. [low] flags=[wrong_medication]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 7. [low] flags=[missed_critical_safety_check]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 8. [low] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+ 9. [high] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+10. [high] flags=[none]
+    ctx: Hasta: 55 yaşında kadın. Şikayet: 3 aydır yanak içlerinde yanma ve kızarıkl
+
+11. [high] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+12. [high] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+13. [high] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+14. [medium] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+15. [low] flags=[premature_treatment]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+16. [low] flags=[wrong_medication]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+17. [low] flags=[missed_critical_safety_check]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+18. [low] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+19. [high] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+20. [high] flags=[none]
+    ctx: Hasta: 3 yaşında erkek çocuk. Şikayet: Ağzında yaygın yaralar, ateş 39°C, 2
+
+21. [high] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+22. [high] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+23. [high] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+24. [medium] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+25. [low] flags=[premature_treatment]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+26. [low] flags=[wrong_medication]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+27. [low] flags=[missed_critical_safety_check]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+28. [low] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+29. [high] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+30. [high] flags=[none]
+    ctx: Hasta: 62 yaşında erkek. Şikayet: Sağ dil kenarında 4 haftadır geçmeyen, se
+
+31. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+32. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+33. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+34. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+35. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+36. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+37. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+38. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+39. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+40. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+41. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+42. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+43. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+44. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+45. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+46. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+47. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+48. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+49. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
+50. [?] flags=[none]
+    ctx: Hasta: 58 yaşında kadın. Şikayet: Diş etleri soyulmuyor ve ham hissettiriyo
+
