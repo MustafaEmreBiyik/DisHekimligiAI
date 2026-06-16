@@ -879,8 +879,19 @@ def _sqlite_db_file_path() -> Optional[str]:
 
         # urlparse adds a spurious leading '/' on Windows drive paths:
         # sqlite:///C:/foo.db → parsed.path = '/C:/foo.db' → strip → 'C:/foo.db'
-        # On Linux the leading '/' is meaningful: do NOT strip it.
+        # On Linux the leading '/' is meaningful.
         if len(path) >= 3 and path[0] == "/" and path[1].isalpha() and path[2] == ":":
+            path = path[1:]
+        elif parsed.netloc == "" and path.startswith("//"):
+            path = "/" + path.lstrip("/")
+        elif (
+            parsed.netloc == ""
+            and path.startswith("/")
+            and not path.startswith("//")
+            and not DATABASE_URL.startswith("sqlite:////")
+        ):
+            # sqlite:///relative/path (3 slashes = relative, per SQLAlchemy convention)
+            # → parsed.path = '/relative/path' → strip the single leading slash.
             path = path[1:]
         return os.path.normpath(path)
     except Exception:
