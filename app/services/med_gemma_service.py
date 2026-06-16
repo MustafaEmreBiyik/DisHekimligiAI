@@ -37,7 +37,7 @@ class MedGemmaService:
                 "Please ensure you have a .env file in the project root with this key."
             )
 
-        self.model_id = "google/gemma-2-9b-it"
+        self.model_id = "betuldanismaz/dentai-gemma2-9b-oral-pathology"
         self.client = InferenceClient(token=self.api_key)
 
     def _get_api_key_robust(self) -> Optional[str]:
@@ -211,7 +211,10 @@ Return ONLY JSON in this exact schema:
 }}
 """.strip()
 
-        messages = [{"role": "user", "content": prompt}]
+        # Gemma 2 chat template (fine-tuned model is not registered as a chat model on HF)
+        formatted_prompt = (
+            f"<bos><start_of_turn>user\n{prompt}<end_of_turn>\n<start_of_turn>model\n"
+        )
         max_attempts = 1 + self.RETRY_COUNT
         started_at = time.perf_counter()
         last_error = ""
@@ -220,14 +223,14 @@ Return ONLY JSON in this exact schema:
         for attempt_index in range(max_attempts):
             attempts_made = attempt_index + 1
             try:
-                response = self.client.chat_completion(
+                response = self.client.text_generation(
+                    formatted_prompt,
                     model=self.model_id,
-                    messages=messages,
-                    max_tokens=400,
+                    max_new_tokens=400,
                     temperature=0.1,
-                    timeout=self.TIMEOUT_SECONDS,
+                    return_full_text=False,
                 )
-                raw_content = response.choices[0].message.content
+                raw_content = response
                 content = self._extract_content(raw_content)
                 payload = json.loads(content)
                 normalized = self._normalize_output(payload)
