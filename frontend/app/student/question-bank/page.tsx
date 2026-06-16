@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import { Search, X, ChevronDown, ChevronUp, BookOpen, Sparkles, Clock, Brain, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   quizAPI,
   QuestionBankEntry,
   QuestionBankFilters,
+  RecommendedQuestion,
 } from "@/lib/api";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -78,6 +79,192 @@ function PillGroup({
           {opt.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ── Recommendation reason helpers ────────────────────────────────────────────
+
+const REASON_CODE_ICON: Record<string, React.ReactNode> = {
+  sm2_due: <Clock size={13} className="shrink-0" />,
+  weak_topic_irt: <Brain size={13} className="shrink-0" />,
+  weak_topic: <Brain size={13} className="shrink-0" />,
+  cold_start: <Sparkles size={13} className="shrink-0" />,
+};
+
+const REASON_CODE_COLOR: Record<string, string> = {
+  sm2_due: "bg-orange-50 border-orange-200 text-orange-800",
+  weak_topic_irt: "bg-blue-50 border-blue-200 text-blue-800",
+  weak_topic: "bg-blue-50 border-blue-200 text-blue-800",
+  cold_start: "bg-purple-50 border-purple-200 text-purple-700",
+};
+
+const REASON_CODE_BADGE: Record<string, string> = {
+  sm2_due: "bg-orange-100 text-orange-700",
+  weak_topic_irt: "bg-blue-100 text-blue-700",
+  weak_topic: "bg-blue-100 text-blue-700",
+  cold_start: "bg-purple-100 text-purple-700",
+};
+
+const REASON_CODE_LABEL: Record<string, string> = {
+  sm2_due: "Tekrar Zamanı",
+  weak_topic_irt: "Zayıf Konu",
+  weak_topic: "Zayıf Konu",
+  cold_start: "Başlangıç",
+};
+
+// ── RecommendationsSection ────────────────────────────────────────────────────
+
+function RecommendationsSection({ userId }: { userId: string }) {
+  const [recs, setRecs] = useState<RecommendedQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setLoading(true);
+    quizAPI
+      .getMyRecommendedQuestions()
+      .then((data) => {
+        setRecs(data);
+        setError(null);
+      })
+      .catch(() => setError("Öneriler yüklenemedi."))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const toggle = (id: string) =>
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+
+  if (loading) {
+    return (
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 flex items-center gap-2 text-sm text-gray-400">
+        <div className="w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+        Kişiselleştirilmiş öneriler yükleniyor…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-2 text-sm text-red-600">
+        <AlertCircle size={15} />
+        {error}
+      </div>
+    );
+  }
+
+  if (recs.length === 0) return null;
+
+  return (
+    <div className="mb-6 rounded-xl border border-indigo-200 bg-white overflow-hidden">
+      {/* Section header */}
+      <button
+        className="w-full flex items-center justify-between px-5 py-3 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+        onClick={() => setCollapsed((c) => !c)}
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-indigo-600" />
+          <span className="font-semibold text-indigo-900 text-sm">
+            Senin için önerilen
+          </span>
+          <span className="text-xs bg-indigo-200 text-indigo-800 rounded-full px-2 py-0.5 font-medium">
+            {recs.length} soru
+          </span>
+        </div>
+        {collapsed ? (
+          <ChevronDown size={16} className="text-indigo-500" />
+        ) : (
+          <ChevronUp size={16} className="text-indigo-500" />
+        )}
+      </button>
+
+      {/* Recommendation cards */}
+      {!collapsed && (
+        <div className="divide-y divide-gray-100">
+          {recs.map((rec, idx) => {
+            const isExpanded = expandedIds.has(rec.question_id);
+            const cardColor = REASON_CODE_COLOR[rec.reason_code] ?? "bg-gray-50 border-gray-200 text-gray-700";
+            const badgeColor = REASON_CODE_BADGE[rec.reason_code] ?? "bg-gray-100 text-gray-600";
+            const icon = REASON_CODE_ICON[rec.reason_code];
+            const label = REASON_CODE_LABEL[rec.reason_code] ?? rec.reason_code;
+
+            return (
+              <div key={rec.question_id} className="px-5 py-3">
+                {/* Card header */}
+                <button
+                  className="w-full text-left flex items-start gap-3 group"
+                  onClick={() => toggle(rec.question_id)}
+                >
+                  <span className="mt-1 text-xs text-gray-400 w-5 shrink-0 text-right">
+                    {idx + 1}.
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm text-gray-900 leading-relaxed ${!isExpanded ? "line-clamp-2" : ""}`}>
+                      {rec.question_text}
+                    </p>
+                    {/* Meta row */}
+                    <div className="flex flex-wrap gap-1 mt-1.5 items-center">
+                      {/* Reason badge */}
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${cardColor}`}>
+                        {icon}
+                        {label}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                        {rec.topic_id}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${DIFFICULTY_COLOR[rec.difficulty] ?? "bg-gray-100 text-gray-600"}`}>
+                        {DIFFICULTY_LABEL[rec.difficulty] ?? rec.difficulty}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                        {rec.question_type === "MCQ" ? "Çoktan Seçmeli" : "Açık Uçlu"}
+                      </span>
+                      {rec.mastery_pct !== null && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${badgeColor}`}>
+                          Ustalık: %{rec.mastery_pct}
+                        </span>
+                      )}
+                    </div>
+                    {/* Reason text */}
+                    <p className="text-xs text-gray-500 mt-1 italic">{rec.reason}</p>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronUp size={14} className="shrink-0 text-gray-400 mt-1" />
+                  ) : (
+                    <ChevronDown size={14} className="shrink-0 text-gray-400 mt-1" />
+                  )}
+                </button>
+
+                {/* Expanded options */}
+                {isExpanded && rec.question_type === "MCQ" && rec.options_json && (
+                  <div className="ml-8 mt-2 border-t border-gray-100 pt-2">
+                    <ul className="space-y-1">
+                      {rec.options_json.map((opt, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                          <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold shrink-0 text-gray-500">
+                            {String.fromCharCode(65 + i)}
+                          </span>
+                          {opt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {isExpanded && rec.question_type !== "MCQ" && (
+                  <p className="ml-8 mt-2 text-xs text-gray-400 italic">
+                    Açık uçlu soru — yanıtınızı test modunda yazabilirsiniz.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -243,7 +430,7 @@ function QuestionBankContent() {
   const toggleExpand = (id: string) =>
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
 
@@ -370,6 +557,9 @@ function QuestionBankContent() {
 
         {/* ── MAIN AREA ─────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 p-6">
+          {/* T05: Personalised recommendations */}
+          {user && <RecommendationsSection userId={user.user_id} />}
+
           {/* Result count + active badges */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="text-sm text-gray-500">

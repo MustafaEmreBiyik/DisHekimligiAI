@@ -10,6 +10,7 @@ from app.api import deps
 from app.api.routers import recommendations as recommendations_router
 from db.database import (
     Base,
+    CaseDefinition,
     ChatLog,
     RecommendationSnapshot,
     StudentSession,
@@ -65,6 +66,34 @@ def _create_user(db_factory, user_id: str, role: UserRole, is_archived: bool = F
         db.close()
 
 
+def _seed_cases(db_factory) -> None:
+    db = db_factory()
+    try:
+        for i, diff in enumerate(["beginner", "intermediate", "advanced"], start=1):
+            db.add(CaseDefinition(
+                case_id=f"test_case_{i:02d}",
+                title=f"Test Case {i}",
+                category="general",
+                difficulty=diff,
+                estimated_duration_minutes=30,
+                is_active=True,
+                is_archived=False,
+                initial_state="start",
+                learning_objectives=[],
+                prerequisite_competencies=[],
+                competency_tags=[],
+                states_json={},
+                patient_info_json={},
+                patient_persona_json={},
+                case_images_json=[],
+                rules_json=[],
+                source_payload={},
+            ))
+        db.commit()
+    finally:
+        db.close()
+
+
 def _create_session_with_critical_violation(db_factory, student_id: str, case_id: str) -> None:
     db = db_factory()
     try:
@@ -109,6 +138,7 @@ def _auth_header(token: str) -> dict:
 
 def test_recommendations_me_student_only_and_snapshot_written(recommendations_client):
     client, db_factory = recommendations_client
+    _seed_cases(db_factory)
     _create_user(db_factory, user_id="student_r", role=UserRole.STUDENT)
     _create_user(db_factory, user_id="inst_r", role=UserRole.INSTRUCTOR)
 
@@ -151,6 +181,7 @@ def test_recommendations_me_student_only_and_snapshot_written(recommendations_cl
 
 def test_recommendations_me_cold_start_prioritizes_beginner(recommendations_client):
     client, db_factory = recommendations_client
+    _seed_cases(db_factory)
     _create_user(db_factory, user_id="student_cold", role=UserRole.STUDENT)
 
     response = client.get(

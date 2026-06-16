@@ -107,7 +107,7 @@ export default function ReviewSchedulePage() {
             onClick={() => router.push("/quiz")}
             style={{ background: "#805ad5", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 20px", fontSize: "0.95rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            Quiz'e Git <ArrowRight size={16} />
+            Quiz&apos;e Git <ArrowRight size={16} />
           </button>
         </div>
       </div>

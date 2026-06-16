@@ -37,7 +37,7 @@ function VersionCard({ item, isLatest }: { item: RubricVersionItem; isLatest: bo
             {new Date(item.created_at).toLocaleString("tr-TR")} — {item.created_by}
           </span>
           {item.change_notes && (
-            <span className="hidden text-xs italic text-slate-500 sm:inline">"{item.change_notes}"</span>
+            <span className="hidden text-xs italic text-slate-500 sm:inline">&ldquo;{item.change_notes}&rdquo;</span>
           )}
         </div>
         {open ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
