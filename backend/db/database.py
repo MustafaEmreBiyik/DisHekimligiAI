@@ -884,6 +884,15 @@ def _sqlite_db_file_path() -> Optional[str]:
             path = path[1:]
         elif parsed.netloc == "" and path.startswith("//"):
             path = "/" + path.lstrip("/")
+        elif (
+            parsed.netloc == ""
+            and path.startswith("/")
+            and not path.startswith("//")
+            and not DATABASE_URL.startswith("sqlite:////")
+        ):
+            # sqlite:///relative/path (3 slashes = relative, per SQLAlchemy convention)
+            # → parsed.path = '/relative/path' → strip the single leading slash.
+            path = path[1:]
         return os.path.normpath(path)
     except Exception:
         return None
