@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import AuthenticatedUser, get_db, require_roles
+from app.services import ab_test_service
 from db.database import (
     CaseDefinition,
     ChatLog,
@@ -518,6 +519,48 @@ def create_recommendation_spotlight(
         "success": True,
         "spotlight_id": str(spotlight.id),
         "message": "Vaka öneri listesine eklendi.",
+    }
+
+
+@router.get(
+    "/experiments",
+    summary="List all registered A/B experiments (T06)",
+)
+def list_ab_experiments(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+) -> Any:
+    """Return all registered A/B experiments with metadata (no DB needed)."""
+    _ = current_user
+    return {"experiments": ab_test_service.list_experiments()}
+
+
+@router.get(
+    "/experiments/{experiment_id}",
+    summary="A/B experiment summary + per-group learning metrics (T06)",
+)
+def get_ab_experiment_dashboard(
+    experiment_id: str,
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Return experiment metadata, group distribution, and per-group outcome metrics."""
+    _ = current_user
+    try:
+        summary = ab_test_service.get_experiment_summary(experiment_id, db)
+        results = ab_test_service.get_experiment_results(experiment_id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return {
+        "experiment_id": summary["experiment_id"],
+        "name": summary["name"],
+        "description": summary["description"],
+        "is_active": summary["is_active"],
+        "started_at": summary["started_at"],
+        "groups": summary["groups"],
+        "group_distribution": summary["group_distribution"],
+        "total_assigned": summary["total_assigned"],
+        "group_metrics": results["group_results"],
     }
 
 
