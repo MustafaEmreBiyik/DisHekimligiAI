@@ -14,7 +14,7 @@ from db.database import Base, ChatLog, StudentSession, User, UserRole
 class _DummyAgent:
     """Deterministic in-process chat agent for offline tests."""
 
-    def process_student_input(self, student_id: str, raw_action: str, case_id: str) -> dict:
+    def process_student_input(self, student_id: str, raw_action: str, case_id: str, **kwargs) -> dict:
         return {
             "case_id": case_id,
             "final_feedback": "Muayene notunuza gore oral mukozada retikuler beyaz cizgiler goruyorum.",
