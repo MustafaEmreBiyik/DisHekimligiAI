@@ -743,36 +743,6 @@ class MasteryState(Base):
         )
 
 
-class BKTTopicPrior(Base):
-    """Fitted BKT priors per topic from EM calibration (S14-T07).
-
-    One row per topic_id. is_synthetic=True means the topic had insufficient
-    data and global defaults were stored instead of EM-fitted values.
-    """
-
-    __tablename__ = "bkt_topic_priors"
-
-    id = Column(Integer, primary_key=True, index=True)
-    topic_id = Column(String, nullable=False, unique=True, index=True)
-    p_init = Column(Float, nullable=False)
-    p_transit = Column(Float, nullable=False)
-    p_slip = Column(Float, nullable=False)
-    p_guess = Column(Float, nullable=False)
-    n_students = Column(Integer, nullable=False)
-    n_observations = Column(Integer, nullable=False)
-    log_likelihood = Column(Float, nullable=True)
-    converged = Column(Boolean, nullable=False, default=False)
-    is_synthetic = Column(Boolean, nullable=False, default=True, index=True)
-    calibration_run_id = Column(String, nullable=False, index=True)
-    fitted_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
-
-    def __repr__(self):
-        return (
-            f"<BKTTopicPrior(topic={self.topic_id}, T={self.p_transit:.3f}, "
-            f"S={self.p_slip:.3f}, G={self.p_guess:.3f}, synthetic={self.is_synthetic})>"
-        )
-
-
 class RecommendationModelVersion(Base):
     """Registered XGBoost ranker artefact for the v2 engine (S11-T05).
 
