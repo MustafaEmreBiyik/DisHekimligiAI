@@ -178,6 +178,7 @@ class CaseDefinition(Base):
     patient_info_json = Column(JSON, nullable=False, default=dict)
     rules_json = Column(JSON, nullable=False, default=list)
     source_payload = Column(JSON, nullable=False, default=dict)
+    visual_complexity_score = Column(Float, nullable=True)
     is_archived = Column(Boolean, nullable=False, default=False, index=True)
     archived_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
