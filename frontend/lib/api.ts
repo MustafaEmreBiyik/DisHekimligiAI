@@ -144,6 +144,25 @@ export const chatAPI = {
   },
 
   /**
+   * Send a chat message with an optional image attachment (S13-M4).
+   * Uses multipart/form-data; falls back gracefully if no image provided.
+   */
+  sendMultipart: async (
+    message: string,
+    case_id: string,
+    image: File | null,
+  ): Promise<ChatApiResponse> => {
+    const form = new FormData();
+    form.append("message", message);
+    form.append("case_id", case_id);
+    if (image) form.append("image", image);
+    const response = await apiClient.post("/api/chat/send-multipart", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data as ChatApiResponse;
+  },
+
+  /**
    * Get chat history for a session
    */
   getHistory: async (student_id: string, case_id: string) => {
@@ -1239,6 +1258,8 @@ export interface ChatApiResponse {
   final_feedback: string | null;
   state_updates: Record<string, unknown>;
   revealed_findings: string[];
+  revealed_media: string[];
+  visual_findings_observed: string[];
   reinforcement_questions: ReinforcementQuestion[];
 }
 
