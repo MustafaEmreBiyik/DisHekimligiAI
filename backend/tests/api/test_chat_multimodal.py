@@ -123,9 +123,13 @@ def client(engine, student_token, mock_agent):
     )
 
     with patch("app.api.routers.chat._get_or_create_agent", return_value=mock_agent):
-        with TestClient(app) as c:
-            c.headers.update({"Authorization": f"Bearer {student_token}"})
-            yield c, mock_agent
+        with patch(
+            "app.api.routers.chat.scenario_manager.get_case",
+            return_value={"case_id": "olp_001", "is_active": True},
+        ):
+            with TestClient(app) as c:
+                c.headers.update({"Authorization": f"Bearer {student_token}"})
+                yield c, mock_agent
 
 
 # ---------------------------------------------------------------------------
