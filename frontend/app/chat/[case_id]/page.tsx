@@ -351,6 +351,7 @@ export default function ChatPage() {
 
                 {/* User image thumbnail */}
                 {msg.role === "user" && msg.imagePreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={msg.imagePreview}
                     alt="Yüklenen görsel"
@@ -442,6 +443,7 @@ export default function ChatPage() {
           {/* Image preview thumbnail */}
           {imagePreviewUrl && (
             <div className="mb-2 flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imagePreviewUrl}
                 alt="Seçili görsel"
