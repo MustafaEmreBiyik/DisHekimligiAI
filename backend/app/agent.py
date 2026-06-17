@@ -52,8 +52,16 @@ CRITICAL OUTPUT REQUIREMENTS:
   "priority": "string: 'high' | 'medium' | 'low'",
   "safety_concerns": ["array of strings; empty if none"],
   "explanatory_feedback": "string: concise explanation for the learner (<= 3 sentences).",
-  "structured_args": { "optional object with any arguments relevant to the action" }
+  "structured_args": { "optional object with any arguments relevant to the action" },
+  "visual_findings_observed": ["array of strings; ONLY include when a clinical image is attached"]
 }
+
+MULTIMODAL CLINICAL EVIDENCE:
+If a clinical image is attached:
+- Describe observable findings using clinical terminology before interpreting the student's action.
+- Your "explanatory_feedback" MUST acknowledge the visual findings relevant to the student's action.
+- If the student's described action contradicts what is visible (e.g., claims to see a lesion not present in the image), flag it in "safety_concerns".
+- Add a field "visual_findings_observed": ["string"] to your JSON output — list what you see in the image (max 10 items, each <= 120 chars).
 
 Guidance:
 - **USE ONLY THE FOLLOWING ACTION KEYS:** ['gather_medical_history', 'gather_personal_info', 'check_allergies_meds', 'order_radiograph', 'diagnose_pulpitis', 'prescribe_antibiotics', 'refer_oral_surgery', 'check_pacemaker', 'check_bleeding_disorder', 'check_diabetes', 'check_oral_hygiene_habits', 'check_vital_signs', 'check_fever', 'ask_hydration_nutrition', 'prescribe_palliative_care', 'ask_systemic_symptoms', 'perform_pathergy_test', 'request_serology_tests', 'perform_oral_exam', 'perform_extraoral_exam', 'perform_nikolsky_test', 'request_dif_biopsy', 'diagnose_herpetic_gingivostomatitis', 'diagnose_primary_herpes', 'diagnose_behcet_disease', 'diagnose_secondary_syphilis', 'diagnose_mucous_membrane_pemphigoid']. If none fit, use 'unspecified_action'.
@@ -223,6 +231,15 @@ def _normalize_interpretation_payload(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(structured_args, dict):
         structured_args = {}
 
+    raw_visual_findings = data.get("visual_findings_observed", [])
+    if not isinstance(raw_visual_findings, list):
+        raw_visual_findings = []
+    visual_findings_observed = [
+        str(f).strip()[:120]
+        for f in raw_visual_findings
+        if isinstance(f, str) and str(f).strip()
+    ][:10]
+
     return {
         "intent_type": intent_type,
         "interpreted_action": interpreted_action,
@@ -231,6 +248,7 @@ def _normalize_interpretation_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         "safety_concerns": safety_concerns,
         "explanatory_feedback": feedback,
         "structured_args": structured_args,
+        "visual_findings_observed": visual_findings_observed,
     }
 
 class DentalEducationAgent:
@@ -282,9 +300,16 @@ class DentalEducationAgent:
             logger.warning(f"MedGemma başlatılamadı: {e}. Sessiz değerlendirme olmadan devam edilecek.")
             self.med_gemma = None
 
-    def interpret_action(self, action: str, state: Dict[str, Any]) -> Dict[str, Any]:
+    def interpret_action(
+        self,
+        action: str,
+        state: Dict[str, Any],
+        image_bytes: Optional[bytes] = None,
+        image_mime: str = "image/jpeg",
+    ) -> Dict[str, Any]:
         """
         Use Gemini to convert untrusted student input into structured JSON.
+        Optionally accepts a clinical image for multimodal interpretation (S13-M1).
         """
         sanitized_action = sanitize_student_text(action)
 
@@ -311,6 +336,15 @@ class DentalEducationAgent:
             "Return STRICT JSON ONLY following the required schema."
         )
 
+        # S13-M1: build multimodal parts list only when an image is attached
+        if image_bytes:
+            prompt_payload = [
+                genai.protos.Part(text=user_prompt),
+                genai.protos.Part(inline_data=genai.protos.Blob(mime_type=image_mime, data=image_bytes)),
+            ]
+        else:
+            prompt_payload = user_prompt
+
         try:
             with record_llm_interaction(
                 provider="gemini",
@@ -318,7 +352,7 @@ class DentalEducationAgent:
                 call_type="interpretation",
                 session_id=state.get("_session_id"),
             ) as llm_ctx:
-                response = self.model.generate_content(user_prompt)
+                response = self.model.generate_content(prompt_payload)
                 usage = getattr(response, "usage_metadata", None)
                 if usage:
                     llm_ctx.set_token_usage(
@@ -421,6 +455,9 @@ class DentalEducationAgent:
         state: Dict[str, Any],
         assessment: Dict[str, Any],
         safety_scan: Optional[Dict[str, Any]] = None,
+        image_bytes: Optional[bytes] = None,
+        image_mime: str = "image/jpeg",
+        visual_findings_observed: Optional[list] = None,
     ) -> Dict[str, Any]:
         """
         MedGemma sessizce arka planda değerlendirme yapar.
@@ -460,6 +497,35 @@ class DentalEducationAgent:
                 logger.warning("MedGemma servisi kullanilamiyor; fail-closed uygulanacak")
                 evaluation = MedGemmaService.build_fail_closed_result("medgemma_not_initialized")
 
+            # S13-M3: Visual silent validator — runs only when image is present
+            image_finding_match: Optional[bool] = None
+            if image_bytes:
+                try:
+                    from app.services.visual_validator import VisualClinicalValidator
+                    visual_validator = VisualClinicalValidator()
+                    visual_result = visual_validator.validate(
+                        student_text=student_input,
+                        visual_findings_observed=visual_findings_observed or [],
+                        image_bytes=image_bytes,
+                        image_mime=image_mime,
+                        rules=rules,
+                        context_summary=context_summary,
+                    )
+                    image_finding_match = visual_result.get("image_finding_match")
+                    # Merge visual validator flags into evaluation
+                    for flag in (visual_result.get("safety_flags") or []):
+                        if isinstance(flag, str) and flag.strip():
+                            evaluation.setdefault("safety_flags", [])
+                            if flag not in evaluation["safety_flags"]:
+                                evaluation["safety_flags"].append(flag)
+                    if visual_result.get("faculty_notes"):
+                        existing_notes = str(evaluation.get("faculty_notes") or "").strip()
+                        visual_notes = str(visual_result["faculty_notes"]).strip()
+                        evaluation["faculty_notes"] = (existing_notes + " | " + visual_notes).strip(" |")
+                except Exception as ve:
+                    logger.warning("VisualClinicalValidator failed (fail-closed): %s", ve)
+                    image_finding_match = None
+
             merged_flags: list[str] = []
             for flag in [
                 *(deterministic.get("safety_flags", []) or []),
@@ -468,6 +534,10 @@ class DentalEducationAgent:
                 normalized = str(flag).strip()
                 if normalized and normalized not in merged_flags:
                     merged_flags.append(normalized)
+
+            # If visual mismatch detected, add sentinel flag
+            if image_finding_match is False and "visual_finding_mismatch" not in merged_flags:
+                merged_flags.append("visual_finding_mismatch")
 
             merged_missing: list[str] = []
             for step in [
@@ -500,6 +570,7 @@ class DentalEducationAgent:
                 "missing_critical_steps": merged_missing,
                 "clinical_accuracy": clinical_accuracy,
                 "faculty_notes": faculty_notes or "Manual review recommended.",
+                "image_finding_match": image_finding_match,
                 # Backward-compatible fields
                 "is_clinically_accurate": is_clinically_accurate,
                 "safety_violation": safety_violation,
@@ -554,7 +625,14 @@ class DentalEducationAgent:
         # Bu yüzden sadece açıklayıcı metni dönüyoruz
         return explanatory
 
-    def process_student_input(self, student_id: str, raw_action: str, case_id: Optional[str] = None) -> Dict[str, Any]:
+    def process_student_input(
+        self,
+        student_id: str,
+        raw_action: str,
+        case_id: Optional[str] = None,
+        image_bytes: Optional[bytes] = None,
+        image_mime: str = "image/jpeg",
+    ) -> Dict[str, Any]:
         """
         Silent Evaluator Architecture ile Hibrit Pipeline:
         
@@ -626,7 +704,11 @@ class DentalEducationAgent:
                 logger.debug("Persona enrichment skipped for case %s: %s", case_id, exc)
 
         # Step 2: Gemini Interpretation (Eğitim Asistanı)
-        interpretation = self.interpret_action(safe_student_input, state)
+        interpretation = self.interpret_action(
+            safe_student_input, state,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
+        )
         interpreted_action = interpretation.get("interpreted_action", "")
 
         # Step 3: Objective Scoring (Kural Motoru)
@@ -634,12 +716,16 @@ class DentalEducationAgent:
 
         # Step 4: Silent Evaluation (MedGemma - Arka Plan)
         # Bu çağrı BAŞARISIZ olsa bile diğer işlemler devam eder
+        visual_findings = interpretation.get("visual_findings_observed") or []
         silent_evaluation = self._silent_evaluation(
             safe_student_input,
             interpreted_action,
             state,
             assessment,
             safety_scan=injection_scan,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
+            visual_findings_observed=visual_findings,
         )
 
         # Step 5: Final Feedback (Gemini + Puanlama)
