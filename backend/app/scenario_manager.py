@@ -218,6 +218,7 @@ class ScenarioManager:
         state: Dict[str, Any] = {
             "case_id": case_id,
             "revealed_findings": [],
+            "revealed_media": [],
             "history": [],
         }
 
@@ -388,6 +389,9 @@ class ScenarioManager:
                 session.current_score = (session.current_score or 0.0) + float(score_delta)
                 state["current_score"] = session.current_score
 
+            # S13-M2: track which media paths are newly revealed when findings update
+            prev_revealed_findings: list = list(state.get("revealed_findings") or [])
+
             # Merge other fields into state_json
             for k, v in updates.items():
                 if k in ("score_change",):
@@ -399,9 +403,35 @@ class ScenarioManager:
                     if isinstance(state[k], dict) and isinstance(v, dict):
                         state[k].update(v)
                     elif isinstance(state[k], list) and isinstance(v, list):
-                        state[k].extend(v)
+                        # Deduplicate list extensions
+                        existing = state[k]
+                        for item in v:
+                            if item not in existing:
+                                existing.append(item)
                     else:
                         state[k] = v
+
+            # S13-M2: when revealed_findings grew, cross-ref gizli_bulgular for media
+            new_revealed_findings: list = list(state.get("revealed_findings") or [])
+            newly_added = [f for f in new_revealed_findings if f not in prev_revealed_findings]
+            if newly_added:
+                case_def = self._find_case(session.case_id or case_id or "")
+                gizli_bulgular = case_def.get("gizli_bulgular") or []
+                if not isinstance(gizli_bulgular, list):
+                    gizli_bulgular = []
+
+                existing_media: list = list(state.get("revealed_media") or [])
+                for finding_name in newly_added:
+                    for bulgu in gizli_bulgular:
+                        if not isinstance(bulgu, dict):
+                            continue
+                        bulgu_id = str(bulgu.get("id") or bulgu.get("gorsel_id") or "").strip()
+                        bulgu_name = str(bulgu.get("name") or bulgu.get("bulgu_adi") or "").strip()
+                        media_path = str(bulgu.get("media") or "").strip()
+                        if media_path and (bulgu_id == finding_name or bulgu_name == finding_name):
+                            if media_path not in existing_media:
+                                existing_media.append(media_path)
+                state["revealed_media"] = existing_media
 
             # Ensure case_id
             effective_case_id = case_id or session.case_id or state.get("case_id") or self._get_default_case_id() or ""
