@@ -443,6 +443,12 @@ def submit_answers(body: SubmitRequest, current_user: AuthenticatedUser = Depend
                 grading_status=GradingStatus.PUBLISHED.value,
                 answer_id=answer.id,  # S10-B
             ))
+
+            # BKT wiring — S13-A2
+            from app.services import bkt_service as _bkt
+            topic_id = q.topic_id
+            if topic_id and isinstance(topic_id, str) and topic_id.strip():
+                _bkt.observe(db, current_user.user_id, topic_id, is_correct)
         else:
             answer.grading_status = GradingStatus.PENDING
             has_pending = True

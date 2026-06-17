@@ -28,7 +28,7 @@ class _DummyAgent:
         # Intentionally unsafe text to verify sanitizer fallback.
         self.model = _DummyCoachModel("Bu vaka tanisi oral liken planus olabilir ve puanin yukselir.")
 
-    def process_student_input(self, student_id: str, raw_action: str, case_id: str) -> dict:
+    def process_student_input(self, student_id: str, raw_action: str, case_id: str, **kwargs) -> dict:
         return {
             "student_id": student_id,
             "case_id": case_id,
@@ -86,7 +86,7 @@ class _DummyAgent:
 
 
 class _DummyInjectionAgent(_DummyAgent):
-    def process_student_input(self, student_id: str, raw_action: str, case_id: str) -> dict:
+    def process_student_input(self, student_id: str, raw_action: str, case_id: str, **kwargs) -> dict:
         payload = super().process_student_input(student_id, raw_action, case_id)
         payload["llm_safety"] = {
             "sanitization": {
