@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Clock,
   Target,
+  Camera,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -54,6 +55,9 @@ const FEATURE_LABELS: Record<string, string> = {
   n_mapped_questions: "Eşlenen Soru Sayısı",
   days_since_last_attempt: "Son Denemeden Geçen Gün",
   score_trend: "Puan Trendi",
+  image_finding_match_rate_30d: "Görsel Bulgu Eşleşme Oranı (30g)",
+  image_unlock_rate: "Görsel Açma Oranı",
+  visual_complexity_score: "Görsel Karmaşıklık Skoru",
 };
 
 function getFeatureLabel(name: string): string {
@@ -188,6 +192,7 @@ function RecommendationCard({
     high_match: "Yüksek Uyum",
     exploration: "Keşif",
     completed: "Tamamlandı",
+    visual_skill_gap: "Görsel Bulgu Odağı",
   };
 
   const reasonBadgeClass: Record<string, string> = {
@@ -198,6 +203,7 @@ function RecommendationCard({
     high_match: "bg-emerald-50 text-emerald-700",
     exploration: "bg-amber-50 text-amber-700",
     completed: "bg-slate-100 text-slate-500",
+    visual_skill_gap: "bg-orange-50 text-orange-700",
   };
 
   return (
@@ -210,10 +216,11 @@ function RecommendationCard({
               #{index + 1}
             </span>
             <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                 reasonBadgeClass[item.reason_code] ?? "bg-slate-100 text-slate-500"
               }`}
             >
+              {item.reason_code === "visual_skill_gap" && <Camera size={11} />}
               {reasonCodeLabels[item.reason_code] ?? item.reason_code}
             </span>
           </div>
