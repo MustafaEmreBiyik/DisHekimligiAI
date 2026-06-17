@@ -21,8 +21,10 @@ from app.scenario_manager import ScenarioManager
 from app.api.deps import (
     AuthenticatedUser,
     get_current_user_context,
+    get_db,
     require_roles,
 )
+from sqlalchemy.orm import Session
 from app.services.reasoning_classifier import ReasoningPatternClassifier
 from db.database import (
     SessionLocal,
@@ -452,6 +454,7 @@ _MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 def _process_chat_message(
     *,
+    db: Session,
     message: str,
     case_id: str,
     student_id: str,
@@ -469,209 +472,206 @@ def _process_chat_message(
             detail="Chat service is unavailable. GEMINI_API_KEY not configured."
         )
 
-    db = SessionLocal()
-    try:
-        # STEP 1: Get or create session for this student + case
-        session = get_or_create_session(db, student_id, case_id)
+    # STEP 1: Get or create session for this student + case
+    session = get_or_create_session(db, student_id, case_id)
 
-        # STEP 2: Log student's message to database
-        user_log = ChatLog(
+    # STEP 2: Log student's message to database
+    user_log = ChatLog(
+        session_id=session.id,
+        role='user',
+        content=message,
+        metadata_json={"has_image": image_bytes is not None} if image_bytes is not None else None,
+        timestamp=datetime.datetime.utcnow()
+    )
+    db.add(user_log)
+
+    # STEP 3: Process with AI agent (multimodal when image present)
+    result = agent.process_student_input(
+        student_id=student_id,
+        raw_action=message,
+        case_id=case_id,
+        image_bytes=image_bytes,
+        image_mime=image_mime,
+    )
+
+    # Extract key fields for Silent Evaluator response
+    llm_interpretation = result.get("llm_interpretation", {})
+    assessment = result.get("assessment", {})
+    silent_eval = result.get("silent_evaluation", {})
+    llm_safety = result.get("llm_safety", {}) if isinstance(result.get("llm_safety"), dict) else {}
+    safety_events = result.get("safety_events", []) if isinstance(result.get("safety_events"), list) else []
+    updated_state = result.get("updated_state", {})
+    score = assessment.get("score", 0.0)
+
+    # Response text is the patient's dialogue (from Gemini's explanatory feedback)
+    response_text = result.get("final_feedback", "")
+    final_feedback = response_text
+
+    # Interpreted action from LLM
+    interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
+    is_diagnosis_action = interpreted_action.startswith("diagnose_")
+
+    # Current session score from updated state
+    current_score = updated_state.get("current_score", session.current_score + score)
+
+    # Consider diagnosis actions as case completion checkpoints.
+    is_case_finished = updated_state.get("is_finished", False) or is_diagnosis_action
+
+    reasoning_pattern = None
+    if is_diagnosis_action:
+        past_history = build_reasoning_action_history(db, session.id)
+        current_history_item = {
+            "action": interpreted_action,
+            "reasoning_deviation": bool(silent_eval.get("reasoning_deviation", False)),
+            "reasoning_deviation_flags": int(silent_eval.get("reasoning_deviation_flags", 0) or 0),
+        }
+        reasoning_pattern = reasoning_classifier.classify(
             session_id=session.id,
-            role='user',
-            content=message,
-            metadata_json={"has_image": image_bytes is not None} if image_bytes is not None else None,
-            timestamp=datetime.datetime.utcnow()
-        )
-        db.add(user_log)
-
-        # STEP 3: Process with AI agent (multimodal when image present)
-        result = agent.process_student_input(
-            student_id=student_id,
-            raw_action=message,
-            case_id=case_id,
-            image_bytes=image_bytes,
-            image_mime=image_mime,
+            action_history=[*past_history, current_history_item],
         )
 
-        # Extract key fields for Silent Evaluator response
-        llm_interpretation = result.get("llm_interpretation", {})
-        assessment = result.get("assessment", {})
-        silent_eval = result.get("silent_evaluation", {})
-        llm_safety = result.get("llm_safety", {}) if isinstance(result.get("llm_safety"), dict) else {}
-        safety_events = result.get("safety_events", []) if isinstance(result.get("safety_events"), list) else []
-        updated_state = result.get("updated_state", {})
-        score = assessment.get("score", 0.0)
+    for event in safety_events:
+        if not isinstance(event, dict):
+            continue
 
-        # Response text is the patient's dialogue (from Gemini's explanatory feedback)
-        response_text = result.get("final_feedback", "")
-        final_feedback = response_text
-
-        # Interpreted action from LLM
-        interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
-        is_diagnosis_action = interpreted_action.startswith("diagnose_")
-
-        # Current session score from updated state
-        current_score = updated_state.get("current_score", session.current_score + score)
-
-        # Consider diagnosis actions as case completion checkpoints.
-        is_case_finished = updated_state.get("is_finished", False) or is_diagnosis_action
-
-        reasoning_pattern = None
-        if is_diagnosis_action:
-            past_history = build_reasoning_action_history(db, session.id)
-            current_history_item = {
-                "action": interpreted_action,
-                "reasoning_deviation": bool(silent_eval.get("reasoning_deviation", False)),
-                "reasoning_deviation_flags": int(silent_eval.get("reasoning_deviation_flags", 0) or 0),
-            }
-            reasoning_pattern = reasoning_classifier.classify(
+        event_type = str(event.get("event_type") or "llm_safety_event")
+        logger.warning(
+            "LLM safety event logged for student=%s case=%s type=%s risk=%s",
+            student_id,
+            case_id,
+            event_type,
+            event.get("risk_level", "low"),
+        )
+        db.add(
+            ChatLog(
                 session_id=session.id,
-                action_history=[*past_history, current_history_item],
+                role="system_validator",
+                content=f"LLM safety event: {event_type}",
+                metadata_json={
+                    "source": "llm_safety",
+                    "event": event,
+                },
+                timestamp=datetime.datetime.utcnow(),
             )
-
-        for event in safety_events:
-            if not isinstance(event, dict):
-                continue
-
-            event_type = str(event.get("event_type") or "llm_safety_event")
-            logger.warning(
-                "LLM safety event logged for student=%s case=%s type=%s risk=%s",
-                student_id,
-                case_id,
-                event_type,
-                event.get("risk_level", "low"),
-            )
-            db.add(
-                ChatLog(
-                    session_id=session.id,
-                    role="system_validator",
-                    content=f"LLM safety event: {event_type}",
-                    metadata_json={
-                        "source": "llm_safety",
-                        "event": event,
-                    },
-                    timestamp=datetime.datetime.utcnow(),
-                )
-            )
-
-        # S13-M1: extract visual findings from interpretation
-        visual_findings_observed = llm_interpretation.get("visual_findings_observed") or []
-        if not isinstance(visual_findings_observed, list):
-            visual_findings_observed = []
-
-        # S13-M1: extract image_finding_match from silent eval
-        image_finding_match = silent_eval.get("image_finding_match") if isinstance(silent_eval, dict) else None
-
-        # STEP 5: Log AI's response to database with metadata
-        assistant_log = ChatLog(
-            session_id=session.id,
-            role='assistant',
-            content=response_text,
-            metadata_json={
-                "score": score,
-                "interpreted_action": interpreted_action,
-                "clinical_intent": llm_interpretation.get("clinical_intent", ""),
-                "priority": llm_interpretation.get("priority", ""),
-                "assessment": assessment,
-                "silent_evaluation": silent_eval,
-                "llm_safety": llm_safety,
-                "reasoning_pattern": reasoning_pattern,
-                "has_image": image_bytes is not None,
-                "image_finding_match": image_finding_match,
-            },
-            timestamp=datetime.datetime.utcnow()
-        )
-        db.add(assistant_log)
-
-        audit_meta = silent_eval.get("audit", {}) if isinstance(silent_eval, dict) else {}
-        if not isinstance(audit_meta, dict):
-            audit_meta = {}
-
-        clinical_accuracy = silent_eval.get("clinical_accuracy") if isinstance(silent_eval, dict) else None
-        if clinical_accuracy is not None:
-            clinical_accuracy = str(clinical_accuracy).strip().lower()
-            if clinical_accuracy not in {"high", "medium", "low"}:
-                clinical_accuracy = None
-
-        validator_audit = ValidatorAuditLog(
-            session_id=session.id,
-            action=str(interpreted_action or "unknown"),
-            validator_used=str(audit_meta.get("validator_used") or "medgemma"),
-            model_id=str(audit_meta.get("model_id") or "") or None,
-            safety_violation=bool(silent_eval.get("safety_violation", False)),
-            clinical_accuracy=clinical_accuracy,
-            response_time_ms=int(audit_meta.get("response_time_ms") or 0),
-            error_message=(
-                str(audit_meta.get("error_message"))
-                if audit_meta.get("error_message") is not None
-                else None
-            ),
-            created_at=datetime.datetime.utcnow(),
-        )
-        db.add(validator_audit)
-
-        # STEP 6: Update session score
-        session.current_score = current_score
-
-        # BKT wiring — S13-A2
-        from app.services import bkt_service as _bkt
-        if llm_interpretation.get("intent_type") == "ACTION":
-            competency_tags = assessment.get("competency_tags", [])
-            if not isinstance(competency_tags, list):
-                competency_tags = []
-            was_correct = float(assessment.get("score_change", score)) > 0
-            for tag in competency_tags:
-                if isinstance(tag, str) and tag.strip():
-                    _bkt.observe(db, student_id, tag, was_correct)
-            if isinstance(silent_eval, dict) and silent_eval.get("image_finding_match") is False:
-                _bkt.observe(db, student_id, "visual_examination", False)
-
-        # STEP 7: Commit all changes to database
-        db.commit()
-
-        logger.info(
-            "✅ Logged interaction for student %s on case %s. Action Score: %s, Total: %s",
-            student_id, case_id, score, current_score,
         )
 
-        revealed_findings = updated_state.get("revealed_findings", [])
-        if not isinstance(revealed_findings, list):
-            revealed_findings = []
+    # S13-M1: extract visual findings from interpretation
+    visual_findings_observed = llm_interpretation.get("visual_findings_observed") or []
+    if not isinstance(visual_findings_observed, list):
+        visual_findings_observed = []
 
-        revealed_media = updated_state.get("revealed_media", [])
-        if not isinstance(revealed_media, list):
-            revealed_media = []
+    # S13-M1: extract image_finding_match from silent eval
+    image_finding_match = silent_eval.get("image_finding_match") if isinstance(silent_eval, dict) else None
 
-        safe_state_updates = build_student_state_updates(
-            case_id=result.get("case_id", case_id),
-            is_case_finished=is_case_finished,
-        )
+    # STEP 5: Log AI's response to database with metadata
+    assistant_log = ChatLog(
+        session_id=session.id,
+        role='assistant',
+        content=response_text,
+        metadata_json={
+            "score": score,
+            "interpreted_action": interpreted_action,
+            "clinical_intent": llm_interpretation.get("clinical_intent", ""),
+            "priority": llm_interpretation.get("priority", ""),
+            "assessment": assessment,
+            "silent_evaluation": silent_eval,
+            "llm_safety": llm_safety,
+            "reasoning_pattern": reasoning_pattern,
+            "has_image": image_bytes is not None,
+            "image_finding_match": image_finding_match,
+        },
+        timestamp=datetime.datetime.utcnow()
+    )
+    db.add(assistant_log)
 
-        # S10-A: Surface reinforcement questions on failed/penalised actions.
-        reinforcement: List[ReinforcementQuestion] = []
-        action_meaningful = interpreted_action not in {"general_chat", "error", "unknown", ""}
-        action_failed = score < 0 or bool(silent_eval.get("reasoning_deviation", False))
-        if action_meaningful and action_failed:
-            reinforcement = _get_reinforcement_questions(db, case_id)
+    audit_meta = silent_eval.get("audit", {}) if isinstance(silent_eval, dict) else {}
+    if not isinstance(audit_meta, dict):
+        audit_meta = {}
 
-        return ChatResponse(
-            session_id=session.id,
-            ai_response=response_text,
-            final_feedback=final_feedback,
-            state_updates=safe_state_updates,
-            revealed_findings=revealed_findings,
-            revealed_media=revealed_media,
-            visual_findings_observed=visual_findings_observed,
-            reinforcement_questions=reinforcement,
-        )
-    finally:
-        db.close()
+    clinical_accuracy = silent_eval.get("clinical_accuracy") if isinstance(silent_eval, dict) else None
+    if clinical_accuracy is not None:
+        clinical_accuracy = str(clinical_accuracy).strip().lower()
+        if clinical_accuracy not in {"high", "medium", "low"}:
+            clinical_accuracy = None
+
+    validator_audit = ValidatorAuditLog(
+        session_id=session.id,
+        action=str(interpreted_action or "unknown"),
+        validator_used=str(audit_meta.get("validator_used") or "medgemma"),
+        model_id=str(audit_meta.get("model_id") or "") or None,
+        safety_violation=bool(silent_eval.get("safety_violation", False)),
+        clinical_accuracy=clinical_accuracy,
+        response_time_ms=int(audit_meta.get("response_time_ms") or 0),
+        error_message=(
+            str(audit_meta.get("error_message"))
+            if audit_meta.get("error_message") is not None
+            else None
+        ),
+        created_at=datetime.datetime.utcnow(),
+    )
+    db.add(validator_audit)
+
+    # STEP 6: Update session score
+    session.current_score = current_score
+
+    # BKT wiring — S13-A2
+    from app.services import bkt_service as _bkt
+    if llm_interpretation.get("intent_type") == "ACTION":
+        competency_tags = assessment.get("competency_tags", [])
+        if not isinstance(competency_tags, list):
+            competency_tags = []
+        was_correct = float(assessment.get("score_change", score)) > 0
+        for tag in competency_tags:
+            if isinstance(tag, str) and tag.strip():
+                _bkt.observe(db, student_id, tag, was_correct)
+        if isinstance(silent_eval, dict) and silent_eval.get("image_finding_match") is False:
+            _bkt.observe(db, student_id, "visual_examination", False)
+
+    # STEP 7: Commit all changes to database
+    db.commit()
+
+    logger.info(
+        "✅ Logged interaction for student %s on case %s. Action Score: %s, Total: %s",
+        student_id, case_id, score, current_score,
+    )
+
+    revealed_findings = updated_state.get("revealed_findings", [])
+    if not isinstance(revealed_findings, list):
+        revealed_findings = []
+
+    revealed_media = updated_state.get("revealed_media", [])
+    if not isinstance(revealed_media, list):
+        revealed_media = []
+
+    safe_state_updates = build_student_state_updates(
+        case_id=result.get("case_id", case_id),
+        is_case_finished=is_case_finished,
+    )
+
+    # S10-A: Surface reinforcement questions on failed/penalised actions.
+    reinforcement: List[ReinforcementQuestion] = []
+    action_meaningful = interpreted_action not in {"general_chat", "error", "unknown", ""}
+    action_failed = score < 0 or bool(silent_eval.get("reasoning_deviation", False))
+    if action_meaningful and action_failed:
+        reinforcement = _get_reinforcement_questions(db, case_id)
+
+    return ChatResponse(
+        session_id=session.id,
+        ai_response=response_text,
+        final_feedback=final_feedback,
+        state_updates=safe_state_updates,
+        revealed_findings=revealed_findings,
+        revealed_media=revealed_media,
+        visual_findings_observed=visual_findings_observed,
+        reinforcement_questions=reinforcement,
+    )
 
 
 @router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 def send_chat_message(
     request: ChatRequest,
     current_user: AuthenticatedUser = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
 ):
     """
     Process a student's chat message and return AI response (JSON body).
@@ -679,6 +679,7 @@ def send_chat_message(
     **Authentication Required:** Yes (Bearer token in Authorization header)
     """
     return _process_chat_message(
+        db=db,
         message=request.message,
         case_id=request.case_id,
         student_id=current_user.user_id,
@@ -691,6 +692,7 @@ def send_chat_message_multipart(
     case_id: str = Form(..., description="Active case identifier"),
     image: Optional[UploadFile] = File(None, description="Optional clinical image (JPEG/PNG/WebP, max 5 MB)"),
     current_user: AuthenticatedUser = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
 ):
     """
     Process a student's chat message with an optional clinical image (S13-M1).
@@ -724,6 +726,7 @@ def send_chat_message_multipart(
         image_bytes = raw
 
     return _process_chat_message(
+        db=db,
         message=message,
         case_id=case_id,
         student_id=current_user.user_id,
