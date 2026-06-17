@@ -45,11 +45,6 @@
         "Alkol kullanmıyor"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/olp_clinical.jpg", "caption": "Bilateral bukkal mukozada retikular beyaz çizgiler (Wickham striae)", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/olp_clinical_2.jpg", "caption": "Oral liken planus — ek klinik görünüm", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/olp_clinical_3.jpg", "caption": "Oral liken planus — eroziv alan", "reveal_on": "perform_oral_exam"}
-    ],
     "gizli_bulgular": [
       {
         "bulgu_id": "bulgu_001",
@@ -157,10 +152,6 @@
         "Sigara: Günde 1 paket (20 yıldır)"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/perio_clinical.jpg", "caption": "Kronik periodontitis — dişeti kanaması ve mobilite", "reveal_on": "check_bleeding_disorder"},
-      {"url": "assets/images/perio_clinical_2.jpg", "caption": "Kronik periodontitis — ek klinik görünüm", "reveal_on": "check_bleeding_disorder"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "pacemaker_warning",
@@ -234,11 +225,6 @@
         "Yok"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/herpes_clinical.jpg", "caption": "Herpetik gingivostomatitis — oral ülserasyonlar", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/herpes_clinical_2.jpg", "caption": "Herpetik gingivostomatitis — ek klinik görünüm", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/herpes_clinical_3.jpg", "caption": "Herpetik gingivostomatitis — yaygın lezyon paterni", "reveal_on": "perform_oral_exam"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "diffuse_vesicles",
@@ -313,10 +299,6 @@
         "Yok"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/herpes_clinical.jpg", "caption": "Herpetik gingivostomatitis (pediatrik) — oral ülserasyonlar", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/herpes_clinical_2.jpg", "caption": "Herpetik gingivostomatitis — ek görünüm", "reveal_on": "perform_oral_exam"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "clinical_appearance",
@@ -390,11 +372,6 @@
         "Yok"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/behcet_clinical.jpg", "caption": "Behçet hastalığı — oral ülserasyonlar", "reveal_on": "ask_systemic_symptoms"},
-      {"url": "assets/images/behcet_clinical_2.jpg", "caption": "Behçet hastalığı — ek klinik görünüm", "reveal_on": "ask_systemic_symptoms"},
-      {"url": "assets/images/behcet_clinical_3.jpg", "caption": "Behçet hastalığı — ülser detayı", "reveal_on": "ask_systemic_symptoms"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "genital_ulcer",
@@ -469,10 +446,6 @@
         "Yok"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/syphilis_clinical.jpg", "caption": "Sekonder sifiliz — müköz plaklar", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/syphilis_clinical_2.jpg", "caption": "Sekonder sifiliz — ek klinik görünüm", "reveal_on": "perform_oral_exam"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "mucous_patch",
@@ -546,11 +519,6 @@
         "Yok"
       ]
     },
-    "case_images_json": [
-      {"url": "assets/images/desquamative_clinical.jpg", "caption": "Deskuamatif gingivit — yapışık dişetinde eritem ve soyulma", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/desquamative_clinical_2.jpg", "caption": "Deskuamatif gingivit — ek klinik görünüm", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/desquamative_clinical_3.jpg", "caption": "Deskuamatif gingivit — yaygın tutulum", "reveal_on": "perform_oral_exam"}
-    ],
     "hidden_findings": [
       {
         "finding_id": "clinical_erythema",
@@ -619,9 +587,6 @@
       "hidden_history": "Hasta sağ gözünde 3 aydır 'kumlu ve kaşıntılı' bir his olduğunu saklamaktadır. Bunu mevsimsel alerji ve yaşa bağlamış, ağız belirtileriyle hiç ilişkilendirmemiştir.",
       "evasion_tactic": "Genel sağlık sorusu sorulursa 'İyiyim, sadece bu diş etlerim var' der. Fırçalama alışkanlığı sorulursa macunu suçlar ve daha yumuşak bir fırça önerir."
     },
-    "case_images_json": [
-      {"url": "assets/images/mmp_clinical.jpg", "caption": "MMP — yapışık dişetinde eritem ve deskuamasyon", "reveal_on": "perform_oral_exam"}
-    ],
     "gizli_bulgular": [
       {
         "bulgu_id": "klinik_sunum",
@@ -738,9 +703,6 @@
       "hidden_history": "Hasta 5 yıldır oral Alendronat (Fosamax) kullandığını saklamaktadır. Bunu 'kemik vitamini' olarak gördüğünden ilaç saymıyor ve ilaç listesine yazmamış.",
       "evasion_tactic": "Genel ilaç sorusunda 'sadece tansiyon ilacı ve vitamin' der. 'Osteoporoz', 'kemik erimesi' veya 'kemik yoğunluğu için ilaç' gibi spesifik sorular sorulduğunda gerçeği söyler."
     },
-    "case_images_json": [
-      {"url": "assets/images/mronj_clinical.jpg", "caption": "MRONJ — avasküler kemik ekspozisyonu", "reveal_on": "perform_oral_exam"}
-    ],
     "gizli_bulgular": [
       {
         "bulgu_id": "kemik_ekspozisyonu",
@@ -851,10 +813,6 @@
       "hidden_history": "Hasta 25 yıldır sol alt mandibular vestibüle günlük çiğneme tütünü (smokeless tobacco) koyduğunu saklamaktadır. 'Sigara içiyor musunuz?' sorusuna '20 yıldır içmiyorum' der — 'içmek' kelimesini yalnızca sigara olarak algılıyor.",
       "evasion_tactic": "Sadece 'çiğneme tütünü', 'tütün pırpırı', 'puro' veya 'pipo' gibi spesifik sorular sorulduğunda gerçeği itiraf eder. Ülserin lokalizasyonu tütün koyduğu bölgeyle tam örtüşmektedir."
     },
-    "case_images_json": [
-      {"url": "assets/images/oscc_clinical.jpg", "caption": "OSCC — indüre krateriform ülserasyon", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/oscc_clinical_2.jpg", "caption": "OSCC — ek klinik görünüm", "reveal_on": "perform_oral_exam"}
-    ],
     "gizli_bulgular": [
       {
         "bulgu_id": "klinik_lezyon",
@@ -970,11 +928,6 @@
       "hidden_history": "Hasta 3 aydır sırtında iyileşmeyen, kabuklu bir yarası olduğunu saklamaktadır. Bunu 'böcek ısırığı' sanıyor — gerçekte kutanöz Pemfigus Vulgaris tutulumuna işaret eder.",
       "evasion_tactic": "Genel sağlık sorusunda 'iyiyim, sadece bu diş etlerim var' der. 'Cildinizde su topu, yara veya kabuklanma var mı?', 'Gözlerinizde veya vücudun başka yerinde yara?' gibi spesifik sorularda gerçeği söyler."
     },
-    "case_images_json": [
-      {"url": "assets/images/pv_clinical.jpg", "caption": "Pemfigus Vulgaris — yapışık dişetinde eritem ve ülserasyon", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/pv_clinical_2.jpg", "caption": "Pemfigus Vulgaris — ek klinik görünüm", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/pv_clinical_3.jpg", "caption": "Pemfigus Vulgaris — erozyon detayı", "reveal_on": "perform_oral_exam"}
-    ],
     "gizli_bulgular": [
       {
         "bulgu_id": "klinik_sunum",
@@ -1040,135 +993,6 @@
       "SYSTEMIC_STEROID_WITHOUT_DX": "Tanı doğrulanmadan sistemik immünosüpresif tedavi başlanması — FATAL HATA. Biyopsi ve DIF olmadan steroid yazmak malpraktistir.",
       "SCALING_CONTRAINDICATION": "Otoimmün köken dışlanmadan skeyling/küretaj yapılması — intraepitelyal ayrışma nedeniyle masif epitel kaybına ve ağrıya yol açar — AĞIR CEZA.",
       "WRONG_BIOPSY_LOCATION": "Biyopsinin ülser tabanından alınması — tam epitel kaybı nedeniyle tanısız granülasyon dokusu sonucu — ORTA CEZA."
-    }
-  },
-  {
-    "case_id": "lokoplaki_001",
-    "schema_version": "2.0",
-    "title": "Oral Lökoplaki (Malignite Riski Değerlendirmesi)",
-    "category": "oral_pathology",
-    "difficulty": "intermediate",
-    "estimated_duration_minutes": 25,
-    "is_active": true,
-    "learning_objectives": [
-      "Homojen ve heterojen lökoplakiyi klinik bulgulara göre ayırt etme",
-      "Yüksek riskli lökoplakide biyopsi endikasyonunu belirleme",
-      "Tütün ve alkol risk faktörlerini sistematik anamnezle ortaya çıkarma"
-    ],
-    "prerequisite_competencies": [
-      "oral_exam_basic",
-      "anamnez_alma",
-      "biopsy_indication_knowledge"
-    ],
-    "competency_tags": [
-      "oral_pathology",
-      "clinical_safety",
-      "diagnosis",
-      "clinical_reasoning"
-    ],
-    "initial_state": "consultation",
-    "states": {},
-    "patient_info": {
-      "age": 57,
-      "gender": "Erkek",
-      "chief_complaint": "Yanağımın iç kısmında beyaz leke var, bir türlü gitmiyor.",
-      "medical_history": [
-        "Hipertansiyon"
-      ],
-      "medications": [
-        "Amlodipine"
-      ],
-      "social_history": [
-        "Sigara: Günde yarım paket (15 yıldır)",
-        "Alkol: Ara sıra"
-      ],
-      "allergies": [
-        "Yok"
-      ]
-    },
-    "name": "Oral Lökoplaki (Malignite Riski Değerlendirmesi)",
-    "patient": {
-      "age": 57,
-      "gender": "Erkek",
-      "chief_complaint": "Yanağımın iç kısmında beyaz leke var, bir türlü gitmiyor.",
-      "medical_history": [
-        "Hipertansiyon"
-      ],
-      "medications": [
-        "Amlodipine"
-      ],
-      "social_history": [
-        "Sigara: Günde yarım paket (15 yıldır)",
-        "Alkol: Ara sıra"
-      ],
-      "allergies": [
-        "Yok"
-      ]
-    },
-    "case_images_json": [
-      {"url": "assets/images/lokoplaki_clinical.jpg", "caption": "Lökoplaki — bukkal mukozada homojen beyaz plak", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/lokoplaki_clinical_2.jpg", "caption": "Lökoplaki — ek klinik görünüm", "reveal_on": "perform_oral_exam"},
-      {"url": "assets/images/lokoplaki_clinical_3.jpg", "caption": "Lökoplaki — heterojen alan detayı", "reveal_on": "perform_oral_exam"}
-    ],
-    "hidden_findings": [
-      {
-        "finding_id": "beyaz_plak",
-        "description": "Sağ bukkal mukozada 1.5 cm çapında beyaz, silgi ile silinemeyen, yüzeyi pürüzlü plak. Kırmızı odaklar (eritroplaki alanları) içermekte — heterojen lökoplaki bulgusu.",
-        "trigger_action": "perform_oral_exam",
-        "media": "assets/images/lokoplaki_clinical.jpg"
-      },
-      {
-        "finding_id": "tutun_anamnezi",
-        "description": "Hasta 15 yıldır günde yarım paket sigara içtiğini doğruladı. Tütün, lökoplakinin başlıca etiyolojik faktörü.",
-        "trigger_action": "gather_medical_history"
-      },
-      {
-        "finding_id": "palpasyon_bulgusu",
-        "description": "Palpasyonda lezyon yumuşak, fikse değil. Ancak yüzey düzensizliği ve eritroplaki alanları displazi şüphesi uyandırıyor.",
-        "trigger_action": "perform_oral_exam"
-      }
-    ],
-    "beklenen_eylemler": [
-      {
-        "eylem_id": "eylem_001",
-        "tanim": "Oral mukoza muayenesi ve lezyon karakterinin değerlendirilmesi (renk, yüzey, sınır, büyüklük)",
-        "puan": 25,
-        "acilacak_bulgular": ["beyaz_plak", "palpasyon_bulgusu"]
-      },
-      {
-        "eylem_id": "eylem_002",
-        "tanim": "Tütün ve alkol anamnezi — etiyolojik risk faktörü sorgusu",
-        "puan": 20,
-        "acilacak_bulgular": ["tutun_anamnezi"]
-      },
-      {
-        "eylem_id": "eylem_003",
-        "tanim": "İnsizyonel biyopsi planlaması — displazi/maligniteyi dışlamak için",
-        "puan": 35
-      },
-      {
-        "eylem_id": "eylem_004",
-        "tanim": "Tütün kullanımının bırakılması için danışmanlık ve 2 haftalık takip planı",
-        "puan": 20
-      }
-    ],
-    "dogru_tani": "Oral Lökoplaki — Heterojen tip, displazi şüphesi (biyopsi gerekli)",
-    "ayirici_tanilar": [
-      "Oral Kandidiyaz (Psödomembranöz)",
-      "Oral Liken Planus (Retiküler tip)",
-      "Kimyasal veya Termal Yanık",
-      "Linea Alba"
-    ],
-    "dogru_tedavi_plani": [
-      "İnsizyonel biyopsi (en şüpheli alandan)",
-      "Tütün kullanımının kesinlikle bırakılması",
-      "Displazi yoksa 3 ayda bir klinik takip",
-      "Displazi varsa: Oral Cerrahi veya Onkoloji sevki"
-    ],
-    "critical_safety_rules": {
-      "TOPICAL_ANTIFUNGAL_ERROR": "Kandidiyaz dışlanmadan antifungal başlanması — lökoplaki antifungalle silinmez, tanıyı geciktirir — ORTA CEZA.",
-      "BIOPSY_OMISSION": "Heterojen lökoplakide biyopsi yapılmadan hasta gönderilmesi — displazi/OSCC riski nedeniyle FATAL HATA.",
-      "PREMATURE_EXCISION": "Displazi derecesi bilinmeden geniş eksizyon planlanması — önce biyopsi ile doku tanısı gerekir — ORTA CEZA."
     }
   }
 ]

@@ -279,7 +279,7 @@ def get_case_images(case_id: str, current_user: str = Depends(get_current_user))
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Case '{case_id}' not found",
         )
-    images = case.get("case_images_json") or case.get("case_images", [])
+    images = case.get("case_images", [])
     return {"case_id": case_id, "images": images if isinstance(images, list) else []}
 
 
