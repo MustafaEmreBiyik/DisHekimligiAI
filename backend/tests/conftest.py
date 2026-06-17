@@ -85,11 +85,30 @@ def mock_external_ai_sdks(monkeypatch):
             self.args = args
             self.kwargs = kwargs
 
-        def generate_content(self, _prompt):
-            return types.SimpleNamespace(text=gemini_module._response_text)
+        def generate_content(self, _prompt, request_options=None):
+            # Always read from the currently active stub in sys.modules so that
+            # mock_gemini_response overrides work even when app.agent's genai
+            # binding was captured in a previous test's fixture invocation.
+            active = sys.modules.get("google.generativeai", gemini_module)
+            return types.SimpleNamespace(text=getattr(active, "_response_text", gemini_module._response_text))
+
+    class _DummyBlob:
+        def __init__(self, mime_type=None, data=None):
+            self.mime_type = mime_type
+            self.data = data
+
+    class _DummyPart:
+        def __init__(self, text=None, inline_data=None):
+            self.text = text
+            self.inline_data = inline_data
+
+    class _DummyProtos:
+        Part = _DummyPart
+        Blob = _DummyBlob
 
     gemini_module.configure = _configure
     gemini_module.GenerativeModel = _DummyGenerativeModel
+    gemini_module.protos = _DummyProtos
 
     google_module = sys.modules.get("google")
     if google_module is None:
@@ -98,6 +117,20 @@ def mock_external_ai_sdks(monkeypatch):
 
     setattr(google_module, "generativeai", gemini_module)
     monkeypatch.setitem(sys.modules, "google.generativeai", gemini_module)
+
+    # Also patch the `genai` name inside app.agent and app.services.visual_validator
+    # directly, in case those modules were imported at collection time (before
+    # fixtures ran) with the real google-generativeai package.
+    try:
+        import app.agent as _agent_module
+        monkeypatch.setattr(_agent_module, "genai", gemini_module)
+    except Exception:
+        pass
+    try:
+        import app.services.visual_validator as _vv_module
+        monkeypatch.setattr(_vv_module, "genai", gemini_module)
+    except Exception:
+        pass
 
     hf_module = types.ModuleType("huggingface_hub")
     hf_module._response_text = json.dumps(_DEFAULT_MEDGEMMA_PAYLOAD)

@@ -5,7 +5,7 @@ Endpoints for student-AI chat interactions.
 Reuses existing DentalEducationAgent from app/agent.py.
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List
 import os
@@ -109,6 +109,8 @@ class ChatResponse(BaseModel):
     final_feedback: Optional[str] = Field(None, description="Response text to show the student")
     state_updates: Dict[str, Any] = Field(default_factory=dict, description="Safe state updates")
     revealed_findings: List[str] = Field(default_factory=list, description="Newly revealed findings")
+    revealed_media: List[str] = Field(default_factory=list, description="Media paths unlocked by this action (S13-M2)")
+    visual_findings_observed: List[str] = Field(default_factory=list, description="Visual findings Gemini observed in attached image (S13-M1)")
     reinforcement_questions: List[ReinforcementQuestion] = Field(
         default_factory=list,
         description="Theory questions linked to this case, surfaced on failure (S10-A)",
@@ -443,28 +445,22 @@ def _sanitize_coach_content(content: str, hint_level: str, case_meta: Dict[str, 
 
 # ==================== ENDPOINTS ====================
 
-@router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
-def send_chat_message(
-    request: ChatRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user_context),
-):
+# Allowed MIME types for image upload (S13-M1)
+_ALLOWED_IMAGE_MIMES: frozenset[str] = frozenset({"image/jpeg", "image/png", "image/webp"})
+_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def _process_chat_message(
+    *,
+    message: str,
+    case_id: str,
+    student_id: str,
+    image_bytes: Optional[bytes] = None,
+    image_mime: str = "image/jpeg",
+) -> ChatResponse:
     """
-    Process a student's chat message and return AI response.
-    
-    **Authentication Required:** Yes (Bearer token in Authorization header)
-    
-    This endpoint uses the Silent Evaluator Architecture and tracks interactions:
-    1. Validates JWT token and extracts student_id
-    2. Gets or creates a StudentSession for telemetry
-    3. Logs user message to ChatLog
-    4. Calls agent.process_student_input()
-    5. MedGemma silently evaluates clinical accuracy
-    6. Logs AI response with evaluation metadata to ChatLog
-    7. Updates session score and commits to DB
-    8. Returns patient response + hidden evaluation for analytics
-    
-    The student sees only `response_text`. The `evaluation` object is for
-    backend analytics and should NOT be displayed to students.
+    Core chat processing logic shared by JSON and multipart endpoints.
+    Returns a ChatResponse.
     """
     agent = _get_or_create_agent()
     if not agent:
@@ -476,25 +472,27 @@ def send_chat_message(
     db = SessionLocal()
     try:
         # STEP 1: Get or create session for this student + case
-        session = get_or_create_session(db, current_user.user_id, request.case_id)
+        session = get_or_create_session(db, student_id, case_id)
 
         # STEP 2: Log student's message to database
         user_log = ChatLog(
             session_id=session.id,
             role='user',
-            content=request.message,
-            metadata_json=None,
+            content=message,
+            metadata_json={"has_image": image_bytes is not None} if image_bytes is not None else None,
             timestamp=datetime.datetime.utcnow()
         )
         db.add(user_log)
 
-        # STEP 3: Process with AI agent
+        # STEP 3: Process with AI agent (multimodal when image present)
         result = agent.process_student_input(
-            student_id=current_user.user_id,
-            raw_action=request.message,
-            case_id=request.case_id
+            student_id=student_id,
+            raw_action=message,
+            case_id=case_id,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
         )
-        
+
         # Extract key fields for Silent Evaluator response
         llm_interpretation = result.get("llm_interpretation", {})
         assessment = result.get("assessment", {})
@@ -503,18 +501,18 @@ def send_chat_message(
         safety_events = result.get("safety_events", []) if isinstance(result.get("safety_events"), list) else []
         updated_state = result.get("updated_state", {})
         score = assessment.get("score", 0.0)
-        
+
         # Response text is the patient's dialogue (from Gemini's explanatory feedback)
         response_text = result.get("final_feedback", "")
         final_feedback = response_text
-        
+
         # Interpreted action from LLM
         interpreted_action = llm_interpretation.get("interpreted_action", "unknown")
         is_diagnosis_action = interpreted_action.startswith("diagnose_")
-        
+
         # Current session score from updated state
         current_score = updated_state.get("current_score", session.current_score + score)
-        
+
         # Consider diagnosis actions as case completion checkpoints.
         is_case_finished = updated_state.get("is_finished", False) or is_diagnosis_action
 
@@ -538,8 +536,8 @@ def send_chat_message(
             event_type = str(event.get("event_type") or "llm_safety_event")
             logger.warning(
                 "LLM safety event logged for student=%s case=%s type=%s risk=%s",
-                current_user.user_id,
-                request.case_id,
+                student_id,
+                case_id,
                 event_type,
                 event.get("risk_level", "low"),
             )
@@ -556,6 +554,14 @@ def send_chat_message(
                 )
             )
 
+        # S13-M1: extract visual findings from interpretation
+        visual_findings_observed = llm_interpretation.get("visual_findings_observed") or []
+        if not isinstance(visual_findings_observed, list):
+            visual_findings_observed = []
+
+        # S13-M1: extract image_finding_match from silent eval
+        image_finding_match = silent_eval.get("image_finding_match") if isinstance(silent_eval, dict) else None
+
         # STEP 5: Log AI's response to database with metadata
         assistant_log = ChatLog(
             session_id=session.id,
@@ -570,6 +576,8 @@ def send_chat_message(
                 "silent_evaluation": silent_eval,
                 "llm_safety": llm_safety,
                 "reasoning_pattern": reasoning_pattern,
+                "has_image": image_bytes is not None,
+                "image_finding_match": image_finding_match,
             },
             timestamp=datetime.datetime.utcnow()
         )
@@ -601,24 +609,41 @@ def send_chat_message(
             created_at=datetime.datetime.utcnow(),
         )
         db.add(validator_audit)
-        
+
         # STEP 6: Update session score
         session.current_score = current_score
-        
+
+        # BKT wiring — S13-A2
+        from app.services import bkt_service as _bkt
+        if llm_interpretation.get("intent_type") == "ACTION":
+            competency_tags = assessment.get("competency_tags", [])
+            if not isinstance(competency_tags, list):
+                competency_tags = []
+            was_correct = float(assessment.get("score_change", score)) > 0
+            for tag in competency_tags:
+                if isinstance(tag, str) and tag.strip():
+                    _bkt.observe(db, student_id, tag, was_correct)
+            if isinstance(silent_eval, dict) and silent_eval.get("image_finding_match") is False:
+                _bkt.observe(db, student_id, "visual_examination", False)
+
         # STEP 7: Commit all changes to database
         db.commit()
-        
+
         logger.info(
-            f"✅ Logged interaction for student {current_user.user_id} on case {request.case_id}. "
-            f"Action Score: {score}, Total: {current_score}"
+            "✅ Logged interaction for student %s on case %s. Action Score: %s, Total: %s",
+            student_id, case_id, score, current_score,
         )
 
         revealed_findings = updated_state.get("revealed_findings", [])
         if not isinstance(revealed_findings, list):
             revealed_findings = []
 
+        revealed_media = updated_state.get("revealed_media", [])
+        if not isinstance(revealed_media, list):
+            revealed_media = []
+
         safe_state_updates = build_student_state_updates(
-            case_id=result.get("case_id", request.case_id),
+            case_id=result.get("case_id", case_id),
             is_case_finished=is_case_finished,
         )
 
@@ -627,19 +652,84 @@ def send_chat_message(
         action_meaningful = interpreted_action not in {"general_chat", "error", "unknown", ""}
         action_failed = score < 0 or bool(silent_eval.get("reasoning_deviation", False))
         if action_meaningful and action_failed:
-            reinforcement = _get_reinforcement_questions(db, request.case_id)
+            reinforcement = _get_reinforcement_questions(db, case_id)
 
-        # STEP 8: Return student-safe response payload
         return ChatResponse(
             session_id=session.id,
             ai_response=response_text,
             final_feedback=final_feedback,
             state_updates=safe_state_updates,
             revealed_findings=revealed_findings,
+            revealed_media=revealed_media,
+            visual_findings_observed=visual_findings_observed,
             reinforcement_questions=reinforcement,
         )
     finally:
         db.close()
+
+
+@router.post("/send", response_model=ChatResponse, status_code=status.HTTP_200_OK)
+def send_chat_message(
+    request: ChatRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user_context),
+):
+    """
+    Process a student's chat message and return AI response (JSON body).
+
+    **Authentication Required:** Yes (Bearer token in Authorization header)
+    """
+    return _process_chat_message(
+        message=request.message,
+        case_id=request.case_id,
+        student_id=current_user.user_id,
+    )
+
+
+@router.post("/send-multipart", response_model=ChatResponse, status_code=status.HTTP_200_OK)
+def send_chat_message_multipart(
+    message: str = Form(..., description="Student's raw action/message"),
+    case_id: str = Form(..., description="Active case identifier"),
+    image: Optional[UploadFile] = File(None, description="Optional clinical image (JPEG/PNG/WebP, max 5 MB)"),
+    current_user: AuthenticatedUser = Depends(get_current_user_context),
+):
+    """
+    Process a student's chat message with an optional clinical image (S13-M1).
+
+    Accepts **multipart/form-data**. Fields:
+    - `message`: student text (required)
+    - `case_id`: active case id (required)
+    - `image`: clinical photo (optional, JPEG/PNG/WebP, max 5 MB)
+
+    When an image is attached, Gemini returns `visual_findings_observed` describing
+    what is clinically visible in the image.
+    """
+    image_bytes: Optional[bytes] = None
+    image_mime: str = "image/jpeg"
+
+    if image is not None:
+        # Validate MIME type before reading bytes
+        content_type = (image.content_type or "").lower().strip()
+        if content_type not in _ALLOWED_IMAGE_MIMES:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Unsupported image type '{content_type}'. Allowed: jpeg, png, webp.",
+            )
+        image_mime = content_type
+        raw = image.file.read()
+        if len(raw) > _MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Image exceeds 5 MB limit ({len(raw)} bytes).",
+            )
+        image_bytes = raw
+
+    return _process_chat_message(
+        message=message,
+        case_id=case_id,
+        student_id=current_user.user_id,
+        image_bytes=image_bytes,
+        image_mime=image_mime,
+    )
 
 
 @router.post("/coach", response_model=CoachResponse, status_code=status.HTTP_200_OK)

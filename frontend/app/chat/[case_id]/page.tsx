@@ -10,7 +10,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { chatAPI, casesAPI, feedbackAPI, getApiErrorMessage, ReinforcementQuestion, CaseImage } from "@/lib/api";
+import { chatAPI, feedbackAPI, getApiErrorMessage, ReinforcementQuestion } from "@/lib/api";
+import ClinicalImagePanel from "@/components/ClinicalImagePanel";
 import Link from "next/link";
 
 interface Message {
@@ -18,6 +19,8 @@ interface Message {
   content: string;
   score?: number;
   timestamp?: Date;
+  visual_findings_observed?: string[];
+  imagePreview?: string;
 }
 
 export default function ChatPage() {
@@ -39,9 +42,11 @@ export default function ChatPage() {
   const [reinforcementQuestions, setReinforcementQuestions] = useState<ReinforcementQuestion[]>([]);
   const [showReinforcement, setShowReinforcement] = useState(false);
 
-  // S12-T02: case clinical images
-  const [caseImages, setCaseImages] = useState<CaseImage[]>([]);
-  const [zoomedImage, setZoomedImage] = useState<CaseImage | null>(null);
+  // S13-M4: revealed media from chat responses + image upload
+  const [revealedMedia, setRevealedMedia] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -64,20 +69,6 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // S12-T02: fetch case images on mount
-  useEffect(() => {
-    if (!user || !case_id) return;
-    casesAPI.getImages(case_id)
-      .then((data) => {
-        if (Array.isArray(data.images) && data.images.length > 0) {
-          setCaseImages(data.images);
-        }
-      })
-      .catch(() => {
-        // Images are optional; silently ignore fetch errors
-      });
-  }, [user, case_id]);
-
   // Initial welcome message
   useEffect(() => {
     if (user) {
@@ -92,6 +83,27 @@ export default function ChatPage() {
     }
   }, [user]);
 
+  // S13-M4: handle image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Görsel 5 MB sınırını aşıyor. Lütfen daha küçük bir dosya seçin.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setSelectedImage(file);
+    const url = URL.createObjectURL(file);
+    setImagePreviewUrl(url);
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   // Handle message submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +111,10 @@ export default function ChatPage() {
     if (!inputMessage.trim() || isLoading) return;
 
     const userMessage = inputMessage.trim();
+    const imageToSend = selectedImage;
+    const previewSnapshot = imagePreviewUrl;
     setInputMessage("");
+    clearImage();
     setError("");
 
     // Add user message to UI immediately
@@ -107,6 +122,7 @@ export default function ChatPage() {
       role: "user",
       content: userMessage,
       timestamp: new Date(),
+      imagePreview: previewSnapshot ?? undefined,
     };
     setMessages((prev) => [...prev, newUserMessage]);
 
@@ -114,19 +130,33 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // Call API
-      const response = await chatAPI.sendMessage(userMessage, case_id);
+      // S13-M4: use multipart endpoint (handles both with and without image)
+      const response = await chatAPI.sendMultipart(userMessage, case_id, imageToSend);
 
       // Capture session_id from first response (for feedback submission later)
       if (!sessionId && response.session_id) {
         setSessionId(response.session_id);
       }
 
-      // Add AI response to UI
+      // S13-M2: accumulate revealed media paths
+      if (response.revealed_media && response.revealed_media.length > 0) {
+        setRevealedMedia((prev) => {
+          const next = [...prev];
+          for (const path of response.revealed_media) {
+            if (!next.includes(path)) next.push(path);
+          }
+          return next;
+        });
+      }
+
+      // Add AI response to UI (with visual_findings_observed if present)
       const aiMessage: Message = {
         role: "assistant",
         content: response.final_feedback ?? response.ai_response,
         timestamp: new Date(),
+        visual_findings_observed: response.visual_findings_observed?.length
+          ? response.visual_findings_observed
+          : undefined,
       };
       setMessages((prev) => [...prev, aiMessage]);
 
@@ -280,43 +310,13 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* S12-T02: Clinical Image Panel — shown only when case has images */}
-      {caseImages.length > 0 && (
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
-          <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-semibold text-gray-500 mb-2">Klinik Görseller</p>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {caseImages.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setZoomedImage(img)}
-                  className="flex-shrink-0 group relative rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
-                  style={{ width: 120, height: 90 }}
-                  title={img.caption}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={img.caption}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90' viewBox='0 0 120 90'%3E%3Crect width='120' height='90' fill='%23f3f4f6'/%3E%3Ctext x='60' y='50' text-anchor='middle' fill='%239ca3af' font-size='11'%3EGörsel yüklenemedi%3C/text%3E%3C/svg%3E";
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                    </svg>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 px-1 py-0.5">
-                    <p className="text-white text-xs truncate">{img.type.replace("_", " ")}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* S13-M4: Clinical Image Panel — revealed progressively as student performs exams */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Klinik Görseller</p>
+          <ClinicalImagePanel revealedMedia={revealedMedia} caseId={case_id} />
         </div>
-      )}
+      </div>
 
       {/* Messages Area */}
       <main className="flex-1 overflow-y-auto px-4 py-6">
@@ -349,10 +349,36 @@ export default function ChatPage() {
                   )}
                 </div>
 
+                {/* User image thumbnail */}
+                {msg.role === "user" && msg.imagePreview && (
+                  <img
+                    src={msg.imagePreview}
+                    alt="Yüklenen görsel"
+                    className="mb-2 max-h-32 rounded-lg object-contain border border-blue-400"
+                  />
+                )}
+
                 {/* Message Content */}
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {msg.content}
                 </p>
+
+                {/* Visual findings chips (assistant only) */}
+                {msg.role === "assistant" && msg.visual_findings_observed && msg.visual_findings_observed.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold text-gray-500 mb-1">Görsel Bulgular</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {msg.visual_findings_observed.map((finding, i) => (
+                        <span
+                          key={i}
+                          className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600"
+                        >
+                          {finding}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Timestamp */}
                 {msg.timestamp && (
@@ -413,7 +439,63 @@ export default function ChatPage() {
       {/* Input Area */}
       <footer className="bg-white border-t border-gray-200 sticky bottom-0 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4">
+          {/* Image preview thumbnail */}
+          {imagePreviewUrl && (
+            <div className="mb-2 flex items-center gap-2">
+              <img
+                src={imagePreviewUrl}
+                alt="Seçili görsel"
+                className="h-16 w-16 rounded-lg object-cover border border-gray-300"
+              />
+              <button
+                type="button"
+                onClick={clearImage}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                ✕ Kaldır
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex gap-3">
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            {/* Camera button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="p-3 rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-500 hover:text-blue-600"
+              title="Klinik görsel ekle"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+
             <input
               type="text"
               value={inputMessage}
@@ -528,44 +610,6 @@ export default function ChatPage() {
                 {isSubmittingFeedback ? "Gönderiliyor..." : "Gönder ve Bitir"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* S12-T02: Image zoom modal */}
-      {zoomedImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
-          onClick={() => setZoomedImage(null)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{zoomedImage.caption}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{zoomedImage.type.replace(/_/g, " ")}</p>
-              </div>
-              <button
-                onClick={() => setZoomedImage(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Kapat"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={zoomedImage.url}
-              alt={zoomedImage.caption}
-              className="w-full max-h-[70vh] object-contain bg-gray-50"
-              onError={(e) => {
-                (e.target as HTMLImageElement).alt = "Görsel yüklenemedi";
-              }}
-            />
           </div>
         </div>
       )}

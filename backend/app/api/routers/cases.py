@@ -6,9 +6,12 @@ Provides student-safe views (filters out hidden findings).
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
+import os
+from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -21,6 +24,18 @@ router = APIRouter()
 
 # Initialize ScenarioManager (reuses existing case loading logic)
 scenario_manager = ScenarioManager()
+
+# Canonical assets/images directory — two levels up from backend/app/api/routers/
+_ASSETS_IMAGES_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent / "assets" / "images"
+).resolve()
+
+_MIME_BY_SUFFIX: dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 # ==================== RESPONSE MODELS ====================
@@ -266,6 +281,50 @@ def get_case_images(case_id: str, current_user: str = Depends(get_current_user))
         )
     images = case.get("case_images", [])
     return {"case_id": case_id, "images": images if isinstance(images, list) else []}
+
+
+@router.get("/{case_id}/media/{filename}", status_code=status.HTTP_200_OK)
+def get_case_media(
+    case_id: str,
+    filename: str,
+    current_user: str = Depends(get_current_user),
+):
+    """
+    Serve a clinical case image (S13-M2).
+
+    **Authentication Required:** Yes (Bearer token)
+
+    Returns the JPEG/PNG/WebP file from `assets/images/`. Path traversal is
+    guarded: the resolved path must be a child of `assets/images/`.
+    """
+    # Strip any directory components from the filename to prevent traversal
+    safe_name = Path(filename).name
+    if not safe_name or safe_name != filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename.",
+        )
+
+    target = (_ASSETS_IMAGES_DIR / safe_name).resolve()
+
+    # Path traversal guard: resolved path must be inside _ASSETS_IMAGES_DIR
+    try:
+        target.relative_to(_ASSETS_IMAGES_DIR)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename.",
+        )
+
+    if not target.exists() or not target.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Media file '{safe_name}' not found for case '{case_id}'.",
+        )
+
+    suffix = target.suffix.lower()
+    media_type = _MIME_BY_SUFFIX.get(suffix, "application/octet-stream")
+    return FileResponse(path=str(target), media_type=media_type)
 
 
 @router.get("/status", status_code=status.HTTP_200_OK)
