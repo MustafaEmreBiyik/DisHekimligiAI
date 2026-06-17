@@ -157,13 +157,17 @@ function ZoomableImage({ caseId, mediaPath, isNew }: ZoomableImageProps) {
 export default function ClinicalImagePanel({ revealedMedia, caseId }: ClinicalImagePanelProps) {
   const [prevCount, setPrevCount] = useState(0);
   const [showToast, setShowToast] = useState(false);
-  const newIndices = useRef<Set<number>>(new Set());
+  const [newIndices, setNewIndices] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (revealedMedia.length > prevCount) {
-      for (let i = prevCount; i < revealedMedia.length; i++) {
-        newIndices.current.add(i);
-      }
+      setNewIndices((prev) => {
+        const next = new Set(prev);
+        for (let i = prevCount; i < revealedMedia.length; i++) {
+          next.add(i);
+        }
+        return next;
+      });
       setShowToast(true);
       setPrevCount(revealedMedia.length);
       const t = setTimeout(() => setShowToast(false), 3000);
@@ -205,7 +209,7 @@ export default function ClinicalImagePanel({ revealedMedia, caseId }: ClinicalIm
           key={path}
           caseId={caseId}
           mediaPath={path}
-          isNew={newIndices.current.has(idx)}
+          isNew={newIndices.has(idx)}
         />
       ))}
     </div>
