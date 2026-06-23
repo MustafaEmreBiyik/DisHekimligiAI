@@ -30,11 +30,16 @@ _ASSETS_IMAGES_DIR = (
     Path(__file__).resolve().parent.parent.parent.parent / "assets" / "images"
 ).resolve()
 
+_ASSETS_MODELS_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent / "assets" / "models"
+).resolve()
+
 _MIME_BY_SUFFIX: dict[str, str] = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".webp": "image/webp",
+    ".glb": "model/gltf-binary",
 }
 
 
@@ -320,6 +325,48 @@ def get_case_media(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Media file '{safe_name}' not found for case '{case_id}'.",
+        )
+
+    suffix = target.suffix.lower()
+    media_type = _MIME_BY_SUFFIX.get(suffix, "application/octet-stream")
+    return FileResponse(path=str(target), media_type=media_type)
+
+
+@router.get("/{case_id}/model/{filename}", status_code=status.HTTP_200_OK)
+def get_case_model(
+    case_id: str,
+    filename: str,
+    current_user: str = Depends(get_current_user),
+):
+    """
+    Serve a 3D model file for a case (GLB/GLTF).
+
+    **Authentication Required:** Yes (Bearer token)
+
+    Returns the .glb file from `assets/models/`. Path traversal is
+    guarded: the resolved path must be a child of `assets/models/`.
+    """
+    safe_name = Path(filename).name
+    if not safe_name or safe_name != filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename.",
+        )
+
+    target = (_ASSETS_MODELS_DIR / safe_name).resolve()
+
+    try:
+        target.relative_to(_ASSETS_MODELS_DIR)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename.",
+        )
+
+    if not target.exists() or not target.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model file '{safe_name}' not found for case '{case_id}'.",
         )
 
     suffix = target.suffix.lower()

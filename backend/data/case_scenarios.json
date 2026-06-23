@@ -103,7 +103,30 @@
     "dogru_tedavi_plani": [
       "Topikal kortikosteroid tedavisi",
       "Oral hijyen eğitimi"
-    ]
+    ],
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "bukkal_mukoza_sag",
+          "label": "Sa? bukkal mukoza ? Wickham striae",
+          "highlight_color": "#e8d5b7",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "bukkal_mukoza_sol",
+          "label": "Sol bukkal mukoza ? Wickham striae",
+          "highlight_color": "#e8d5b7",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dil_lateral",
+          "label": "Dil lateral kenar? ? eroziv alan",
+          "highlight_color": "#e57373",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "perio_001",
@@ -205,7 +228,24 @@
         "media": "assets/images/perio_clinical.jpg"
       }
     ],
-    "correct_diagnosis": "Evre 3 Derece C Periodontitis"
+    "correct_diagnosis": "Evre 3 Derece C Periodontitis",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dis_eti_alt_on",
+          "label": "Alt ?n di? eti ? periodontal cep",
+          "highlight_color": "#ef5350",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dis_eti_ust_arka",
+          "label": "?st arka di? eti ? kanamal? cep",
+          "highlight_color": "#ef5350",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "herpes_primary_01",
@@ -287,7 +327,24 @@
         "trigger_action": "check_vital_signs"
       }
     ],
-    "correct_diagnosis": "Primer Herpetik Gingivostomatitis"
+    "correct_diagnosis": "Primer Herpetik Gingivostomatitis",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dudak_cinvar",
+          "label": "Dudak ?evresi ? herpetik vezik?ller",
+          "highlight_color": "#ff7043",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "damak",
+          "label": "Damak ? aft?z ?lserler",
+          "highlight_color": "#ff8a65",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "infectious_child_01",
@@ -370,7 +427,24 @@
         "trigger_action": "perform_extraoral_exam"
       }
     ],
-    "correct_diagnosis": "Primer Herpetik Gingivostomatitis"
+    "correct_diagnosis": "Primer Herpetik Gingivostomatitis",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "tonsil",
+          "label": "Tonsil ? eks?datif plak",
+          "highlight_color": "#ffb74d",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "yumusak_damak",
+          "label": "Yumu?ak damak ? pete?i",
+          "highlight_color": "#e91e63",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "behcet_01",
@@ -455,7 +529,30 @@
         "trigger_action": "perform_pathergy_test"
       }
     ],
-    "correct_diagnosis": "Behçet Hastalığı"
+    "correct_diagnosis": "Behçet Hastalığı",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "bukkal_mukoza_sag",
+          "label": "Bukkal mukoza ? aft?z ?lser",
+          "highlight_color": "#f44336",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dil_ucu",
+          "label": "Dil ? ?lserasyon",
+          "highlight_color": "#f44336",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dudak_ici",
+          "label": "Dudak i? y?z? ? minor aft",
+          "highlight_color": "#e53935",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "syphilis_02",
@@ -540,7 +637,24 @@
         "trigger_action": "perform_extraoral_exam"
       }
     ],
-    "correct_diagnosis": "Sekonder Sifiliz"
+    "correct_diagnosis": "Sekonder Sifiliz",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dil_dorsum",
+          "label": "Dil dorsumu ? mukoz yama",
+          "highlight_color": "#9e9e9e",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "yumusak_damak",
+          "label": "Yumu?ak damak ? sifiliz lezyonu",
+          "highlight_color": "#bdbdbd",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   },
   {
     "case_id": "desquamative_01",
@@ -627,6 +741,723 @@
         "trigger_action": "request_dif_biopsy"
       }
     ],
-    "correct_diagnosis": "Müköz Membran Pemfigoidi"
+    "correct_diagnosis": "Müköz Membran Pemfigoidi",
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dis_eti_ust",
+          "label": "?st di? eti ? deskuamatif gingivit",
+          "highlight_color": "#ef9a9a",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dis_eti_alt",
+          "label": "Alt di? eti ? eritem ve deskuamasyon",
+          "highlight_color": "#ef9a9a",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "mmp_002",
+    "schema_version": "2.0",
+    "title": "Müköz Membran Pemfigoidi (Oküler Tutulum)",
+    "category": "oral_pathology",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 35,
+    "is_active": true,
+    "learning_objectives": [
+      "Deskuamatif gingiviti mekanik travmadan mekanizma bazlı akıl yürütme ile ayırt etme",
+      "Güvenilmez anlatıcı tekniğiyle gizlenmiş oküler semptomları ortaya çıkarma",
+      "Körlük riskini önlemek için acil oftalmoloji sevkini tanımlama ve uygulama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "biopsy_indication_knowledge",
+      "systemic_risk_assessment"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_safety",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 58,
+      "gender": "Kadın",
+      "chief_complaint": "Diş etlerim ham ve soyulmuş hissettiriyor. Kötü bir tartar kontrol diş macunu aldım ve çok sert fırçaladım galiba.",
+      "medical_history": [
+        "Bilinen sistemik hastalık yok diyor"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Banka gişe görevlisi"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "unreliable_narrator": {
+      "hidden_history": "Hasta sağ gözünde 3 aydır 'kumlu ve kaşıntılı' bir his olduğunu saklamaktadır. Bunu mevsimsel alerji ve yaşa bağlamış, ağız belirtileriyle hiç ilişkilendirmemiştir.",
+      "evasion_tactic": "Genel sağlık sorusu sorulursa 'İyiyim, sadece bu diş etlerim var' der. Fırçalama alışkanlığı sorulursa macunu suçlar ve daha yumuşak bir fırça önerir."
+    },
+    "gizli_bulgular": [
+      {
+        "bulgu_id": "klinik_sunum",
+        "tanim": "Marjinal ve yapışık dişetinde yaygın belirgin eritem ve soyulmalar. İnterdental papiller göreceli olarak korunmuş; fasyal yapışık dişetinde deskuamasyon belirgin. Bitişik sağlam mukozaya hafif lateral baskıyla Nikolsky (+).",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/mmp_clinical.jpg"
+      },
+      {
+        "bulgu_id": "nikolsky_pozitif",
+        "tanim": "Nikolsky Testi (+): Komşu sağlam mukozaya lateral baskı uygulandığında epitel sıyrılıyor — subepitelyal ayrışmayı doğrular.",
+        "trigger_action": "perform_nikolsky_test"
+      },
+      {
+        "bulgu_id": "goz_semptomlari",
+        "tanim": "Hasta sağ gözünde 3 aydır 'kumlu, kaşıntılı' his olduğunu ifade etti. Mevsimsel alerji sanmış. Bu bulgu konjonktival tutuluma ve ilerleyen dönemde simbefaron + körlük riskine işaret eder.",
+        "trigger_action": "ask_systemic_symptoms"
+      },
+      {
+        "bulgu_id": "dif_sonucu",
+        "tanim": "DIF İncelemesi: Bazal membran zonunda lineer IgG ve C3 birikimi — Müköz Membran Pemfigoidi tanısını kesinleştirir.",
+        "trigger_action": "request_dif_biopsy"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Sistematik Review of Systems (ROS) — göz, genital, nazal mukoza belirtilerini sorgulama",
+        "puan": 25,
+        "acilacak_bulgular": [
+          "goz_semptomlari"
+        ]
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "Nikolsky testi uygulama",
+        "puan": 15,
+        "acilacak_bulgular": [
+          "nikolsky_pozitif"
+        ]
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "Perilesyonel insizyonel biyopsi (H&E ve DIF — Michel solüsyonunda)",
+        "puan": 35,
+        "acilacak_bulgular": [
+          "dif_sonucu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_004",
+        "tanim": "Acil Oftalmoloji sevki (simbefaron ve körlük riskini değerlendirmek için)",
+        "puan": 25
+      }
+    ],
+    "dogru_tani": "Müköz Membran Pemfigoidi (Oküler Tutulum)",
+    "ayirici_tanilar": [
+      "Pemfigus Vulgaris",
+      "Oral Liken Planus (Erozif tip)",
+      "Mekanik Travma / Diş Macunu Reaksiyonu",
+      "Lineer IgA Hastalığı"
+    ],
+    "dogru_tedavi_plani": [
+      "Perilesyonel insizyonel biyopsi (H&E)",
+      "Direkt İmmünofloresan (DIF) biyopsi — Michel solüsyonu",
+      "Acil Oftalmoloji sevki",
+      "Biyopsi sonrası topikal kortikosteroid tedavisi (Triamsinolon asetonid %0.1)"
+    ],
+    "critical_safety_rules": {
+      "PREMATURE_TREATMENT_BLOCK": "Tanı konmadan antibiyotik, klorheksidin veya sadece fırçalama önerisiyle hasta gönderilmesi — FATAl HATA. Deskuamatif gingivit kendi başına bir tanı değil, biyopsi gerektiren klinik bir tablodur.",
+      "CORTICOSTEROID_PROTOCOL": "Biyopsi yapılmadan sistemik veya güçlü topikal kortikosteroid uygulanması — histopatolojiyi maskeleyeceği için CEZA.",
+      "SYSTEMIC_EVALUATION_OMISSION": "Oküler semptomların sorgulanmaması veya oftalmoloji sevkinin yapılmaması — KRİTİK GÜVENLİK İHLALİ. MMP'de konjonktiva ikinci en sık tutulan bölgedir; ihmal körlüğe yol açabilir."
+    },
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dis_eti_ust",
+          "label": "Di? eti ? skar olu?umu",
+          "highlight_color": "#ce93d8",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "yumusak_damak",
+          "label": "Damak ? subepitelyal b?l",
+          "highlight_color": "#ab47bc",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "mronj_001",
+    "schema_version": "2.0",
+    "title": "İlaçla İlişkili Çene Osteonekrozu (MRONJ)",
+    "category": "oral_medicine",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 30,
+    "is_active": true,
+    "learning_objectives": [
+      "Bisfosfonat anamnezini hasta 'vitamin' olarak tanımlamasına rağmen hedefli sorguyla ortaya çıkarma",
+      "MRONJ'da cerrahi debridman ve erken biyopsinin neden zararlı olduğunu mekanizma temelli açıklama",
+      "İyileşmeyen ekstraksiyon soketinde lokal ve sistemik etiyolojiyi ayırt etme"
+    ],
+    "prerequisite_competencies": [
+      "anamnez_alma",
+      "oral_exam_basic",
+      "radiograph_interpretation",
+      "systemic_risk_assessment"
+    ],
+    "competency_tags": [
+      "oral_medicine",
+      "clinical_safety",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 68,
+      "gender": "Kadın",
+      "chief_complaint": "Diş çektirmemden 2 ay geçti ama diş etim iyileşmedi, artık sert ve pürüzlü bir şey çıkıyor.",
+      "medical_history": [
+        "Hipertansiyon"
+      ],
+      "medications": [
+        "Lisinopril (tansiyon)",
+        "Kalsiyum vitamini (hastanın ifadesiyle — gerçekte Alendronat/Fosamax)"
+      ],
+      "social_history": [
+        "Emekli kütüphaneci"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "unreliable_narrator": {
+      "hidden_history": "Hasta 5 yıldır oral Alendronat (Fosamax) kullandığını saklamaktadır. Bunu 'kemik vitamini' olarak gördüğünden ilaç saymıyor ve ilaç listesine yazmamış.",
+      "evasion_tactic": "Genel ilaç sorusunda 'sadece tansiyon ilacı ve vitamin' der. 'Osteoporoz', 'kemik erimesi' veya 'kemik yoğunluğu için ilaç' gibi spesifik sorular sorulduğunda gerçeği söyler."
+    },
+    "gizli_bulgular": [
+      {
+        "bulgu_id": "kemik_ekspozisyonu",
+        "tanim": "Alt sol birinci molar ekstraksiyon bölgesinde 1.5 cm'lik sarımsı-beyaz, avasküler kemik dokusu görülüyor. Çevre mukoza düzgün, eritem veya pürülan akıntı yok. Periodontal prob ile kemik yüzeyinden 5 mm derine girilip yumuşak doku ayrılabiliyor.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/mronj_clinical.jpg"
+      },
+      {
+        "bulgu_id": "radyografik_bulgu",
+        "tanim": "Periapik radyografi: Persistan ekstraksiyon soketi, yeniden şekillenme göstermeyen lamina dura, lokalize skleroz. Malignite veya akut osteomiyeliti düşündüren güve yeniği radyolüsensi yok.",
+        "trigger_action": "order_radiograph"
+      },
+      {
+        "bulgu_id": "bisfosfonat_anamnezi",
+        "tanim": "Hasta 5 yıldır osteoporoz için günlük Alendronat (Fosamax) kullandığını belirtti. 'Kemik için vitamin sanıyordum' dedi.",
+        "trigger_action": "gather_medical_history"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Osteoporoz / kemik yoğunluğu / bisfosfonat için hedefli ilaç anamnezi",
+        "puan": 35,
+        "acilacak_bulgular": [
+          "bisfosfonat_anamnezi"
+        ]
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "Radyografi isteme — malignite ve osteomiyeliti dışlamak için",
+        "puan": 25,
+        "acilacak_bulgular": [
+          "radyografik_bulgu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "Klinik muayene — kemik canlılığı, pürülan akıntı ve çevre mukoza değerlendirmesi",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "kemik_ekspozisyonu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_004",
+        "tanim": "Lokal antimikrobiyal tedavi: Klorheksidin %0.12 gargara + Oral Cerrahi / İç Hastalıkları sevki",
+        "puan": 20
+      }
+    ],
+    "dogru_tani": "İlaçla İlişkili Çene Osteonekrozu (MRONJ) — Evre 1",
+    "ayirici_tanilar": [
+      "Alveolitis Sicca (Dry Socket)",
+      "Kronik Osteomiyelit",
+      "Metastatik Kemik Lezyonu",
+      "Retansiyonel Kök Kalıntısı"
+    ],
+    "dogru_tedavi_plani": [
+      "Bisfosfonat tedavisini yöneten hekimle koordinasyon",
+      "Lokal antimikrobiyal tedavi: Klorheksidin %0.12 gargara",
+      "Agresif cerrahi debridman ve erken biyopsiden kaçınma",
+      "Oral Maksillofasiyal Cerrahi ve İç Hastalıkları sevki"
+    ],
+    "critical_safety_rules": {
+      "SURGICAL_DEBRIDEMENT_BLOCK": "MRONJ tanısı konmadan agresif cerrahi debridman yapılması — FATAL HATA. Cerrahi travma avasküler kemikte nekrozu genişletir.",
+      "BIOPSY_PROTOCOL": "Klinik ve radyografik tanı tükenmeden bisfosfonat şüpheli lezyona biyopsi uygulanması — AĞIR CEZA. Biyopsi yara iyileşmesini bozar.",
+      "ANTIBIOTIC_OVERUSE": "Akut enfeksiyon bulgusu olmadan (eritem, ağrı, pürülan akıntı) sistemik antibiyotik yazılması — ORTA CEZA."
+    },
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "kemik_ekspoze_alt",
+          "label": "Alt ?ene ? ekspoze kemik (MRONJ)",
+          "highlight_color": "#ffd54f",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dis_eti_nekrotik",
+          "label": "Di? eti ? nekrotik alan",
+          "highlight_color": "#ffb300",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "oscc_002",
+    "schema_version": "2.0",
+    "title": "Oral Skuamöz Hücreli Karsinom (Travmatik Ülser Taklidi)",
+    "category": "oral_pathology",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 35,
+    "is_active": true,
+    "learning_objectives": [
+      "İndüre ülser kenarını palpasyonla saptayarak mekanik travmadan maligniteyi ayırt etme",
+      "Tütün anamnezini 'sigara içmiyorum' yanıtını aşarak sigara dışı tütün ürünlerine genişletme",
+      "14 gün kuralını uygulayarak insizyonel biyopsi veya onkoloji sevki kararı verme"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "extraoral_exam",
+      "biopsy_indication_knowledge"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_safety",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 62,
+      "gender": "Erkek",
+      "chief_complaint": "Alt kısmi protezim dilimin kenarını ovuyor ve bir yara açıyor. Sadece plastiği biraz törpüleyin yeter.",
+      "medical_history": [
+        "Belirtilmemiş"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Sigara kullanmıyor (dedi) — aslında 25 yıldır günlük ağız içi çiğneme tütünü kullanıyor"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "unreliable_narrator": {
+      "hidden_history": "Hasta 25 yıldır sol alt mandibular vestibüle günlük çiğneme tütünü (smokeless tobacco) koyduğunu saklamaktadır. 'Sigara içiyor musunuz?' sorusuna '20 yıldır içmiyorum' der — 'içmek' kelimesini yalnızca sigara olarak algılıyor.",
+      "evasion_tactic": "Sadece 'çiğneme tütünü', 'tütün pırpırı', 'puro' veya 'pipo' gibi spesifik sorular sorulduğunda gerçeği itiraf eder. Ülserin lokalizasyonu tütün koyduğu bölgeyle tam örtüşmektedir."
+    },
+    "gizli_bulgular": [
+      {
+        "bulgu_id": "klinik_lezyon",
+        "tanim": "Sol posterior lateral dil kenarında 1.8 cm'lik, düzensiz, krateriform ülserasyon. Taban sarımsı-gri fibrinöz örtü ile kaplı. Kenarlar kabarık, kıvrımlı ve belirgin şekilde SERT (indüre). Protezin akrilik kısmı görece düzgün ve ülserin en derin noktasıyla örtüşmüyor.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/oscc_clinical.jpg"
+      },
+      {
+        "bulgu_id": "indurasyon_bulgusu",
+        "tanim": "Palpasyonda ülser kenarları sert ve alttaki dokuya yapışık (indürasyon ve fikasyon). İndüre kenar malignite için kritik bulgudur — mekanik travma bu tabloyu vermez.",
+        "trigger_action": "perform_oral_exam"
+      },
+      {
+        "bulgu_id": "lenf_nodu_metastaz",
+        "tanim": "Ekstraoral muayene: Sol submandibular bölgede (Seviye Ib) 2 cm, sert, ağrısız, FİKSE lenf nodu palpe edildi. Metastatik tutuluma işaret eder.",
+        "trigger_action": "perform_extraoral_exam"
+      },
+      {
+        "bulgu_id": "tutun_anamnezi",
+        "tanim": "Hasta alt sol mandibular vestibüle 25 yıldır günlük çiğneme tütünü koyduğunu itiraf etti. Ülserin lokalizasyonuyla tam örtüşüyor — OSCC için majör risk faktörü doğrulandı.",
+        "trigger_action": "gather_medical_history"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Lezyon palpasyonu — indürasyon ve fikasyon değerlendirmesi",
+        "puan": 30,
+        "acilacak_bulgular": [
+          "indurasyon_bulgusu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "Servikal lenf nodu ekstraoral palpasyonu",
+        "puan": 25,
+        "acilacak_bulgular": [
+          "lenf_nodu_metastaz"
+        ]
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "Hedefli tütün anamnezi — sigara dışı tütün ürünlerini sorgulama",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "tutun_anamnezi"
+        ]
+      },
+      {
+        "eylem_id": "eylem_004",
+        "tanim": "İnsizyonel biyopsi planlaması veya Baş-Boyun Onkolojisi / Oral Cerrahi acil sevki",
+        "puan": 25
+      }
+    ],
+    "dogru_tani": "Oral Skuamöz Hücreli Karsinom (OSCC) — Şüpheli, biyopsi gerekli",
+    "ayirici_tanilar": [
+      "Travmatik Ülser (Protez Kaynaklı)",
+      "Major Aftöz Ülser",
+      "Kronik Osteomiyelit",
+      "Tükürük Bezi Tümörü"
+    ],
+    "dogru_tedavi_plani": [
+      "İnsizyonel biyopsi (eksizyon biyopsisi yapılmamalı — onkolojik cerrahi sınırları korunmalı)",
+      "Baş-Boyun Onkolojisi / Oral Maksillofasiyal Cerrahi acil sevki",
+      "Tütün kullanımının bırakılması için danışmanlık",
+      "Panoramik radyografi (kemik invazyonunu dışlamak için)"
+    ],
+    "critical_safety_rules": {
+      "PREMATURE_CLOSURE": "Malignite dışlanmadan protez ayarı yapıp hasta gönderilmesi — FATAL HATA. İndüre ülser 14 günden uzun süredir mevcutsa biyopsi veya sevk zorunludur.",
+      "TOPICAL_STEROID_CONTRAINDICATION": "Tanı konmadan topikal kortikosteroid uygulanması — maligniteyi maskeleyebilir — AĞIR CEZA.",
+      "EXCISIONAL_BIOPSY_ERROR": "1.8 cm'lik şüpheli lezyona eksizyon biyopsisi uygulamak — onkolojik cerrahi sınırlarını bozar — ORTA CEZA."
+    },
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "dil_lateral",
+          "label": "Dil lateral kenar? ? ?lsere t?m?r",
+          "highlight_color": "#b71c1c",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "bukkal_mukoza_sag",
+          "label": "Bukkal mukoza ? end?re kenar",
+          "highlight_color": "#c62828",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "pv_003",
+    "schema_version": "2.0",
+    "title": "Pemfigus Vulgaris (Deskuamatif Gingivitis Taklidi)",
+    "category": "oral_pathology",
+    "difficulty": "advanced",
+    "estimated_duration_minutes": 35,
+    "is_active": true,
+    "learning_objectives": [
+      "Deskuamatif gingiviti plak kaynaklı gingivit veya kontakt alerjiden ayırt etme",
+      "Nikolsky testi ile intraepitelyal ayrışmayı klinik olarak doğrulama",
+      "Perilesyonel biyopsinin neden ülser tabanından değil komşu dokadan alınması gerektiğini açıklama"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "biopsy_indication_knowledge",
+      "systemic_risk_assessment"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_safety",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 54,
+      "gender": "Kadın",
+      "chief_complaint": "Diş etlerim ham ve yanıyor. Dişlerimi her fırçaladığımda deri soyuluyor. Sanırım yeni aldığım tartar kontrol diş macunundan alerjim var.",
+      "medical_history": [
+        "Dermatolojik hastalık yok diyor"
+      ],
+      "medications": [
+        "Yok"
+      ],
+      "social_history": [
+        "Çiçekçi"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "unreliable_narrator": {
+      "hidden_history": "Hasta 3 aydır sırtında iyileşmeyen, kabuklu bir yarası olduğunu saklamaktadır. Bunu 'böcek ısırığı' sanıyor — gerçekte kutanöz Pemfigus Vulgaris tutulumuna işaret eder.",
+      "evasion_tactic": "Genel sağlık sorusunda 'iyiyim, sadece bu diş etlerim var' der. 'Cildinizde su topu, yara veya kabuklanma var mı?', 'Gözlerinizde veya vücudun başka yerinde yara?' gibi spesifik sorularda gerçeği söyler."
+    },
+    "gizli_bulgular": [
+      {
+        "bulgu_id": "klinik_sunum",
+        "tanim": "Üst ve alt çene fasyal yapışık dişetinde yaygın, düzensiz eritem ve ülserasyonlar. Erozyon kenarlarında beyazımsı, soyulmuş epitel tabakaları. Plak veya diş taşı bulgusu yok — plak kaynaklı gingivit değil.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/pv_clinical.jpg"
+      },
+      {
+        "bulgu_id": "nikolsky_pozitif",
+        "tanim": "Nikolsky (+): Erozyon komşuluğundaki görünürde normal mukozaya periodontal prob veya pamuk rulosuyla lateral baskı uygulandığında epitel sıyrılıyor, kanayan yüzey oluşuyor. İntraepitelyal ayrışmayı (akantoliz) doğrular.",
+        "trigger_action": "perform_nikolsky_test"
+      },
+      {
+        "bulgu_id": "deri_lezyonu",
+        "tanim": "Hasta 3 aydır sırtında kabuklanmış, iyileşmeyen bir yara olduğunu belirtti. Kutanöz PV tutulumunun işareti — multisistemik otoimmün hastalığa yönlendirir.",
+        "trigger_action": "ask_systemic_symptoms"
+      },
+      {
+        "bulgu_id": "dif_sonucu",
+        "tanim": "DIF: İntraepitelyal alanda hücreler arası balık ağı/petek paterni şeklinde IgG ve C3 birikimi — Pemfigus Vulgaris kesin tanısı. (MMP'den farkı: MMP'de boyama bazal membran zonunda lineerdir.)",
+        "trigger_action": "request_dif_biopsy"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Dermatolojik ve mukozal sistematik anamnez — cilt, göz, genital bölge sorgusu",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "deri_lezyonu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "Nikolsky testi",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "nikolsky_pozitif"
+        ]
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "PERİLEZYONEL insizyonel biyopsi (H&E + DIF) — ülser tabanından değil, komşu sağlam mukozadan",
+        "puan": 35,
+        "acilacak_bulgular": [
+          "dif_sonucu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_004",
+        "tanim": "Dermatoloji ve İç Hastalıkları sevki — sistemik immünosüpresif tedavi koordinasyonu",
+        "puan": 25
+      }
+    ],
+    "dogru_tani": "Pemfigus Vulgaris",
+    "ayirici_tanilar": [
+      "Müköz Membran Pemfigoidi",
+      "Lineer IgA Hastalığı",
+      "Erozif Oral Liken Planus",
+      "Kontakt Alerjik Gingivostomatit"
+    ],
+    "dogru_tedavi_plani": [
+      "Perilesyonel insizyonel biyopsi — ülser komşuluğundan (ülser tabanından değil)",
+      "DIF için Michel solüsyonunda doku gönderimi",
+      "Dermatoloji ve İç Hastalıkları acil sevki",
+      "Tanı doğrulandıktan sonra sistemik kortikosteroid ± azatiyoprin tedavisi"
+    ],
+    "critical_safety_rules": {
+      "SYSTEMIC_STEROID_WITHOUT_DX": "Tanı doğrulanmadan sistemik immünosüpresif tedavi başlanması — FATAL HATA. Biyopsi ve DIF olmadan steroid yazmak malpraktistir.",
+      "SCALING_CONTRAINDICATION": "Otoimmün köken dışlanmadan skeyling/küretaj yapılması — intraepitelyal ayrışma nedeniyle masif epitel kaybına ve ağrıya yol açar — AĞIR CEZA.",
+      "WRONG_BIOPSY_LOCATION": "Biyopsinin ülser tabanından alınması — tam epitel kaybı nedeniyle tanısız granülasyon dokusu sonucu — ORTA CEZA."
+    },
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "bukkal_mukoza_sag",
+          "label": "Bukkal mukoza ? erozyonlu b?l",
+          "highlight_color": "#ff8f00",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "damak",
+          "label": "Damak ? pemfigus erozyonu",
+          "highlight_color": "#ffa000",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "dil_dorsum",
+          "label": "Dil ? ?lserasyon",
+          "highlight_color": "#ffb300",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "lokoplaki_001",
+    "schema_version": "2.0",
+    "title": "Oral Lökoplaki (Malignite Riski Değerlendirmesi)",
+    "category": "oral_pathology",
+    "difficulty": "intermediate",
+    "estimated_duration_minutes": 25,
+    "is_active": true,
+    "learning_objectives": [
+      "Homojen ve heterojen lökoplakiyi klinik bulgulara göre ayırt etme",
+      "Yüksek riskli lökoplakide biyopsi endikasyonunu belirleme",
+      "Tütün ve alkol risk faktörlerini sistematik anamnezle ortaya çıkarma"
+    ],
+    "prerequisite_competencies": [
+      "oral_exam_basic",
+      "anamnez_alma",
+      "biopsy_indication_knowledge"
+    ],
+    "competency_tags": [
+      "oral_pathology",
+      "clinical_safety",
+      "diagnosis",
+      "clinical_reasoning"
+    ],
+    "initial_state": "consultation",
+    "states": {},
+    "patient_info": {
+      "age": 57,
+      "gender": "Erkek",
+      "chief_complaint": "Yanağımın iç kısmında beyaz leke var, bir türlü gitmiyor.",
+      "medical_history": [
+        "Hipertansiyon"
+      ],
+      "medications": [
+        "Amlodipine"
+      ],
+      "social_history": [
+        "Sigara: Günde yarım paket (15 yıldır)",
+        "Alkol: Ara sıra"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "name": "Oral Lökoplaki (Malignite Riski Değerlendirmesi)",
+    "patient": {
+      "age": 57,
+      "gender": "Erkek",
+      "chief_complaint": "Yanağımın iç kısmında beyaz leke var, bir türlü gitmiyor.",
+      "medical_history": [
+        "Hipertansiyon"
+      ],
+      "medications": [
+        "Amlodipine"
+      ],
+      "social_history": [
+        "Sigara: Günde yarım paket (15 yıldır)",
+        "Alkol: Ara sıra"
+      ],
+      "allergies": [
+        "Yok"
+      ]
+    },
+    "hidden_findings": [
+      {
+        "finding_id": "beyaz_plak",
+        "description": "Sağ bukkal mukozada 1.5 cm çapında beyaz, silgi ile silinemeyen, yüzeyi pürüzlü plak. Kırmızı odaklar (eritroplaki alanları) içermekte — heterojen lökoplaki bulgusu.",
+        "trigger_action": "perform_oral_exam",
+        "media": "assets/images/lokoplaki_clinical.jpg"
+      },
+      {
+        "finding_id": "tutun_anamnezi",
+        "description": "Hasta 15 yıldır günde yarım paket sigara içtiğini doğruladı. Tütün, lökoplakinin başlıca etiyolojik faktörü.",
+        "trigger_action": "gather_medical_history"
+      },
+      {
+        "finding_id": "palpasyon_bulgusu",
+        "description": "Palpasyonda lezyon yumuşak, fikse değil. Ancak yüzey düzensizliği ve eritroplaki alanları displazi şüphesi uyandırıyor.",
+        "trigger_action": "perform_oral_exam"
+      }
+    ],
+    "beklenen_eylemler": [
+      {
+        "eylem_id": "eylem_001",
+        "tanim": "Oral mukoza muayenesi ve lezyon karakterinin değerlendirilmesi (renk, yüzey, sınır, büyüklük)",
+        "puan": 25,
+        "acilacak_bulgular": [
+          "beyaz_plak",
+          "palpasyon_bulgusu"
+        ]
+      },
+      {
+        "eylem_id": "eylem_002",
+        "tanim": "Tütün ve alkol anamnezi — etiyolojik risk faktörü sorgusu",
+        "puan": 20,
+        "acilacak_bulgular": [
+          "tutun_anamnezi"
+        ]
+      },
+      {
+        "eylem_id": "eylem_003",
+        "tanim": "İnsizyonel biyopsi planlaması — displazi/maligniteyi dışlamak için",
+        "puan": 35
+      },
+      {
+        "eylem_id": "eylem_004",
+        "tanim": "Tütün kullanımının bırakılması için danışmanlık ve 2 haftalık takip planı",
+        "puan": 20
+      }
+    ],
+    "dogru_tani": "Oral Lökoplaki — Heterojen tip, displazi şüphesi (biyopsi gerekli)",
+    "ayirici_tanilar": [
+      "Oral Kandidiyaz (Psödomembranöz)",
+      "Oral Liken Planus (Retiküler tip)",
+      "Kimyasal veya Termal Yanık",
+      "Linea Alba"
+    ],
+    "dogru_tedavi_plani": [
+      "İnsizyonel biyopsi (en şüpheli alandan)",
+      "Tütün kullanımının kesinlikle bırakılması",
+      "Displazi yoksa 3 ayda bir klinik takip",
+      "Displazi varsa: Oral Cerrahi veya Onkoloji sevki"
+    ],
+    "critical_safety_rules": {
+      "TOPICAL_ANTIFUNGAL_ERROR": "Kandidiyaz dışlanmadan antifungal başlanması — lökoplaki antifungalle silinmez, tanıyı geciktirir — ORTA CEZA.",
+      "BIOPSY_OMISSION": "Heterojen lökoplakide biyopsi yapılmadan hasta gönderilmesi — displazi/OSCC riski nedeniyle FATAL HATA.",
+      "PREMATURE_EXCISION": "Displazi derecesi bilinmeden geniş eksizyon planlanması — önce biyopsi ile doku tanısı gerekir — ORTA CEZA."
+    },
+    "oral_model": {
+      "model_file": "assets/models/oral_cavity_base.glb",
+      "lesion_regions": [
+        {
+          "region_id": "bukkal_mukoza_sag",
+          "label": "Sa? bukkal mukoza ? heterojen l?koplaki",
+          "highlight_color": "#f5f5f5",
+          "reveal_on": "perform_oral_exam"
+        },
+        {
+          "region_id": "bukkal_mukoza_eritroplaki",
+          "label": "Eritroplaki alan? ? displazi ??phesi",
+          "highlight_color": "#e53935",
+          "reveal_on": "perform_oral_exam"
+        }
+      ]
+    }
   }
 ]
