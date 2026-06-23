@@ -1259,6 +1259,7 @@ export interface ChatApiResponse {
   state_updates: Record<string, unknown>;
   revealed_findings: string[];
   revealed_media: string[];
+  triggered_actions?: string[];
   visual_findings_observed: string[];
   reinforcement_questions: ReinforcementQuestion[];
 }

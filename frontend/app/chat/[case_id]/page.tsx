@@ -12,6 +12,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { chatAPI, feedbackAPI, getApiErrorMessage, ReinforcementQuestion } from "@/lib/api";
 import ClinicalImagePanel from "@/components/ClinicalImagePanel";
+import dynamic from "next/dynamic";
+import type { OralModelData } from "@/components/OralSimulator/useOralModel";
+
+const OralSimulator = dynamic(
+  () => import("@/components/OralSimulator/OralSimulator"),
+  { ssr: false, loading: () => <div className="h-80 flex items-center justify-center text-gray-400 text-sm">3D model yükleniyor...</div> }
+);
 import Link from "next/link";
 
 interface Message {
@@ -44,6 +51,9 @@ export default function ChatPage() {
 
   // S13-M4: revealed media from chat responses + image upload
   const [revealedMedia, setRevealedMedia] = useState<string[]>([]);
+  const [revealedActions, setRevealedActions] = useState<string[]>([]);
+  const [oralModel, setOralModel] = useState<OralModelData | null>(null);
+  const [activePanel, setActivePanel] = useState<"images" | "3d">("images");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +73,21 @@ export default function ChatPage() {
       router.push("/login");
     }
   }, [user, authLoading, router]);
+
+  // Fetch oral_model metadata for this case
+  useEffect(() => {
+    if (!user || !case_id) return;
+    const token = typeof window !== "undefined" ? (localStorage.getItem("access_token") ?? "") : "";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    fetch(`${apiUrl}/api/cases/${encodeURIComponent(case_id)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.oral_model) setOralModel(data.oral_model as OralModelData);
+      })
+      .catch(() => {/* oral_model is optional — silently ignore */});
+  }, [user, case_id]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -144,6 +169,17 @@ export default function ChatPage() {
           const next = [...prev];
           for (const path of response.revealed_media) {
             if (!next.includes(path)) next.push(path);
+          }
+          return next;
+        });
+      }
+
+      // 3D: accumulate triggered action ids for lezyon reveal
+      if (response.triggered_actions && response.triggered_actions.length > 0) {
+        setRevealedActions((prev) => {
+          const next = [...prev];
+          for (const action of response.triggered_actions as string[]) {
+            if (!next.includes(action)) next.push(action);
           }
           return next;
         });
@@ -310,11 +346,45 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* S13-M4: Clinical Image Panel — revealed progressively as student performs exams */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
+      {/* Clinical panel with tab switcher: Klinik Görsel | 3D Model */}
+      <div className="bg-white border-b border-gray-200 px-4 pt-3 pb-0">
         <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Klinik Görseller</p>
-          <ClinicalImagePanel revealedMedia={revealedMedia} caseId={case_id} />
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-3">
+            <button
+              onClick={() => setActivePanel("images")}
+              className={`px-4 py-1.5 rounded-t-lg text-sm font-semibold border border-b-0 transition-colors ${
+                activePanel === "images"
+                  ? "bg-white text-blue-600 border-gray-200"
+                  : "bg-gray-50 text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+            >
+              Klinik Görsel
+            </button>
+            <button
+              onClick={() => setActivePanel("3d")}
+              className={`px-4 py-1.5 rounded-t-lg text-sm font-semibold border border-b-0 transition-colors ${
+                activePanel === "3d"
+                  ? "bg-white text-blue-600 border-gray-200"
+                  : "bg-gray-50 text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+            >
+              3D Model
+            </button>
+          </div>
+
+          {/* Panel content */}
+          <div className="pb-3">
+            {activePanel === "images" ? (
+              <ClinicalImagePanel revealedMedia={revealedMedia} caseId={case_id} />
+            ) : (
+              <OralSimulator
+                caseId={case_id}
+                oralModel={oralModel}
+                revealedActions={revealedActions}
+              />
+            )}
+          </div>
         </div>
       </div>
 
