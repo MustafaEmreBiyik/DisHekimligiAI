@@ -74,6 +74,7 @@ Thumbs.db
 models/
 # 3D dental GLB assets — explicitly tracked (not ML weights)
 !assets/models/
+!backend/assets/models/
 
 # Sensitive local data
 data/users.json
