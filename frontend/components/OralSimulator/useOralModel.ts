@@ -14,6 +14,8 @@ export interface LesionRegion {
   label: string;
   highlight_color: string;
   reveal_on: string;
+  highlight_teeth?: number[];
+  position?: [number, number, number];
 }
 
 export interface OralModelData {
