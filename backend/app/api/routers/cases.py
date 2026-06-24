@@ -61,6 +61,22 @@ class CaseSummary(BaseModel):
     patient: Optional[PatientInfo] = None
 
 
+class LesionRegion(BaseModel):
+    """A single lesion region on the 3D oral model."""
+    region_id: str
+    label: str
+    highlight_color: str
+    reveal_on: str
+    highlight_teeth: Optional[List[int]] = None
+    position: Optional[List[float]] = None
+
+
+class OralModel(BaseModel):
+    """3D oral model metadata attached to a case."""
+    model_file: str
+    lesion_regions: List[LesionRegion] = []
+
+
 class CaseDetail(BaseModel):
     """Detailed case information (student-safe view)."""
     case_id: str
@@ -69,6 +85,7 @@ class CaseDetail(BaseModel):
     category: Optional[str] = None
     patient: Optional[PatientInfo] = None
     correct_diagnosis: Optional[str] = None  # Hidden until case completion
+    oral_model: Optional[OralModel] = None
 
 
 class SessionInfo(BaseModel):
@@ -180,6 +197,14 @@ def get_case(case_id: str, current_user: str = Depends(get_current_user)):
             detail=f"Case '{case_id}' not found"
         )
     
+    oral_model: Optional[OralModel] = None
+    raw_oral = case.get("oral_model")
+    if isinstance(raw_oral, dict):
+        try:
+            oral_model = OralModel.model_validate(raw_oral)
+        except Exception:
+            logger.warning("Could not parse oral_model for case '%s'", case_id)
+
     return CaseDetail(
         case_id=case_id,
         name=_get_case_name(case),
@@ -187,6 +212,7 @@ def get_case(case_id: str, current_user: str = Depends(get_current_user)):
         category=case.get("category") or case.get("Category"),
         patient=_extract_patient_info(case),
         correct_diagnosis=None,  # Hidden until completion
+        oral_model=oral_model,
     )
 
 

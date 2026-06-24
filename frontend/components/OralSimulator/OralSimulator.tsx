@@ -2,24 +2,46 @@
 
 import React, { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { OrbitControls, useGLTF, Environment, Center } from "@react-three/drei";
 import LesionHighlight from "./LesionHighlight";
 import ToothMap from "./ToothMap";
 import { useOralModel, useRevealedLesions } from "./useOralModel";
 import type { LesionRegion, OralModelData } from "./useOralModel";
 
-// Default lesion positions until a real GLB mesh is present.
-// Once the dental GLB is loaded, positions should come from named mesh centroids.
+// Anatomical positions for each region in a unit-normalized dental arch coordinate space
+// (origin = arch center, +Z = anterior, +Y = superior, ±X = lateral).
+// Populated from clinical anatomy; precise values will be refined from GLB mesh centroids.
 const DEFAULT_LESION_POSITIONS: Record<string, [number, number, number]> = {
-  bukkal_mukoza_sag: [-0.15, 0.05, 0.2],
-  bukkal_mukoza_sol: [0.15, 0.05, 0.2],
-  dil_ucu: [0, -0.05, 0.3],
-  damak: [0, 0.15, 0],
+  // Buccal mucosa
+  bukkal_mukoza_sag: [-0.35, 0.0, 0.05],
+  bukkal_mukoza_sol: [0.35, 0.0, 0.05],
+  bukkal_mukoza_eritroplaki: [-0.32, 0.05, 0.1],
+  // Tongue
+  dil_ucu: [0, -0.12, 0.4],
+  dil_lateral: [0.15, -0.1, 0.1],
+  dil_dorsum: [0, -0.05, 0.1],
+  // Palate
+  damak: [0, 0.2, 0.0],
+  yumusak_damak: [0, 0.15, -0.2],
+  // Gingiva (legacy key kept for back-compat)
   dis_eti: [0, -0.12, 0.1],
+  dis_eti_ust: [0, 0.07, 0.25],
+  dis_eti_ust_arka: [-0.25, 0.05, -0.05],
+  dis_eti_alt: [0, -0.22, 0.15],
+  dis_eti_alt_on: [0, -0.2, 0.3],
+  dis_eti_nekrotik: [0.2, -0.2, 0.0],
+  // Lips
+  dudak_cinvar: [0, 0.02, 0.48],
+  dudak_ici: [0, 0.0, 0.38],
+  // Bone / jaw
+  kemik_ekspoze_alt: [-0.2, -0.28, 0.0],
+  // Throat / posterior
+  tonsil: [0.2, 0.0, -0.35],
 };
 
-function fallbackPosition(regionId: string): [number, number, number] {
-  return DEFAULT_LESION_POSITIONS[regionId] ?? [0, 0, 0.2];
+function fallbackPosition(lesion: LesionRegion): [number, number, number] {
+  if (lesion.position) return lesion.position;
+  return DEFAULT_LESION_POSITIONS[lesion.region_id] ?? [0, 0, 0.2];
 }
 
 interface GLBModelProps {
@@ -32,12 +54,15 @@ function GLBModel({ url, revealedLesions, onLesionClick }: GLBModelProps) {
   const { scene } = useGLTF(url);
   return (
     <group>
-      <primitive object={scene} scale={1} />
+      {/* Center auto-centers the model bounding box at the scene origin */}
+      <Center>
+        <primitive object={scene} />
+      </Center>
       {revealedLesions.map((lesion) => (
         <LesionHighlight
           key={lesion.region_id}
           lesion={lesion}
-          position={fallbackPosition(lesion.region_id)}
+          position={fallbackPosition(lesion)}
           onClick={onLesionClick}
         />
       ))}
@@ -76,7 +101,7 @@ function PlaceholderModel({ revealedLesions, onLesionClick }: Omit<GLBModelProps
         <LesionHighlight
           key={lesion.region_id}
           lesion={lesion}
-          position={fallbackPosition(lesion.region_id)}
+          position={fallbackPosition(lesion)}
           onClick={onLesionClick}
         />
       ))}
@@ -97,7 +122,7 @@ export default function OralSimulator({ caseId, oralModel, revealedActions }: Or
   const revealedLesions = useRevealedLesions(lesionRegions, revealedActions);
   const [selectedLesion, setSelectedLesion] = useState<LesionRegion | null>(null);
 
-  const highlightedTeeth: number[] = [];
+  const highlightedTeeth = revealedLesions.flatMap((l) => l.highlight_teeth ?? []);
 
   return (
     <div className="flex flex-col gap-3">
@@ -199,6 +224,13 @@ export default function OralSimulator({ caseId, oralModel, revealedActions }: Or
           <p className="text-sm text-gray-500">Henüz lezyon bölgesi açılmadı</p>
           <p className="text-xs text-gray-400 mt-0.5">Oral muayeneyi gerçekleştirin</p>
         </div>
+      )}
+
+      {/* CC-BY model attribution (required by license) */}
+      {url && (
+        <p className="text-[10px] text-gray-400 text-right pr-1">
+          3D model: &ldquo;(Dentistry) Human Teeth&rdquo; by RealDoCC / Ali Aminimofrad — CC BY 4.0
+        </p>
       )}
     </div>
   );
