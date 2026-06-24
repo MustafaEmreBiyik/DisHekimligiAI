@@ -77,6 +77,10 @@ class ScenarioManager:
         case_images = case.case_images_json if isinstance(case.case_images_json, list) else []
         states = case.states_json if isinstance(case.states_json, dict) else {}
 
+        oral_model = payload.get("oral_model") or (
+            case.source_payload.get("oral_model") if isinstance(case.source_payload, dict) else None
+        )
+
         payload.update(
             {
                 "case_id": case.case_id,
@@ -96,6 +100,9 @@ class ScenarioManager:
                 "case_images": case_images,
             }
         )
+
+        if oral_model is not None:
+            payload["oral_model"] = oral_model
 
         if not isinstance(payload.get("name"), str) or not payload.get("name"):
             payload["name"] = case.title
