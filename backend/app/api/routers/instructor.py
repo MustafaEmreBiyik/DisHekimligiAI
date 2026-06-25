@@ -537,3 +537,21 @@ def get_student_progress_timeline(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
     from app.services.progress_timeline_service import build_timeline
     return build_timeline(student_id, db, n_weeks=min(n_weeks, 52))
+
+
+@router.get(
+    "/cohort/mastery-heatmap",
+    summary="Cohort student × topic mastery heatmap (S14B-3)",
+)
+def get_cohort_mastery_heatmap(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Return a student × topic BKT mastery matrix for the full cohort.
+
+    Each cell is P(L_n) in [0, 1]; None means the student has not yet
+    attempted that topic.  Suitable for rendering as a heatmap table.
+    """
+    from app.services.cohort_analytics_service import build_cohort_heatmap
+    return build_cohort_heatmap(db=db)
