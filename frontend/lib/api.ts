@@ -557,6 +557,16 @@ export const instructorAPI = {
     const response = await apiClient.get(`/api/sessions/${sessionId}/process-trace`);
     return response.data as ProcessTraceResponse;
   },
+
+  getCohortMasteryHeatmap: async (): Promise<CohortHeatmapResponse> => {
+    const response = await apiClient.get("/api/instructor/cohort/mastery-heatmap");
+    return response.data as CohortHeatmapResponse;
+  },
+
+  getOutcomeCorrelation: async (): Promise<OutcomeCorrelationResponse> => {
+    const response = await apiClient.get("/api/analytics/outcome-correlation");
+    return response.data as OutcomeCorrelationResponse;
+  },
 };
 
 export type ServiceHealthStatus = "ok" | "degraded" | "unavailable";
@@ -780,6 +790,95 @@ export const feedbackAPI = {
 /**
  * Analytics API
  */
+// ── S14B-3: Cohort heatmap types ──────────────────────────────────────────────
+
+export interface CohortTopicMeta {
+  topic_id: string;
+  label: string;
+  cohort_avg: number | null;
+}
+
+export interface CohortStudentRow {
+  user_id: string;
+  display_name: string;
+  mastery: Record<string, number | null>;
+  avg_mastery: number | null;
+  mastered_count: number;
+}
+
+export interface CohortHeatmapResponse {
+  students: CohortStudentRow[];
+  topics: CohortTopicMeta[];
+  n_students: number;
+  n_topics: number;
+  mastery_threshold: number;
+  computed_at: string;
+}
+
+// ── S14B-4: Outcome correlation types ─────────────────────────────────────────
+
+export interface CorrelationStudentPoint {
+  user_id: string;
+  display_name: string;
+  quiz_pct: number | null;
+  case_pct: number | null;
+}
+
+export interface OutcomeCorrelationResponse {
+  pearson_r: number | null;
+  n_paired: number;
+  students: CorrelationStudentPoint[];
+  interpretation: string;
+  computed_at: string;
+}
+
+export interface LearningCurveFit {
+  model: "exponential" | "power_law" | null;
+  params: Record<string, number>;
+  r_squared: number | null;
+  projected_trials_to_mastery: number | null;
+  mastery_threshold: number;
+  fitted_curve: { n: number; predicted: number }[];
+  note?: string;
+}
+
+export interface LearningCurveTopic {
+  topic_id: string;
+  label: string;
+  n_observations: number;
+  observed_accuracy: { n: number; cumulative_accuracy: number }[];
+  fit: LearningCurveFit;
+}
+
+export interface LearningCurveResponse {
+  user_id: string;
+  topics: LearningCurveTopic[];
+  computed_at: string;
+}
+
+export interface MasteryTrajectoryPoint {
+  n: number;
+  mastery: number;
+  ci_lower: number;
+  ci_upper: number;
+  correct: boolean;
+  timestamp: string | null;
+}
+
+export interface TopicTrajectory {
+  topic_id: string;
+  label: string;
+  current_mastery: number;
+  n_observations: number;
+  points: MasteryTrajectoryPoint[];
+}
+
+export interface MasteryTrajectoryResponse {
+  user_id: string;
+  topics: TopicTrajectory[];
+  computed_at: string;
+}
+
 export const analyticsAPI = {
     /**
      * Download actions CSV
@@ -800,6 +899,40 @@ export const analyticsAPI = {
      */
     downloadSessionsCSV: () => {
         window.open(`${apiClient.defaults.baseURL}/api/analytics/export/sessions`, '_blank');
+    },
+
+    /**
+     * Get BKT mastery trajectory with 95% CI bands for the authenticated student.
+     */
+    getMasteryTrajectory: async (topicId?: string): Promise<MasteryTrajectoryResponse> => {
+        const params = topicId ? { topic_id: topicId } : {};
+        const response = await apiClient.get('/api/analytics/mastery-trajectory', { params });
+        return response.data;
+    },
+
+    /**
+     * Get parametric learning curve fit (exponential / power-law) for the authenticated student.
+     */
+    getLearningCurve: async (topicId?: string): Promise<LearningCurveResponse> => {
+        const params = topicId ? { topic_id: topicId } : {};
+        const response = await apiClient.get('/api/analytics/learning-curve', { params });
+        return response.data;
+    },
+
+    /**
+     * Pearson correlation between quiz and case performance (instructor/admin only).
+     */
+    getOutcomeCorrelation: async (): Promise<OutcomeCorrelationResponse> => {
+        const response = await apiClient.get('/api/analytics/outcome-correlation');
+        return response.data;
+    },
+
+    /**
+     * Cohort student × topic mastery heatmap (instructor/admin only).
+     */
+    getCohortHeatmap: async (): Promise<CohortHeatmapResponse> => {
+        const response = await apiClient.get('/api/instructor/cohort/mastery-heatmap');
+        return response.data;
     },
 };
 
