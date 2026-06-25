@@ -1,14 +1,16 @@
-"""T08: KVKK-anonymised research dataset export service.
+"""T08 + S14B-5: KVKK-anonymised research dataset export service.
 
 Anonymisation rules:
 - user_id   → SHA-256(salt:user_id)[:16]  (stable across exports, not reversible)
 - name, email, phone fields stripped
 - timestamps preserved for time-series analysis
 
-Tables exported (7 CSVs in a single ZIP):
+Tables exported (10 CSVs in a single ZIP):
   chat_logs, quiz_attempts, quiz_answers,
   recommendation_snapshots, mastery_states,
-  irt_parameters, review_schedules
+  irt_parameters, review_schedules,
+  mastery_trajectories, learning_curve_fits,   ← S14B-5
+  outcome_correlation                           ← S14B-5
 
 The salt is read from env DENTAI_ANON_SALT; falls back to a static default so
 that cross-export user correlation is reproducible on a single deployment without
@@ -28,13 +30,18 @@ from sqlalchemy.orm import Session
 
 from db.database import (
     ChatLog,
+    ExamResult,
+    GradingStatus,
     IRTParameters,
     MasteryState,
+    Question,
     QuizAnswer,
     QuizAttempt,
     RecommendationSnapshot,
     ReviewSchedule,
     StudentSession,
+    User,
+    UserRole,
 )
 
 _SALT = os.getenv("DENTAI_ANON_SALT", "dentai-anon-v1")
@@ -47,6 +54,9 @@ TABLES = [
     "mastery_states",
     "irt_parameters",
     "review_schedules",
+    "mastery_trajectories",
+    "learning_curve_fits",
+    "outcome_correlation",
 ]
 
 
@@ -169,6 +179,103 @@ def build_export_zip(db: Session) -> Tuple[bytes, int, List[str]]:
             "created_at": _iso(rv.created_at),
         })
 
+    # ── S14B-5: mastery trajectories per (user, topic) ────────────────────────
+    from app.services.mastery_trajectory_service import build_trajectory
+
+    students = (
+        db.query(User)
+        .filter(User.role == UserRole.STUDENT, User.is_archived.is_(False))
+        .all()
+    )
+
+    trajectory_rows: List[Dict[str, Any]] = []
+    lc_fit_rows: List[Dict[str, Any]] = []
+
+    from app.services.learning_curve_service import build_learning_curves
+
+    for student in students:
+        anon = _uid(student.user_id)
+        try:
+            traj = build_trajectory(user_id=student.user_id, db=db)
+            for topic in traj["topics"]:
+                for pt in topic["points"]:
+                    trajectory_rows.append({
+                        "anon_user_id": anon,
+                        "topic_id": topic["topic_id"],
+                        "topic_label": topic["label"],
+                        "n": pt["n"],
+                        "mastery": pt["mastery"],
+                        "ci_lower": pt["ci_lower"],
+                        "ci_upper": pt["ci_upper"],
+                        "correct": int(pt["correct"]),
+                        "timestamp": pt["timestamp"] or "",
+                    })
+        except Exception:
+            pass
+
+        try:
+            lc = build_learning_curves(user_id=student.user_id, db=db)
+            for topic in lc["topics"]:
+                fit = topic["fit"]
+                params = fit.get("params", {})
+                lc_fit_rows.append({
+                    "anon_user_id": anon,
+                    "topic_id": topic["topic_id"],
+                    "topic_label": topic["label"],
+                    "n_observations": topic["n_observations"],
+                    "model": fit.get("model") or "",
+                    "param_L": params.get("L", ""),
+                    "param_2": params.get("p0", params.get("b", "")),
+                    "param_3": params.get("k", params.get("c", "")),
+                    "r_squared": fit.get("r_squared") if fit.get("r_squared") is not None else "",
+                    "projected_trials_to_mastery": (
+                        fit.get("projected_trials_to_mastery") or ""
+                    ),
+                })
+        except Exception:
+            pass
+
+    # ── S14B-5: outcome correlation per student ────────────────────────────────
+    outcome_rows: List[Dict[str, Any]] = []
+    for student in students:
+        anon = _uid(student.user_id)
+        # Quiz pct
+        quiz_rows = (
+            db.query(QuizAnswer, Question)
+            .join(QuizAttempt, QuizAnswer.attempt_id == QuizAttempt.id)
+            .join(Question, QuizAnswer.question_id == Question.id)
+            .filter(
+                QuizAttempt.user_id == student.user_id,
+                QuizAnswer.grading_status.in_([GradingStatus.GRADED, GradingStatus.PUBLISHED]),
+            )
+            .all()
+        )
+        q_earned = sum(
+            (a.instructor_score if a.instructor_score is not None else a.auto_score or 0)
+            for a, _ in quiz_rows
+        )
+        q_max = sum(q.max_score for _, q in quiz_rows)
+        quiz_pct = round(q_earned / q_max * 100, 2) if q_max > 0 else ""
+
+        case_rows = (
+            db.query(ExamResult)
+            .filter(
+                ExamResult.user_id == student.user_id,
+                ExamResult.max_score > 0,
+                ExamResult.case_id != "quiz_global",
+            )
+            .all()
+        )
+        c_earned = sum(r.score for r in case_rows)
+        c_max = sum(r.max_score for r in case_rows)
+        case_pct = round(c_earned / c_max * 100, 2) if c_max > 0 else ""
+
+        outcome_rows.append({
+            "anon_user_id": anon,
+            "quiz_pct": quiz_pct,
+            "case_pct": case_pct,
+        })
+
     table_data = {
         "chat_logs": chat_log_rows,
         "quiz_attempts": quiz_attempt_rows,
@@ -177,6 +284,9 @@ def build_export_zip(db: Session) -> Tuple[bytes, int, List[str]]:
         "mastery_states": mastery_rows,
         "irt_parameters": irt_rows,
         "review_schedules": review_rows,
+        "mastery_trajectories": trajectory_rows,
+        "learning_curve_fits": lc_fit_rows,
+        "outcome_correlation": outcome_rows,
     }
 
     total_rows = sum(len(v) for v in table_data.values())
