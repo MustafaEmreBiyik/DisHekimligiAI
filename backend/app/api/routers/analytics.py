@@ -1,14 +1,15 @@
 """
 Analytics Router
 ================
-Endpoints for exporting research data as CSV files.
+Endpoints for exporting research data as CSV files and research-grade analytics.
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from fastapi.responses import StreamingResponse
 import logging
 import csv
 import io
+from typing import Optional
 
 from app.api.deps import AuthenticatedUser, get_current_user, require_roles
 from db.database import (
@@ -414,6 +415,86 @@ def get_student_stats(current_user: str = Depends(get_current_user)):
         )
 
 
+@router.get("/outcome-correlation")
+def get_outcome_correlation(
+    current_user: AuthenticatedUser = Depends(require_roles(UserRole.INSTRUCTOR, UserRole.ADMIN)),
+):
+    """
+    Pearson correlation between quiz/theory performance and case simulation
+    performance across the student cohort.  Provides construct-validity evidence
+    for publication (JDE / Wiley).
+    """
+    from app.services.outcome_correlation_service import build_outcome_correlation
+
+    db = SessionLocal()
+    try:
+        return build_outcome_correlation(db=db)
+    except Exception as e:
+        logger.exception("Error computing outcome correlation: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute outcome correlation: {str(e)}",
+        )
+    finally:
+        db.close()
+
+
+@router.get("/learning-curve")
+def get_learning_curve(
+    topic_id: Optional[str] = Query(default=None, description="Filter to a single topic ID"),
+    current_user: str = Depends(get_current_user),
+):
+    """
+    Parametric learning curve fit (exponential saturation or power-law) for the
+    authenticated student.  Returns observed cumulative accuracy, fitted curve,
+    R², and projected trials to reach the 0.70 mastery threshold.
+    """
+    from app.services.learning_curve_service import build_learning_curves
+
+    db = SessionLocal()
+    try:
+        return build_learning_curves(user_id=current_user, db=db, topic_id=topic_id)
+    except Exception as e:
+        logger.exception("Error computing learning curves for %s: %s", current_user, e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute learning curves: {str(e)}",
+        )
+    finally:
+        db.close()
+
+
+@router.get("/mastery-trajectory")
+def get_mastery_trajectory(
+    topic_id: Optional[str] = Query(default=None, description="Filter to a single topic ID"),
+    current_user: str = Depends(get_current_user),
+):
+    """
+    BKT mastery trajectory with 95% CI bands for the authenticated student.
+
+    Replays all graded observations in chronological order and returns the
+    P(L_n) time series per topic.  Confidence intervals are computed using
+    the Wilson-score approximation.
+
+    Query params
+    ------------
+    topic_id : str (optional) — return only the requested topic.
+    """
+    from app.services.mastery_trajectory_service import build_trajectory
+
+    db = SessionLocal()
+    try:
+        return build_trajectory(user_id=current_user, db=db, topic_id=topic_id)
+    except Exception as e:
+        logger.exception("Error computing mastery trajectory for %s: %s", current_user, e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute mastery trajectory: {str(e)}",
+        )
+    finally:
+        db.close()
+
+
 @router.get("/status")
 def analytics_service_status():
     """
@@ -422,5 +503,6 @@ def analytics_service_status():
     return {
         "service": "analytics",
         "status": "operational",
-        "available_exports": ["actions", "feedback", "sessions"]
+        "available_exports": ["actions", "feedback", "sessions"],
+        "research_endpoints": ["mastery-trajectory", "learning-curve", "outcome-correlation"],
     }

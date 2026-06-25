@@ -19,13 +19,23 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.constants import COMPOSITE_WEIGHTS, WEAK_THRESHOLD_PCT
+from app.constants import (
+    BKT_P_GUESS,
+    BKT_P_INIT,
+    BKT_P_SLIP,
+    BKT_P_TRANSIT,
+    COMPOSITE_WEIGHTS,
+    WEAK_THRESHOLD_PCT,
+)
 from db.database import (
     CaseDefinition,
     LLMInteractionLog,
+    MasteryState,
     Question,
     RubricVersion,
     SystemSnapshot,
+    User,
+    UserRole,
 )
 
 
@@ -124,6 +134,58 @@ def _collect_llm_config(db: Session) -> dict[str, Any]:
     }
 
 
+def _collect_analytics_summary(db: Session) -> dict[str, Any]:
+    """
+    Collect cohort-level analytics metrics for the snapshot bundle.
+
+    Includes:
+    - BKT model priors (for reproducibility)
+    - Cohort mastery averages per topic
+    - Outcome correlation (Pearson r between quiz and case scores)
+    """
+    from app.services.cohort_analytics_service import build_cohort_heatmap
+    from app.services.outcome_correlation_service import build_outcome_correlation
+
+    try:
+        heatmap = build_cohort_heatmap(db=db)
+        cohort_mastery = [
+            {
+                "topic_id": t["topic_id"],
+                "label": t["label"],
+                "cohort_avg": t["cohort_avg"],
+            }
+            for t in heatmap["topics"]
+        ]
+        n_students = heatmap["n_students"]
+    except Exception:
+        cohort_mastery = []
+        n_students = 0
+
+    try:
+        corr = build_outcome_correlation(db=db)
+        correlation = {
+            "pearson_r": corr["pearson_r"],
+            "n_paired": corr["n_paired"],
+            "interpretation": corr["interpretation"],
+        }
+    except Exception:
+        correlation = {"pearson_r": None, "n_paired": 0, "interpretation": ""}
+
+    return {
+        "schema_version": "14b",
+        "captured_at": datetime.utcnow().isoformat(),
+        "n_students_in_cohort": n_students,
+        "bkt_priors": {
+            "p_init": BKT_P_INIT,
+            "p_transit": BKT_P_TRANSIT,
+            "p_slip": BKT_P_SLIP,
+            "p_guess": BKT_P_GUESS,
+        },
+        "cohort_mastery_by_topic": cohort_mastery,
+        "outcome_correlation": correlation,
+    }
+
+
 def create_snapshot(
     db: Session,
     *,
@@ -176,9 +238,12 @@ def create_snapshot(
     }
 
     llm_config_payload = _collect_llm_config(db)
+    analytics_summary_payload = _collect_analytics_summary(db)
+    # Embed analytics_summary inside llm_config_payload to avoid a schema migration
+    llm_config_payload["analytics_summary"] = analytics_summary_payload
 
     bundle = {
-        "schema": "dentai-research-snapshot-v1",
+        "schema": "dentai-research-snapshot-v2",
         "label": label,
         "created_by": created_by,
         "created_at": datetime.utcnow().isoformat(),
@@ -188,7 +253,8 @@ def create_snapshot(
         "case_definitions": case_definitions_payload,
         "rubric_versions": rubric_versions_payload,
         "scoring_config": scoring_config_payload,
-        "llm_config": llm_config_payload,
+        "llm_config": {k: v for k, v in llm_config_payload.items() if k != "analytics_summary"},
+        "analytics_summary": analytics_summary_payload,
     }
     bundle_bytes = len(json.dumps(bundle, ensure_ascii=False).encode("utf-8"))
 
@@ -216,7 +282,7 @@ def create_snapshot(
 def export_bundle(snapshot: SystemSnapshot) -> bytes:
     """Serialize a snapshot to a JSON bundle ready for download."""
     bundle = {
-        "schema": "dentai-research-snapshot-v1",
+        "schema": "dentai-research-snapshot-v2",
         "label": snapshot.label,
         "created_by": snapshot.created_by,
         "created_at": snapshot.created_at.isoformat() if snapshot.created_at else None,
@@ -226,6 +292,10 @@ def export_bundle(snapshot: SystemSnapshot) -> bytes:
         "case_definitions": snapshot.case_definitions_payload,
         "rubric_versions": snapshot.rubric_versions_payload,
         "scoring_config": snapshot.scoring_config_payload,
-        "llm_config": snapshot.llm_config_payload,
+        "llm_config": {
+            k: v for k, v in snapshot.llm_config_payload.items()
+            if k != "analytics_summary"
+        },
+        "analytics_summary": snapshot.llm_config_payload.get("analytics_summary") or {},
     }
     return json.dumps(bundle, ensure_ascii=False, indent=2).encode("utf-8")
